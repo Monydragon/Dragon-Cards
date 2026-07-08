@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DragonCards.Core/DragonCards.Core.csproj" />
+    <Project Path="src/DragonCards.Desktop/DragonCards.Desktop.csproj" />
+    <Project Path="src/DragonCards.Networking/DragonCards.Networking.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DragonCards.Tests/DragonCards.Tests.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,1405 @@
+namespace DragonCards.Core;
+
+public sealed class DragonDuelEngine
+{
+    private readonly IEffectHookRegistry _hooks;
+
+    private DragonDuelEngine(MatchState state, IEffectHookRegistry hooks)
+    {
+        State = state;
+        _hooks = hooks;
+    }
+
+    public MatchState State { get; }
+
+    public int GetEffectiveCombatPower(CardDefinition card, CardDefinition opponent) =>
+        GetEffectiveCombatPower(State.Mode, card, opponent);
+
+    public int GetElementAdvantageBonus(CardDefinition card, CardDefinition opponent) =>
+        GetElementAdvantageBonus(State.Mode, card, opponent);
+
+    public static int GetEffectiveCombatPower(GameModeDefinition mode, CardDefinition card, CardDefinition opponent) =>
+        card.Power + GetElementAdvantageBonus(mode, card, opponent);
+
+    public static int GetElementAdvantageBonus(GameModeDefinition mode, CardDefinition card, CardDefinition opponent) =>
+        HasElementAdvantage(mode, card, opponent) ? mode.ElementAdvantage?.PowerBonus ?? 0 : 0;
+
+    public static bool HasElementAdvantage(GameModeDefinition mode, CardDefinition card, CardDefinition opponent)
+    {
+        var element = GetCombatElement(mode, card);
+        var opponentElement = GetCombatElement(mode, opponent);
+        if (string.IsNullOrWhiteSpace(element) ||
+            string.IsNullOrWhiteSpace(opponentElement) ||
+            mode.ElementAdvantage is null ||
+            !mode.ElementAdvantage.StrongAgainst.TryGetValue(element, out var strongAgainst))
+        {
+            return false;
+        }
+
+        return strongAgainst.Contains(opponentElement, StringComparer.OrdinalIgnoreCase);
+    }
+
+    public static string? GetCombatElement(GameModeDefinition mode, CardDefinition card) =>
+        card.Elements.FirstOrDefault(element => mode.Elements.Contains(element, StringComparer.OrdinalIgnoreCase));
+
+    public static IReadOnlyList<string> GetStrongAgainstElements(GameModeDefinition mode, CardDefinition card)
+    {
+        var element = GetCombatElement(mode, card);
+        if (string.IsNullOrWhiteSpace(element) ||
+            mode.ElementAdvantage is null ||
+            !mode.ElementAdvantage.StrongAgainst.TryGetValue(element, out var strongAgainst))
+        {
+            return [];
+        }
+
+        return strongAgainst;
+    }
+
+    public static IReadOnlyList<string> GetWeakAgainstElements(GameModeDefinition mode, CardDefinition card)
+    {
+        var element = GetCombatElement(mode, card);
+        if (string.IsNullOrWhiteSpace(element) || mode.ElementAdvantage is null)
+        {
+            return [];
+        }
+
+        return mode.ElementAdvantage.StrongAgainst
+            .Where(entry => entry.Value.Contains(element, StringComparer.OrdinalIgnoreCase))
+            .Select(entry => entry.Key)
+            .ToArray();
+    }
+
+    public static DragonDuelEngine Create(
+        GameData data,
+        string modeId,
+        DeckDefinition firstDeck,
+        DeckDefinition secondDeck,
+        int? seed = null,
+        bool shuffle = true,
+        IEffectHookRegistry? hooks = null)
+    {
+        if (!data.GameModesById.TryGetValue(modeId, out var mode))
+        {
+            throw new ArgumentException($"Unknown game mode '{modeId}'.", nameof(modeId));
+        }
+
+        var firstIssues = GameDataValidator.ValidateDeck(firstDeck, data);
+        var secondIssues = GameDataValidator.ValidateDeck(secondDeck, data);
+        if (firstIssues.Count > 0 || secondIssues.Count > 0)
+        {
+            var joined = string.Join(Environment.NewLine, firstIssues.Concat(secondIssues).Select(issue => issue.Message));
+            throw new InvalidOperationException($"Cannot start match with invalid decks:{Environment.NewLine}{joined}");
+        }
+
+        var random = seed is null ? Random.Shared : new Random(seed.Value);
+        var firstPlayer = new PlayerState("Player 1", BuildDeck(firstDeck, shuffle, random));
+        var secondPlayer = new PlayerState("Player 2", BuildDeck(secondDeck, shuffle, random));
+        var state = new MatchState(mode, data.CardsById, firstPlayer, secondPlayer);
+        var engine = new DragonDuelEngine(state, hooks ?? DefaultEffectHookRegistry.Create());
+
+        engine.DrawCards(0, mode.StartingHand);
+        engine.DrawCards(1, mode.StartingHand);
+        engine.BeginCurrentPhase();
+        state.Log.Add("Dragon Duel match started.");
+        return engine;
+    }
+
+    public GameActionResult AdvancePhase()
+    {
+        if (State.WinnerIndex is not null)
+        {
+            return GameActionResult.Fail("The match is already over.");
+        }
+
+        if (State.PendingAttack is not null)
+        {
+            return GameActionResult.Fail("Resolve the current attack before changing phases.");
+        }
+
+        if (State.PendingEnergyChoice is not null)
+        {
+            return GameActionResult.Fail("Choose an energy element before changing phases.");
+        }
+
+        if (State.PendingTargetChoice is not null)
+        {
+            return GameActionResult.Fail("Choose a target before changing phases.");
+        }
+
+        var events = new List<MatchEvent>();
+        if (State.CurrentPhase.Equals("End", StringComparison.OrdinalIgnoreCase))
+        {
+            State.ActivePlayerIndex = 1 - State.ActivePlayerIndex;
+            State.PhaseIndex = 0;
+            State.TurnNumber++;
+            State.EnergyAddsThisTurn = 0;
+            events.Add(PhaseEvent($"{State.ActivePlayer.Name}'s turn begins."));
+            events.AddRange(BeginCurrentPhase());
+            return GameActionResult.Ok($"{State.ActivePlayer.Name}'s turn begins.", events);
+        }
+
+        State.PhaseIndex++;
+        events.Add(PhaseEvent($"Advanced to {State.CurrentPhase}."));
+        events.AddRange(BeginCurrentPhase());
+        return GameActionResult.Ok($"Advanced to {State.CurrentPhase}.", events);
+    }
+
+    public GameActionResult AdvanceToNextDecisionPhase()
+    {
+        if (State.WinnerIndex is not null)
+        {
+            return GameActionResult.Fail("The match is already over.");
+        }
+
+        if (State.PendingAttack is not null)
+        {
+            return GameActionResult.Fail("Resolve the current attack first.");
+        }
+
+        if (State.PendingEnergyChoice is not null)
+        {
+            return GameActionResult.Fail("Choose an energy element first.");
+        }
+
+        if (State.PendingTargetChoice is not null)
+        {
+            return GameActionResult.Fail("Choose a target first.");
+        }
+
+        var advanced = false;
+        var events = new List<MatchEvent>();
+        while (State.CurrentPhase.Equals("Ready", StringComparison.OrdinalIgnoreCase) ||
+               State.CurrentPhase.Equals("Draw", StringComparison.OrdinalIgnoreCase) ||
+               State.CurrentPhase.Equals("End", StringComparison.OrdinalIgnoreCase))
+        {
+            var result = AdvancePhase();
+            if (!result.Success)
+            {
+                return result;
+            }
+
+            advanced = true;
+            events.AddRange(result.Events);
+        }
+
+        return GameActionResult.Ok(advanced
+            ? $"{State.ActivePlayer.Name}'s {State.CurrentPhase} phase."
+            : $"Already in {State.CurrentPhase}.", events);
+    }
+
+    public GameActionResult AddEnergy(string element)
+    {
+        if (State.WinnerIndex is not null)
+        {
+            return GameActionResult.Fail("The match is already over.");
+        }
+
+        if (State.PendingEnergyChoice is not null)
+        {
+            return GameActionResult.Fail("Choose an energy element first.");
+        }
+
+        if (State.PendingTargetChoice is not null)
+        {
+            return GameActionResult.Fail("Choose a target first.");
+        }
+
+        if (!IsMainPhase())
+        {
+            return GameActionResult.Fail("Energy can only be added during a main phase.");
+        }
+
+        if (State.EnergyAddsThisTurn >= State.Mode.EnergyRules.AddsPerTurn)
+        {
+            return GameActionResult.Fail("Energy has already been added this turn.");
+        }
+
+        return GainEnergy(State.ActivePlayerIndex, element, 1, countsAsTurnAdd: true);
+    }
+
+    public bool CanAddEnergy(string? element = null)
+    {
+        if (State.WinnerIndex is not null ||
+            State.PendingEnergyChoice is not null ||
+            State.PendingTargetChoice is not null ||
+            !IsMainPhase() ||
+            State.EnergyAddsThisTurn >= State.Mode.EnergyRules.AddsPerTurn)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(element))
+        {
+            return true;
+        }
+
+        return State.Mode.Elements.Contains(element, StringComparer.OrdinalIgnoreCase) &&
+            State.ActivePlayer.EnergyPool.GetValueOrDefault(element) < State.Mode.EnergyRules.MaxPerElement;
+    }
+
+    public GameActionResult PlaceEnergyFromHand(int handIndex)
+    {
+        var player = State.ActivePlayer;
+        if (!IsValidIndex(player.Hand, handIndex))
+        {
+            return GameActionResult.Fail("No card exists at that hand position.");
+        }
+
+        var card = State.DefinitionFor(player.Hand[handIndex]);
+        var element = card.Elements.FirstOrDefault() ?? State.Mode.Elements.First();
+        return AddEnergy(element);
+    }
+
+    public GameActionResult ResolveEnergyChoice(string element)
+    {
+        var choice = State.PendingEnergyChoice;
+        if (choice is null)
+        {
+            return GameActionResult.Fail("There is no pending energy choice.");
+        }
+
+        if (!State.Mode.Elements.Contains(element, StringComparer.OrdinalIgnoreCase))
+        {
+            return GameActionResult.Fail($"'{element}' is not a valid element.");
+        }
+
+        State.PendingEnergyChoice = null;
+        if (choice.Type == PendingEnergyChoiceType.Gain)
+        {
+            return GainEnergy(choice.PlayerIndex, element, choice.Amount, countsAsTurnAdd: false);
+        }
+
+        return ConvertOneEnergy(choice.PlayerIndex, element);
+    }
+
+    public void QueueEnergyChoice(int playerIndex, PendingEnergyChoiceType type, int amount, string message)
+    {
+        State.PendingEnergyChoice = new PendingEnergyChoice(playerIndex, type, amount, message);
+        State.Log.Add(message);
+    }
+
+    public void QueueTargetChoice(int playerIndex, PendingTargetChoiceType type, TargetScope scope, CardInstance source, string message)
+    {
+        State.PendingTargetChoice = new PendingTargetChoice(playerIndex, type, scope, source.Id, message);
+        var hasLegalTarget = State.Players
+            .SelectMany((player, targetPlayerIndex) => player.UnitField.Select((_, targetIndex) => (targetPlayerIndex, targetIndex)))
+            .Any(target => CanResolveTargetChoice(target.targetPlayerIndex, target.targetIndex));
+        if (!hasLegalTarget)
+        {
+            State.PendingTargetChoice = null;
+            State.Log.Add("No legal target was available.");
+            return;
+        }
+
+        State.Log.Add(message);
+    }
+
+    public bool CanResolveTargetChoice(int targetPlayerIndex, int targetFieldIndex)
+    {
+        var choice = State.PendingTargetChoice;
+        if (choice is null ||
+            targetPlayerIndex < 0 ||
+            targetPlayerIndex >= State.Players.Count ||
+            !IsValidIndex(State.Players[targetPlayerIndex].UnitField, targetFieldIndex))
+        {
+            return false;
+        }
+
+        return choice.Scope switch
+        {
+            TargetScope.EnemyUnit => targetPlayerIndex == 1 - choice.PlayerIndex,
+            TargetScope.FriendlyUnit => targetPlayerIndex == choice.PlayerIndex,
+            TargetScope.AnyUnit => true,
+            _ => false
+        };
+    }
+
+    public GameActionResult ResolveTargetChoice(int targetPlayerIndex, int targetFieldIndex)
+    {
+        var choice = State.PendingTargetChoice;
+        if (choice is null)
+        {
+            return GameActionResult.Fail("There is no pending target choice.");
+        }
+
+        if (!CanResolveTargetChoice(targetPlayerIndex, targetFieldIndex))
+        {
+            return GameActionResult.Fail("That is not a legal target.");
+        }
+
+        var target = State.Players[targetPlayerIndex].UnitField[targetFieldIndex];
+        var card = State.DefinitionFor(target);
+        State.PendingTargetChoice = null;
+
+        if (choice.Type == PendingTargetChoiceType.ExhaustUnit)
+        {
+            target.Exhausted = true;
+            var message = $"{card.Name} was exhausted.";
+            State.Log.Add(message);
+            return GameActionResult.Ok(message, new MatchEvent
+            {
+                Kind = MatchEventKind.TargetResolved,
+                PlayerIndex = choice.PlayerIndex,
+                CardId = target.CardId,
+                InstanceId = target.Id,
+                To = new ZoneRef(targetPlayerIndex, "UnitField", targetFieldIndex),
+                Message = message
+            });
+        }
+
+        target.Exhausted = false;
+        var readyMessage = $"{card.Name} was readied.";
+        State.Log.Add(readyMessage);
+        return GameActionResult.Ok(readyMessage, new MatchEvent
+        {
+            Kind = MatchEventKind.CardReadied,
+            PlayerIndex = choice.PlayerIndex,
+            CardId = target.CardId,
+            InstanceId = target.Id,
+            To = new ZoneRef(targetPlayerIndex, "UnitField", targetFieldIndex),
+            Message = readyMessage
+        });
+    }
+
+    public GameActionResult PlayCardFromHand(int handIndex)
+    {
+        if (State.WinnerIndex is not null)
+        {
+            return GameActionResult.Fail("The match is already over.");
+        }
+
+        if (State.PendingEnergyChoice is not null)
+        {
+            return GameActionResult.Fail("Choose an energy element first.");
+        }
+
+        if (State.PendingTargetChoice is not null)
+        {
+            return GameActionResult.Fail("Choose a target first.");
+        }
+
+        if (!IsMainPhase())
+        {
+            return GameActionResult.Fail("Cards can only be played during a main phase.");
+        }
+
+        var player = State.ActivePlayer;
+        if (!IsValidIndex(player.Hand, handIndex))
+        {
+            return GameActionResult.Fail("No card exists at that hand position.");
+        }
+
+        var instance = player.Hand[handIndex];
+        var definition = State.DefinitionFor(instance);
+        var zoneIssue = ValidatePlayZone(player, definition);
+        if (zoneIssue is not null)
+        {
+            return GameActionResult.Fail(zoneIssue);
+        }
+
+        if (!SpendCost(State.ActivePlayerIndex, definition.Cost, consumeNextCardReduction: true, out var paymentPlan))
+        {
+            return GameActionResult.Fail($"Not enough energy to pay {definition.Name}'s cost.");
+        }
+
+        player.Hand.RemoveAt(handIndex);
+        ApplyCardResolution(player, instance, definition);
+        State.Log.Add($"{player.Name} played {definition.Name}.");
+        var zone = definition.Type.Equals("Unit", StringComparison.OrdinalIgnoreCase)
+            ? "UnitField"
+            : definition.Type.Equals("Support", StringComparison.OrdinalIgnoreCase)
+                ? "SupportField"
+                : "DiscardPile";
+        var toIndex = zone == "UnitField"
+            ? player.UnitField.FindIndex(card => card.Id == instance.Id)
+            : zone == "SupportField"
+                ? player.SupportField.FindIndex(card => card.Id == instance.Id)
+                : player.DiscardPile.FindIndex(card => card.Id == instance.Id);
+        var events = new List<MatchEvent>();
+        events.AddRange(PaymentEvents(State.ActivePlayerIndex, paymentPlan));
+        events.Add(new MatchEvent
+        {
+            Kind = MatchEventKind.CardPlayed,
+            PlayerIndex = State.ActivePlayerIndex,
+            CardId = instance.CardId,
+            InstanceId = instance.Id,
+            From = new ZoneRef(State.ActivePlayerIndex, "Hand", handIndex),
+            To = new ZoneRef(State.ActivePlayerIndex, zone, toIndex),
+            Message = $"{definition.Name} played."
+        });
+        if (definition.Type.Equals("Spell", StringComparison.OrdinalIgnoreCase))
+        {
+            events.Add(new MatchEvent
+            {
+                Kind = MatchEventKind.CardDiscarded,
+                PlayerIndex = State.ActivePlayerIndex,
+                CardId = instance.CardId,
+                InstanceId = instance.Id,
+                To = new ZoneRef(State.ActivePlayerIndex, "DiscardPile", toIndex),
+                Message = $"{definition.Name} resolved."
+            });
+        }
+
+        if (State.PendingEnergyChoice is not null)
+        {
+            events.Add(new MatchEvent
+            {
+                Kind = MatchEventKind.TargetChoiceQueued,
+                PlayerIndex = State.PendingEnergyChoice.PlayerIndex,
+                Amount = State.PendingEnergyChoice.Amount,
+                Message = State.PendingEnergyChoice.Message
+            });
+        }
+
+        if (State.PendingTargetChoice is not null)
+        {
+            events.Add(new MatchEvent
+            {
+                Kind = MatchEventKind.TargetChoiceQueued,
+                PlayerIndex = State.PendingTargetChoice.PlayerIndex,
+                InstanceId = State.PendingTargetChoice.SourceInstanceId,
+                Message = State.PendingTargetChoice.Message
+            });
+        }
+
+        return GameActionResult.Ok($"{definition.Name} played.", events);
+    }
+
+    public GameActionResult ActivateAbility(int ownerIndex, string sourceInstanceId, string abilityId)
+    {
+        if (State.WinnerIndex is not null)
+        {
+            return GameActionResult.Fail("The match is already over.");
+        }
+
+        if (State.PendingEnergyChoice is not null)
+        {
+            return GameActionResult.Fail("Choose an energy element first.");
+        }
+
+        if (State.PendingTargetChoice is not null)
+        {
+            return GameActionResult.Fail("Choose a target first.");
+        }
+
+        if (ownerIndex != State.ActivePlayerIndex || !IsMainPhase())
+        {
+            return GameActionResult.Fail("Activated abilities can only be used by the active player during a main phase.");
+        }
+
+        var owner = State.Players[ownerIndex];
+        var source = owner.UnitField.Concat(owner.SupportField).FirstOrDefault(card => card.Id == sourceInstanceId);
+        if (source is null)
+        {
+            return GameActionResult.Fail("That card is not on the active player's field.");
+        }
+
+        if (source.Exhausted)
+        {
+            return GameActionResult.Fail($"{State.CardName(source)} is exhausted.");
+        }
+
+        var card = State.DefinitionFor(source);
+        var ability = card.Abilities.FirstOrDefault(item => item.Id.Equals(abilityId, StringComparison.OrdinalIgnoreCase));
+        if (ability is null)
+        {
+            return GameActionResult.Fail($"{card.Name} does not have that ability.");
+        }
+
+        if (!SpendCost(ownerIndex, ability.Cost, consumeNextCardReduction: false, out var paymentPlan))
+        {
+            return GameActionResult.Fail($"Not enough energy to activate {ability.Name}.");
+        }
+
+        source.Exhausted = true;
+        _hooks.Invoke(ability.Hook, new EffectContext(this, State, ownerIndex, source, card, ability));
+        State.Log.Add($"{owner.Name} activated {card.Name}: {ability.Name}.");
+        var events = new List<MatchEvent>();
+        events.AddRange(PaymentEvents(ownerIndex, paymentPlan));
+        events.Add(new MatchEvent
+        {
+            Kind = MatchEventKind.AbilityActivated,
+            PlayerIndex = ownerIndex,
+            CardId = source.CardId,
+            InstanceId = source.Id,
+            Message = $"{ability.Name} activated."
+        });
+        return GameActionResult.Ok($"{ability.Name} activated.", events);
+    }
+
+    public bool CanPlayCardFromHand(int handIndex)
+    {
+        if (!IsMainPhase() || State.PendingEnergyChoice is not null || State.PendingTargetChoice is not null)
+        {
+            return false;
+        }
+
+        var player = State.ActivePlayer;
+        if (!IsValidIndex(player.Hand, handIndex))
+        {
+            return false;
+        }
+
+        var card = State.DefinitionFor(player.Hand[handIndex]);
+        return ValidatePlayZone(player, card) is null &&
+            CreatePaymentPlan(State.ActivePlayerIndex, card.Cost, includeNextCardReduction: true) is not null;
+    }
+
+    public bool CanActivateAbility(int ownerIndex, string sourceInstanceId, string abilityId)
+    {
+        if (State.WinnerIndex is not null ||
+            State.PendingEnergyChoice is not null ||
+            State.PendingTargetChoice is not null ||
+            ownerIndex != State.ActivePlayerIndex ||
+            !IsMainPhase())
+        {
+            return false;
+        }
+
+        var owner = State.Players[ownerIndex];
+        var source = owner.UnitField.Concat(owner.SupportField).FirstOrDefault(card => card.Id == sourceInstanceId);
+        if (source is null)
+        {
+            return false;
+        }
+
+        if (source.Exhausted)
+        {
+            return false;
+        }
+
+        var ability = State.DefinitionFor(source).Abilities.FirstOrDefault(item => item.Id.Equals(abilityId, StringComparison.OrdinalIgnoreCase));
+        return ability is not null && CreatePaymentPlan(ownerIndex, ability.Cost, includeNextCardReduction: false) is not null;
+    }
+
+    public IReadOnlyList<int> GetPlayableHandIndices()
+    {
+        var indices = new List<int>();
+        for (var i = 0; i < State.ActivePlayer.Hand.Count; i++)
+        {
+            if (CanPlayCardFromHand(i))
+            {
+                indices.Add(i);
+            }
+        }
+
+        return indices;
+    }
+
+    public IReadOnlyList<ActivatableAbility> GetActivatableAbilities(int ownerIndex)
+    {
+        var abilities = new List<ActivatableAbility>();
+        var owner = State.Players[ownerIndex];
+        foreach (var source in owner.UnitField.Concat(owner.SupportField))
+        {
+            var card = State.DefinitionFor(source);
+            foreach (var ability in card.Abilities)
+            {
+                if (CanActivateAbility(ownerIndex, source.Id, ability.Id))
+                {
+                    abilities.Add(new ActivatableAbility(ownerIndex, source.Id, card, ability));
+                }
+            }
+        }
+
+        return abilities;
+    }
+
+    public bool CanSacrificeForEnergy(SacrificeSource source, int index)
+    {
+        if (State.WinnerIndex is not null ||
+            State.PendingAttack is not null ||
+            State.PendingEnergyChoice is not null ||
+            State.PendingTargetChoice is not null ||
+            !IsMainPhase())
+        {
+            return false;
+        }
+
+        if (!TryGetSacrificeCard(source, index, out var instance, out var definition))
+        {
+            return false;
+        }
+
+        var preview = GetSacrificeEnergyPreview(definition);
+        return !string.IsNullOrWhiteSpace(preview.Element) &&
+            State.ActivePlayer.EnergyPool.GetValueOrDefault(preview.Element) < State.Mode.EnergyRules.MaxPerElement;
+    }
+
+    public GameActionResult SacrificeForEnergy(SacrificeSource source, int index)
+    {
+        if (State.WinnerIndex is not null)
+        {
+            return GameActionResult.Fail("The match is already over.");
+        }
+
+        if (State.PendingAttack is not null)
+        {
+            return GameActionResult.Fail("Resolve the current attack before sacrificing.");
+        }
+
+        if (State.PendingEnergyChoice is not null)
+        {
+            return GameActionResult.Fail("Choose an energy element before sacrificing.");
+        }
+
+        if (State.PendingTargetChoice is not null)
+        {
+            return GameActionResult.Fail("Choose a target before sacrificing.");
+        }
+
+        if (!IsMainPhase())
+        {
+            return GameActionResult.Fail("Cards can only be sacrificed during a main phase.");
+        }
+
+        if (!TryGetSacrificeCard(source, index, out var instance, out var definition))
+        {
+            return GameActionResult.Fail("No card exists at that sacrifice position.");
+        }
+
+        var preview = GetSacrificeEnergyPreview(definition);
+        if (State.ActivePlayer.EnergyPool.GetValueOrDefault(preview.Element) >= State.Mode.EnergyRules.MaxPerElement)
+        {
+            return GameActionResult.Fail($"{preview.Element} energy is already maxed at {State.Mode.EnergyRules.MaxPerElement}.");
+        }
+
+        RemoveSacrificeCard(source, instance);
+        instance.Exhausted = false;
+        State.ActivePlayer.DiscardPile.Add(instance);
+        var result = GainEnergy(State.ActivePlayerIndex, preview.Element, preview.Amount, countsAsTurnAdd: false);
+        State.Log.Add($"{State.ActivePlayer.Name} sacrificed {definition.Name} for {preview.Amount} {preview.Element} energy.");
+        var events = new List<MatchEvent>
+        {
+            new()
+            {
+                Kind = MatchEventKind.CardSacrificed,
+                PlayerIndex = State.ActivePlayerIndex,
+                CardId = instance.CardId,
+                InstanceId = instance.Id,
+                From = new ZoneRef(State.ActivePlayerIndex, source.ToString(), index),
+                To = new ZoneRef(State.ActivePlayerIndex, "DiscardPile", State.ActivePlayer.DiscardPile.Count - 1),
+                Element = preview.Element,
+                Amount = preview.Amount,
+                Message = $"{definition.Name} sacrificed."
+            }
+        };
+        events.AddRange(result.Events);
+        return result.Success
+            ? GameActionResult.Ok($"{definition.Name} sacrificed for +{preview.Amount} {preview.Element}.", events)
+            : result;
+    }
+
+    public (string Element, int Amount) GetSacrificeEnergyPreview(CardDefinition card)
+    {
+        var element = card.Elements.FirstOrDefault(item => State.Mode.Elements.Contains(item, StringComparer.OrdinalIgnoreCase))
+            ?? State.Mode.Elements.FirstOrDefault()
+            ?? "";
+        var totalCost = Math.Max(0, card.Cost.Values.Where(amount => amount > 0).Sum());
+        var amount = Math.Max(1, (totalCost + 1) / 2);
+        return (element, amount);
+    }
+
+    public EnergyPaymentPlan? CreatePaymentPlan(int playerIndex, IReadOnlyDictionary<string, int> cost, bool includeNextCardReduction)
+    {
+        var player = State.Players[playerIndex];
+        var adjusted = NormalizeCost(cost);
+        var reductionApplied = 0;
+
+        if (includeNextCardReduction && player.NextCardCostReduction > 0)
+        {
+            reductionApplied = ApplyCostReduction(adjusted, player.NextCardCostReduction);
+        }
+
+        var available = player.EnergyPool.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
+        var spent = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var (element, amount) in adjusted.Where(entry => !entry.Key.Equals(DragonCardConstants.GenericCost, StringComparison.OrdinalIgnoreCase)))
+        {
+            if (amount <= 0)
+            {
+                continue;
+            }
+
+            if (!available.TryGetValue(element, out var count) || count < amount)
+            {
+                return null;
+            }
+
+            available[element] = count - amount;
+            spent[element] = spent.GetValueOrDefault(element) + amount;
+        }
+
+        var generic = adjusted.GetValueOrDefault(DragonCardConstants.GenericCost);
+        for (var i = 0; i < generic; i++)
+        {
+            var element = State.Mode.Elements
+                .Where(available.ContainsKey)
+                .OrderByDescending(item => available[item])
+                .FirstOrDefault(item => available[item] > 0);
+            if (element is null)
+            {
+                return null;
+            }
+
+            available[element]--;
+            spent[element] = spent.GetValueOrDefault(element) + 1;
+        }
+
+        return new EnergyPaymentPlan(adjusted, spent, reductionApplied);
+    }
+
+    public IReadOnlyList<MatchEvent> DrawCards(int playerIndex, int count)
+    {
+        var events = new List<MatchEvent>();
+        var player = State.Players[playerIndex];
+        for (var i = 0; i < count; i++)
+        {
+            if (player.Deck.Count == 0)
+            {
+                State.WinnerIndex = 1 - playerIndex;
+                State.Log.Add($"{player.Name} tried to draw from an empty deck and lost.");
+                return events;
+            }
+
+            var card = player.Deck[0];
+            player.Deck.RemoveAt(0);
+            card.Exhausted = false;
+            player.Hand.Add(card);
+            events.Add(new MatchEvent
+            {
+                Kind = MatchEventKind.CardDrawn,
+                PlayerIndex = playerIndex,
+                CardId = card.CardId,
+                InstanceId = card.Id,
+                From = new ZoneRef(playerIndex, "Deck"),
+                To = new ZoneRef(playerIndex, "Hand", player.Hand.Count - 1),
+                Message = $"{player.Name} drew a card."
+            });
+        }
+
+        return events;
+    }
+
+    public IReadOnlyList<MatchEvent> DealDamageToOpponent(int ownerIndex, int amount)
+    {
+        var events = new List<MatchEvent>();
+        var defenderIndex = 1 - ownerIndex;
+        var defender = State.Players[defenderIndex];
+
+        for (var i = 0; i < amount; i++)
+        {
+            if (defender.Deck.Count == 0)
+            {
+                State.WinnerIndex = ownerIndex;
+                State.Log.Add($"{defender.Name} had no cards left for damage.");
+                return events;
+            }
+
+            var damageCard = defender.Deck[0];
+            defender.Deck.RemoveAt(0);
+            damageCard.Exhausted = false;
+            defender.DamageZone.Add(damageCard);
+            State.Log.Add($"{defender.Name} took 1 damage.");
+            events.Add(new MatchEvent
+            {
+                Kind = MatchEventKind.DamageTaken,
+                PlayerIndex = defenderIndex,
+                CardId = damageCard.CardId,
+                InstanceId = damageCard.Id,
+                From = new ZoneRef(defenderIndex, "Deck"),
+                To = new ZoneRef(defenderIndex, "DamageZone", defender.DamageZone.Count - 1),
+                Amount = 1,
+                Message = $"{defender.Name} took 1 damage."
+            });
+
+            if (defender.DamageZone.Count >= State.Mode.DamageLimit)
+            {
+                State.WinnerIndex = ownerIndex;
+                State.Log.Add($"{State.Players[ownerIndex].Name} wins by damage.");
+                return events;
+            }
+        }
+
+        return events;
+    }
+
+    public GameActionResult GainEnergy(int playerIndex, string element, int amount, bool countsAsTurnAdd = false)
+    {
+        if (!State.Mode.Elements.Contains(element, StringComparer.OrdinalIgnoreCase))
+        {
+            return GameActionResult.Fail($"'{element}' is not a valid element.");
+        }
+
+        var player = State.Players[playerIndex];
+        var current = player.EnergyPool.GetValueOrDefault(element);
+        var max = State.Mode.EnergyRules.MaxPerElement;
+        if (current >= max)
+        {
+            return GameActionResult.Fail($"{element} energy is already maxed at {max}.");
+        }
+
+        var gained = Math.Min(amount, max - current);
+        player.EnergyPool[element] = current + gained;
+        if (countsAsTurnAdd)
+        {
+            State.EnergyAddsThisTurn++;
+        }
+
+        State.Log.Add($"{player.Name} gained {gained} {element} energy.");
+        return GameActionResult.Ok($"{element} energy +{gained}.", new MatchEvent
+        {
+            Kind = MatchEventKind.EnergyGained,
+            PlayerIndex = playerIndex,
+            Element = element,
+            Amount = gained,
+            To = new ZoneRef(playerIndex, "EnergyPool"),
+            Message = $"{element} energy +{gained}."
+        });
+    }
+
+    public void ReduceNextCardCost(int playerIndex, int amount)
+    {
+        var player = State.Players[playerIndex];
+        player.NextCardCostReduction += amount;
+        State.Log.Add($"{player.Name}'s next card costs {amount} less.");
+    }
+
+    public int RefundLastPayment(int playerIndex, int amount)
+    {
+        var player = State.Players[playerIndex];
+        var refunded = 0;
+        foreach (var element in State.Mode.Elements)
+        {
+            while (refunded < amount &&
+                player.LastPayment.GetValueOrDefault(element) > 0 &&
+                player.EnergyPool.GetValueOrDefault(element) < State.Mode.EnergyRules.MaxPerElement)
+            {
+                player.LastPayment[element]--;
+                player.EnergyPool[element] = player.EnergyPool.GetValueOrDefault(element) + 1;
+                refunded++;
+            }
+        }
+
+        if (refunded > 0)
+        {
+            State.Log.Add($"{player.Name} refunded {refunded} energy.");
+        }
+
+        return refunded;
+    }
+
+    public GameActionResult DeclareAttack(int attackerFieldIndex)
+    {
+        if (State.WinnerIndex is not null)
+        {
+            return GameActionResult.Fail("The match is already over.");
+        }
+
+        if (State.PendingEnergyChoice is not null)
+        {
+            return GameActionResult.Fail("Choose an energy element first.");
+        }
+
+        if (State.PendingTargetChoice is not null)
+        {
+            return GameActionResult.Fail("Choose a target first.");
+        }
+
+        if (!State.CurrentPhase.Equals("Combat", StringComparison.OrdinalIgnoreCase))
+        {
+            return GameActionResult.Fail("Units can only attack during combat.");
+        }
+
+        if (State.PendingAttack is not null)
+        {
+            return GameActionResult.Fail("An attack is already pending.");
+        }
+
+        var attacker = State.ActivePlayer;
+        if (!IsValidIndex(attacker.UnitField, attackerFieldIndex))
+        {
+            return GameActionResult.Fail("No unit exists at that field position.");
+        }
+
+        var unit = attacker.UnitField[attackerFieldIndex];
+        if (unit.Exhausted)
+        {
+            return GameActionResult.Fail($"{State.CardName(unit)} is exhausted.");
+        }
+
+        unit.Exhausted = true;
+        State.PendingAttack = new PendingAttack(State.ActivePlayerIndex, unit.Id);
+        State.Log.Add($"{attacker.Name} attacked with {State.CardName(unit)}.");
+        return GameActionResult.Ok("Attack declared.", new MatchEvent
+        {
+            Kind = MatchEventKind.AttackDeclared,
+            PlayerIndex = State.ActivePlayerIndex,
+            CardId = unit.CardId,
+            InstanceId = unit.Id,
+            From = new ZoneRef(State.ActivePlayerIndex, "UnitField", attackerFieldIndex),
+            Message = $"{attacker.Name} attacked with {State.CardName(unit)}."
+        });
+    }
+
+    public bool CanDeclareAttack(int attackerFieldIndex)
+    {
+        if (State.WinnerIndex is not null ||
+            State.PendingEnergyChoice is not null ||
+            State.PendingTargetChoice is not null ||
+            !State.CurrentPhase.Equals("Combat", StringComparison.OrdinalIgnoreCase) ||
+            State.PendingAttack is not null ||
+            !IsValidIndex(State.ActivePlayer.UnitField, attackerFieldIndex))
+        {
+            return false;
+        }
+
+        return !State.ActivePlayer.UnitField[attackerFieldIndex].Exhausted;
+    }
+
+    public GameActionResult Block(int blockerFieldIndex)
+    {
+        if (State.PendingAttack is null)
+        {
+            return GameActionResult.Fail("There is no pending attack to block.");
+        }
+
+        var defender = State.Players[1 - State.PendingAttack.AttackerPlayerIndex];
+        if (!IsValidIndex(defender.UnitField, blockerFieldIndex))
+        {
+            return GameActionResult.Fail("No unit exists at that field position.");
+        }
+
+        var blocker = defender.UnitField[blockerFieldIndex];
+        if (blocker.Exhausted)
+        {
+            return GameActionResult.Fail($"{State.CardName(blocker)} is exhausted.");
+        }
+
+        blocker.Exhausted = true;
+        var events = new List<MatchEvent>
+        {
+            new()
+            {
+                Kind = MatchEventKind.BlockDeclared,
+                PlayerIndex = 1 - State.PendingAttack.AttackerPlayerIndex,
+                CardId = blocker.CardId,
+                InstanceId = blocker.Id,
+                From = new ZoneRef(1 - State.PendingAttack.AttackerPlayerIndex, "UnitField", blockerFieldIndex),
+                Message = $"{State.CardName(blocker)} blocked."
+            }
+        };
+        var result = ResolveCombat(blocker);
+        events.AddRange(result.Events);
+        return result.Success ? GameActionResult.Ok(result.Message, events) : result;
+    }
+
+    public bool CanBlock(int blockerFieldIndex)
+    {
+        if (State.PendingAttack is null)
+        {
+            return false;
+        }
+
+        var defender = State.Players[1 - State.PendingAttack.AttackerPlayerIndex];
+        return IsValidIndex(defender.UnitField, blockerFieldIndex) && !defender.UnitField[blockerFieldIndex].Exhausted;
+    }
+
+    public GameActionResult PassBlock()
+    {
+        if (State.PendingAttack is null)
+        {
+            return GameActionResult.Fail("There is no pending attack.");
+        }
+
+        return ResolveCombat(null);
+    }
+
+    private static IReadOnlyList<CardInstance> BuildDeck(DeckDefinition deck, bool shuffle, Random random)
+    {
+        var cards = deck.Cards
+            .SelectMany(entry => Enumerable.Range(0, entry.Value).Select(_ => new CardInstance(entry.Key)))
+            .ToList();
+
+        if (!shuffle)
+        {
+            return cards;
+        }
+
+        for (var i = cards.Count - 1; i > 0; i--)
+        {
+            var swapIndex = random.Next(i + 1);
+            (cards[i], cards[swapIndex]) = (cards[swapIndex], cards[i]);
+        }
+
+        return cards;
+    }
+
+    private IReadOnlyList<MatchEvent> BeginCurrentPhase()
+    {
+        var events = new List<MatchEvent>();
+        if (State.CurrentPhase.Equals("Ready", StringComparison.OrdinalIgnoreCase))
+        {
+            ReadyPlayer(State.ActivePlayer);
+            State.EnergyAddsThisTurn = 0;
+            State.Log.Add($"{State.ActivePlayer.Name} readied their field.");
+            events.Add(new MatchEvent
+            {
+                Kind = MatchEventKind.CardReadied,
+                PlayerIndex = State.ActivePlayerIndex,
+                Message = $"{State.ActivePlayer.Name} readied their field."
+            });
+        }
+
+        if (State.CurrentPhase.Equals("Draw", StringComparison.OrdinalIgnoreCase))
+        {
+            events.AddRange(DrawCards(State.ActivePlayerIndex, 1));
+            State.Log.Add($"{State.ActivePlayer.Name} drew a card.");
+        }
+
+        return events;
+    }
+
+    private void ApplyCardResolution(PlayerState player, CardInstance instance, CardDefinition definition)
+    {
+        if (definition.Type.Equals("Unit", StringComparison.OrdinalIgnoreCase))
+        {
+            instance.Exhausted = false;
+            player.UnitField.Add(instance);
+        }
+        else if (definition.Type.Equals("Support", StringComparison.OrdinalIgnoreCase))
+        {
+            instance.Exhausted = false;
+            player.SupportField.Add(instance);
+        }
+
+        ApplyKeywords(instance, definition);
+        foreach (var hookName in definition.Hooks)
+        {
+            _hooks.Invoke(hookName, new EffectContext(this, State, State.ActivePlayerIndex, instance, definition, Ability: null));
+        }
+
+        if (definition.Type.Equals("Spell", StringComparison.OrdinalIgnoreCase))
+        {
+            player.DiscardPile.Add(instance);
+        }
+    }
+
+    private void ApplyKeywords(CardInstance instance, CardDefinition definition)
+    {
+        foreach (var keyword in definition.Keywords)
+        {
+            if (keyword.Equals("Cantrip", StringComparison.OrdinalIgnoreCase))
+            {
+                DrawCards(State.ActivePlayerIndex, 1);
+            }
+            else if (keyword.Equals("Refresh", StringComparison.OrdinalIgnoreCase))
+            {
+                ReduceNextCardCost(State.ActivePlayerIndex, 1);
+            }
+            else if (keyword.Equals("Strike", StringComparison.OrdinalIgnoreCase))
+            {
+                DealDamageToOpponent(State.ActivePlayerIndex, 1);
+            }
+        }
+    }
+
+    private GameActionResult ResolveCombat(CardInstance? blocker)
+    {
+        var pending = State.PendingAttack;
+        if (pending is null)
+        {
+            return GameActionResult.Fail("There is no pending attack.");
+        }
+
+        var attackerPlayer = State.Players[pending.AttackerPlayerIndex];
+        var attacker = attackerPlayer.UnitField.FirstOrDefault(card => card.Id == pending.AttackerInstanceId);
+        if (attacker is null)
+        {
+            State.PendingAttack = null;
+            return GameActionResult.Fail("The attacking unit is no longer on the field.");
+        }
+
+        if (blocker is null)
+        {
+            var damageEvents = DealDamageToOpponent(pending.AttackerPlayerIndex, 1);
+            State.PendingAttack = null;
+            var events = new List<MatchEvent>(damageEvents)
+            {
+                new()
+                {
+                    Kind = MatchEventKind.CombatResolved,
+                    PlayerIndex = pending.AttackerPlayerIndex,
+                    Message = "Attack was unblocked."
+                }
+            };
+            return GameActionResult.Ok("Attack was unblocked.", events);
+        }
+
+        var defenderPlayer = State.Players[1 - pending.AttackerPlayerIndex];
+        var attackerDefinition = State.DefinitionFor(attacker);
+        var blockerDefinition = State.DefinitionFor(blocker);
+        var attackerBonus = GetElementAdvantageBonus(attackerDefinition, blockerDefinition);
+        var blockerBonus = GetElementAdvantageBonus(blockerDefinition, attackerDefinition);
+        var attackerPower = attackerDefinition.Power + attackerBonus;
+        var blockerPower = blockerDefinition.Power + blockerBonus;
+        var combatEvents = new List<MatchEvent>();
+        var advantageNotes = new List<string>();
+
+        if (attackerBonus > 0)
+        {
+            advantageNotes.Add($"{attackerDefinition.Name} +{attackerBonus}");
+        }
+
+        if (blockerBonus > 0)
+        {
+            advantageNotes.Add($"{blockerDefinition.Name} +{blockerBonus}");
+        }
+
+        if (advantageNotes.Count > 0)
+        {
+            State.Log.Add($"Element advantage: {string.Join(", ", advantageNotes)}.");
+        }
+
+        if (attackerPower >= blockerPower)
+        {
+            MoveFromFieldToDiscard(defenderPlayer.UnitField, defenderPlayer.DiscardPile, blocker);
+            State.Log.Add($"{State.CardName(blocker)} was defeated.");
+            combatEvents.Add(new MatchEvent
+            {
+                Kind = MatchEventKind.CardDiscarded,
+                PlayerIndex = 1 - pending.AttackerPlayerIndex,
+                CardId = blocker.CardId,
+                InstanceId = blocker.Id,
+                To = new ZoneRef(1 - pending.AttackerPlayerIndex, "DiscardPile", defenderPlayer.DiscardPile.Count - 1),
+                Message = $"{State.CardName(blocker)} was defeated."
+            });
+        }
+
+        if (blockerPower >= attackerPower)
+        {
+            MoveFromFieldToDiscard(attackerPlayer.UnitField, attackerPlayer.DiscardPile, attacker);
+            State.Log.Add($"{State.CardName(attacker)} was defeated.");
+            combatEvents.Add(new MatchEvent
+            {
+                Kind = MatchEventKind.CardDiscarded,
+                PlayerIndex = pending.AttackerPlayerIndex,
+                CardId = attacker.CardId,
+                InstanceId = attacker.Id,
+                To = new ZoneRef(pending.AttackerPlayerIndex, "DiscardPile", attackerPlayer.DiscardPile.Count - 1),
+                Message = $"{State.CardName(attacker)} was defeated."
+            });
+        }
+
+        State.PendingAttack = null;
+        combatEvents.Add(new MatchEvent
+        {
+            Kind = MatchEventKind.CombatResolved,
+            PlayerIndex = pending.AttackerPlayerIndex,
+            Message = advantageNotes.Count == 0
+                ? "Combat resolved."
+                : $"Combat resolved. Element advantage: {string.Join(", ", advantageNotes)}."
+        });
+        return GameActionResult.Ok("Combat resolved.", combatEvents);
+    }
+
+    private bool SpendCost(int playerIndex, IReadOnlyDictionary<string, int> cost, bool consumeNextCardReduction, out EnergyPaymentPlan? plan)
+    {
+        plan = CreatePaymentPlan(playerIndex, cost, includeNextCardReduction: consumeNextCardReduction);
+        if (plan is null)
+        {
+            return false;
+        }
+
+        var player = State.Players[playerIndex];
+        foreach (var element in State.Mode.Elements)
+        {
+            var spent = plan.Spent.GetValueOrDefault(element);
+            if (spent > 0)
+            {
+                player.EnergyPool[element] = player.EnergyPool.GetValueOrDefault(element) - spent;
+            }
+        }
+
+        player.LastPayment.Clear();
+        foreach (var (element, spent) in plan.Spent)
+        {
+            player.LastPayment[element] = spent;
+        }
+
+        if (consumeNextCardReduction)
+        {
+            player.NextCardCostReduction = 0;
+        }
+
+        return true;
+    }
+
+    private static Dictionary<string, int> NormalizeCost(IReadOnlyDictionary<string, int> cost)
+    {
+        var normalized = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (element, amount) in cost)
+        {
+            if (amount > 0)
+            {
+                normalized[element] = normalized.GetValueOrDefault(element) + amount;
+            }
+        }
+
+        normalized.TryAdd(DragonCardConstants.GenericCost, 0);
+        return normalized;
+    }
+
+    private static int ApplyCostReduction(Dictionary<string, int> adjusted, int reduction)
+    {
+        var applied = 0;
+        while (applied < reduction && adjusted.GetValueOrDefault(DragonCardConstants.GenericCost) > 0)
+        {
+            adjusted[DragonCardConstants.GenericCost]--;
+            applied++;
+        }
+
+        foreach (var key in adjusted.Keys.Where(key => !key.Equals(DragonCardConstants.GenericCost, StringComparison.OrdinalIgnoreCase)).OrderBy(key => key).ToArray())
+        {
+            while (applied < reduction && adjusted[key] > 0)
+            {
+                adjusted[key]--;
+                applied++;
+            }
+        }
+
+        return applied;
+    }
+
+    private GameActionResult ConvertOneEnergy(int playerIndex, string toElement)
+    {
+        var player = State.Players[playerIndex];
+        if (player.EnergyPool.GetValueOrDefault(toElement) >= State.Mode.EnergyRules.MaxPerElement)
+        {
+            return GameActionResult.Fail($"{toElement} energy is already maxed.");
+        }
+
+        var fromElement = State.Mode.Elements.FirstOrDefault(element =>
+            !element.Equals(toElement, StringComparison.OrdinalIgnoreCase) &&
+            player.EnergyPool.GetValueOrDefault(element) > 0);
+        if (fromElement is null)
+        {
+            return GameActionResult.Fail("No different energy is available to convert.");
+        }
+
+        player.EnergyPool[fromElement]--;
+        player.EnergyPool[toElement] = player.EnergyPool.GetValueOrDefault(toElement) + 1;
+        State.Log.Add($"{player.Name} converted {fromElement} energy to {toElement}.");
+        return GameActionResult.Ok($"Converted 1 energy to {toElement}.", new MatchEvent
+        {
+            Kind = MatchEventKind.EnergyConverted,
+            PlayerIndex = playerIndex,
+            Element = toElement,
+            Amount = 1,
+            To = new ZoneRef(playerIndex, "EnergyPool"),
+            Message = $"Converted 1 energy to {toElement}."
+        });
+    }
+
+    private MatchEvent PhaseEvent(string message) => new()
+    {
+        Kind = MatchEventKind.PhaseChanged,
+        PlayerIndex = State.ActivePlayerIndex,
+        Message = message
+    };
+
+    private static IEnumerable<MatchEvent> PaymentEvents(int playerIndex, EnergyPaymentPlan? paymentPlan)
+    {
+        if (paymentPlan is null)
+        {
+            yield break;
+        }
+
+        foreach (var (element, amount) in paymentPlan.Spent.Where(item => item.Value > 0))
+        {
+            yield return new MatchEvent
+            {
+                Kind = MatchEventKind.EnergySpent,
+                PlayerIndex = playerIndex,
+                Element = element,
+                Amount = amount,
+                From = new ZoneRef(playerIndex, "EnergyPool"),
+                Message = $"{amount} {element} spent."
+            };
+        }
+    }
+
+    private static void MoveFromFieldToDiscard(List<CardInstance> field, List<CardInstance> discard, CardInstance instance)
+    {
+        field.Remove(instance);
+        instance.Exhausted = false;
+        discard.Add(instance);
+    }
+
+    private static void ReadyPlayer(PlayerState player)
+    {
+        foreach (var card in player.UnitField.Concat(player.SupportField))
+        {
+            card.Exhausted = false;
+        }
+    }
+
+    private static bool IsValidIndex<T>(IReadOnlyList<T> list, int index) => index >= 0 && index < list.Count;
+
+    public bool IsMainPhase() =>
+        State.CurrentPhase.Equals("Main", StringComparison.OrdinalIgnoreCase) ||
+        State.CurrentPhase.Equals("Second Main", StringComparison.OrdinalIgnoreCase);
+
+    private bool TryGetSacrificeCard(SacrificeSource source, int index, out CardInstance instance, out CardDefinition definition)
+    {
+        instance = null!;
+        definition = null!;
+
+        var list = source switch
+        {
+            SacrificeSource.Hand => State.ActivePlayer.Hand,
+            SacrificeSource.UnitField => State.ActivePlayer.UnitField,
+            SacrificeSource.SupportField => State.ActivePlayer.SupportField,
+            _ => []
+        };
+
+        if (!IsValidIndex(list, index))
+        {
+            return false;
+        }
+
+        instance = list[index];
+        definition = State.DefinitionFor(instance);
+        return true;
+    }
+
+    private void RemoveSacrificeCard(SacrificeSource source, CardInstance instance)
+    {
+        var list = source switch
+        {
+            SacrificeSource.Hand => State.ActivePlayer.Hand,
+            SacrificeSource.UnitField => State.ActivePlayer.UnitField,
+            SacrificeSource.SupportField => State.ActivePlayer.SupportField,
+            _ => []
+        };
+
+        list.Remove(instance);
+    }
+
+    private string? ValidatePlayZone(PlayerState player, CardDefinition definition)
+    {
+        if (definition.Type.Equals("Unit", StringComparison.OrdinalIgnoreCase) &&
+            player.UnitField.Count >= State.Mode.ZoneLimits.UnitSlots)
+        {
+            return "The unit field is full.";
+        }
+
+        if (definition.Type.Equals("Support", StringComparison.OrdinalIgnoreCase) &&
+            player.SupportField.Count >= State.Mode.ZoneLimits.SupportSlots)
+        {
+            return "The support row is full.";
+        }
+
+        return null;
+    }
+}

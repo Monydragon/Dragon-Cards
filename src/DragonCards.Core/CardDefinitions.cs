@@ -1,0 +1,117 @@
+namespace DragonCards.Core;
+
+public static class DragonCardConstants
+{
+    public const string GenericCost = "Generic";
+
+    public static readonly string[] BuiltInPhases =
+    [
+        "Ready",
+        "Draw",
+        "Main",
+        "Combat",
+        "Second Main",
+        "End"
+    ];
+
+    public static readonly string[] BuiltInCardTypes =
+    [
+        "Unit",
+        "Support",
+        "Spell"
+    ];
+
+    public static readonly string[] BuiltInKeywords =
+    [
+        "Cantrip",
+        "Refresh",
+        "Strike"
+    ];
+}
+
+public sealed record GameModeDefinition
+{
+    public string Id { get; init; } = "";
+    public string Name { get; init; } = "";
+    public string Description { get; init; } = "";
+    public List<string> Elements { get; set; } = [];
+    public List<string> Phases { get; set; } = [];
+    public List<string> AllowedCardTypes { get; set; } = [];
+    public DeckRulesDefinition DeckRules { get; init; } = new();
+    public ZoneLimitDefinition ZoneLimits { get; init; } = new();
+    public EnergyRulesDefinition EnergyRules { get; init; } = new();
+    public ElementAdvantageDefinition? ElementAdvantage { get; init; }
+    public int DamageLimit { get; init; } = 7;
+    public int StartingHand { get; init; } = 5;
+}
+
+public sealed record DeckRulesDefinition
+{
+    public int DeckSize { get; init; } = 50;
+    public int MaxCopies { get; init; } = 3;
+}
+
+public sealed record ZoneLimitDefinition
+{
+    public int UnitSlots { get; init; } = 5;
+    public int SupportSlots { get; init; } = 5;
+}
+
+public sealed record EnergyRulesDefinition
+{
+    public int MaxPerElement { get; init; } = 10;
+    public int AddsPerTurn { get; init; } = 1;
+}
+
+public sealed record ElementAdvantageDefinition
+{
+    public int PowerBonus { get; init; }
+    public Dictionary<string, List<string>> StrongAgainst { get; set; } = [];
+}
+
+public sealed record CardDefinition
+{
+    public string Id { get; init; } = "";
+    public string Name { get; init; } = "";
+    public string Type { get; init; } = "";
+    public List<string> Elements { get; set; } = [];
+    public Dictionary<string, int> Cost { get; set; } = [];
+    public int Power { get; init; }
+    public List<string> Keywords { get; set; } = [];
+    public List<string> Tags { get; set; } = [];
+    public List<string> Hooks { get; set; } = [];
+    public List<ActivatedAbilityDefinition> Abilities { get; set; } = [];
+    public CardVisualDefinition? Visual { get; init; }
+    public string RulesText { get; init; } = "";
+
+    public int TotalCost => Cost.Values.Sum();
+}
+
+public sealed record CardVisualDefinition
+{
+    public string Frame { get; init; } = "";
+    public string Effect { get; init; } = "";
+    public string Rarity { get; init; } = "";
+    public string ArtKey { get; init; } = "";
+}
+
+public sealed record ActivatedAbilityDefinition
+{
+    public string Id { get; init; } = "";
+    public string Name { get; init; } = "";
+    public Dictionary<string, int> Cost { get; set; } = [];
+    public string Hook { get; init; } = "";
+    public string RulesText { get; init; } = "";
+}
+
+public sealed record DeckDefinition
+{
+    public string Id { get; init; } = "";
+    public string Name { get; init; } = "";
+    public string ModeId { get; init; } = "";
+    public Dictionary<string, int> Cards { get; set; } = [];
+
+    public int Count => Cards.Values.Sum();
+}
+
+public sealed record ValidationIssue(string Code, string Message, string? SubjectId = null);
