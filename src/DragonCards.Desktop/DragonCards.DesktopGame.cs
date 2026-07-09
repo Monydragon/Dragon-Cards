@@ -28,6 +28,8 @@ public sealed partial class DragonCardsGame : Game
     private SpriteBatch? _spriteBatch;
     private SpriteFont? _font;
     private Texture2D? _pixel;
+    private Texture2D? _logoTexture;
+    private readonly AudioService _audio = new();
     private readonly Dictionary<string, Texture2D> _rarityIcons = new(StringComparer.OrdinalIgnoreCase);
     private MouseState _mouse;
     private MouseState _previousMouse;
@@ -61,6 +63,10 @@ public sealed partial class DragonCardsGame : Game
     private int _optionsFocus;
     private int _deckFocusIndex;
     private int _tutorialFocus;
+    private int _modeFocus;
+    private int _avatarFocus;
+    private int _starterClashOpponentIndex = 1;
+    private SealedPool? _sealedPool;
     private MatchFocus _matchFocus = MatchFocus.Hand;
     private string _status = "Ready.";
     private string _tutorialNotice = "";
@@ -79,6 +85,8 @@ public sealed partial class DragonCardsGame : Game
     private TutorialRuntimeState? _tutorial;
     private bool _modalInputActive;
     private bool _drawingModal;
+    private Rectangle _hoveredButtonRect;
+    private bool _buttonHoveredThisFrame;
 
     public DragonCardsGame(bool captureScreensOnStart = false, string? captureDirectory = null)
     {
@@ -117,6 +125,25 @@ public sealed partial class DragonCardsGame : Game
         _pixel = new Texture2D(GraphicsDevice, 1, 1);
         _pixel.SetData([Color.White]);
         LoadRarityIcons();
+        TryLoadLogo();
+        _audio.Configure(() => _settings.SoundVolume, () => _settings.MusicVolume, () => _settings.MuteAudio, CardTypeForAudio);
+        _audio.Load(Content);
+        _audio.LoadLoopingMusic(Content, "Audio/Throne_of_Parchment", "Throne of Parchment");
+    }
+
+    private string CardTypeForAudio(string cardId) =>
+        !string.IsNullOrWhiteSpace(cardId) && _data.CardsById.TryGetValue(cardId, out var card) ? card.Type : "";
+
+    private void TryLoadLogo()
+    {
+        try
+        {
+            _logoTexture = Content.Load<Texture2D>("Branding/dragon-cards-logo");
+        }
+        catch
+        {
+            _logoTexture = null;
+        }
     }
 
     private void LoadRarityIcons()
@@ -150,6 +177,7 @@ public sealed partial class DragonCardsGame : Game
         _keyboard = Keyboard.GetState();
         _gamePad = GamePad.GetState(PlayerIndex.One);
         _clickConsumed = false;
+        _audio.Update(gameTime.ElapsedGameTime.TotalSeconds);
         UpdateViewportMapping();
         HandleLogScroll();
         HandleProgressionUpdate();
@@ -226,6 +254,7 @@ public sealed partial class DragonCardsGame : Game
         _zoomCard = null;
         _zoomCount = 0;
         _zoomSource = Rectangle.Empty;
+        _buttonHoveredThisFrame = false;
         DrawBackdrop();
         DrawHeader();
         _modalInputActive = IsDecisionPromptActive();
@@ -233,6 +262,10 @@ public sealed partial class DragonCardsGame : Game
         if (_screen == Screen.MainMenu)
         {
             DrawMainMenu();
+        }
+        else if (_screen == Screen.ModeSelect)
+        {
+            DrawModeSelect();
         }
         else if (_screen == Screen.PlayerCreation)
         {
@@ -278,6 +311,11 @@ public sealed partial class DragonCardsGame : Game
         DrawZoomPreview();
         DrawDraggedCard();
         DrawElementPicker();
+        if (!_buttonHoveredThisFrame)
+        {
+            _hoveredButtonRect = Rectangle.Empty;
+        }
+
         _modalInputActive = false;
     }
 
@@ -297,9 +335,19 @@ public sealed partial class DragonCardsGame : Game
     {
         Fill(new Rectangle(0, 0, VirtualWidth, 74), new Color(28, 33, 42));
         Fill(new Rectangle(0, 72, VirtualWidth, 2), new Color(112, 126, 144));
-        DrawText("Dragon Cards", new Vector2(34, 18), Color.White, 1.35f);
-        DrawText("Dragon Duel", new Vector2(260, 26), new Color(207, 217, 229), 0.78f);
+        if (_logoTexture is not null)
+        {
+            _spriteBatch!.Draw(_logoTexture, new Rectangle(28, 8, 206, 58), Color.White);
+            DrawText(CurrentModeHeader(), new Vector2(260, 26), new Color(207, 217, 229), 0.78f);
+        }
+        else
+        {
+            DrawText("Dragon Cards", new Vector2(34, 18), Color.White, 1.35f);
+            DrawText(CurrentModeHeader(), new Vector2(260, 26), new Color(207, 217, 229), 0.78f);
+        }
     }
+
+    private string CurrentModeHeader() => _engine?.State.Mode.Name ?? "Prototype";
 
     private void DrawMainMenu()
     {
@@ -308,7 +356,7 @@ public sealed partial class DragonCardsGame : Game
         var currentDeckIssues = GameDataValidator.ValidateDeck(currentDeck, _data);
         var opponentDeckIssues = GameDataValidator.ValidateDeck(opponentDeck, _data);
         var ownershipIssues = ValidateCurrentDeckOwnership(currentDeck);
-        var canStart = currentDeckIssues.Count == 0 && opponentDeckIssues.Count == 0 && ownershipIssues.Count == 0 && _dataIssues.Count == 0;
+        var canOpenModes = _profile is not null && _dataIssues.Count == 0;
 
         DrawText("Dragon Cards", new Vector2(54, 108), Color.White, 1.2f);
         DrawText(MainMenuSubtitle(), new Vector2(56, 146), new Color(196, 207, 220), 0.74f);
@@ -324,13 +372,15 @@ public sealed partial class DragonCardsGame : Game
         DrawText(validation, new Vector2(84, 716), _dataIssues.Count == 0 ? new Color(148, 224, 164) : new Color(255, 162, 128), 0.72f);
 
         DrawProfileSummary(new Rectangle(896, 532, 370, 214));
+        DrawReleaseNotesPanel(new Rectangle(54, 760, 792, 86));
 
-        if (Button(new Rectangle(1292, 182, 248, 54), "Start Game (Single Player)", canStart, _usingController && _menuFocus == 0))
+        if (Button(new Rectangle(1292, 182, 248, 54), "Play Modes", canOpenModes, _usingController && _menuFocus == 0))
         {
-            StartMatch(currentDeck, opponentDeck, MatchKind.VsAi);
+            _screen = Screen.ModeSelect;
+            _status = "Choose a game mode.";
         }
 
-        if (Button(new Rectangle(1292, 250, 248, 54), "Multiplayer", canStart, _usingController && _menuFocus == 1))
+        if (Button(new Rectangle(1292, 250, 248, 54), "Multiplayer", canOpenModes, _usingController && _menuFocus == 1))
         {
             EnsureHostInvite();
             _screen = Screen.Multiplayer;
@@ -373,37 +423,351 @@ public sealed partial class DragonCardsGame : Game
         }
     }
 
+    private void DrawReleaseNotesPanel(Rectangle rect)
+    {
+        DrawPanel(rect, new Color(31, 37, 46), border: new Color(81, 96, 116));
+        DrawText("Prototype Playtest Notes", new Vector2(rect.X + 24, rect.Y + 14), Color.White, 0.62f);
+        DrawText("Try modes, starter matchups, tutorials, deck building, Store/Packs, direct LAN play, and balance feel. Progression stays off in sandbox variants.", new Rectangle(rect.X + 24, rect.Y + 44, rect.Width - 48, 28), new Color(196, 207, 220), 0.42f);
+    }
+
+    private void DrawModeSelect()
+    {
+        DrawText("Mode Select", new Vector2(54, 108), Color.White, 1.2f);
+        DrawText("Choose a way to play. Prototype variants are clearly labeled when progression is disabled.", new Vector2(56, 146), new Color(196, 207, 220), 0.72f);
+
+        var modes = PlayableModeCatalog.All;
+        _modeFocus = Math.Clamp(_modeFocus, 0, modes.Count - 1);
+        var selected = modes[_modeFocus];
+
+        var listPanel = new Rectangle(54, 198, 520, 560);
+        DrawPanel(listPanel, new Color(31, 37, 46), border: new Color(81, 96, 116));
+        DrawText("Play Modes", new Vector2(listPanel.X + 24, listPanel.Y + 24), Color.White, 0.9f);
+        for (var i = 0; i < modes.Count; i++)
+        {
+            var mode = modes[i];
+            var rect = new Rectangle(listPanel.X + 24, listPanel.Y + 72 + i * 72, listPanel.Width - 48, 58);
+            var focused = i == _modeFocus;
+            DrawPanel(rect, focused ? new Color(54, 68, 83) : new Color(38, 45, 56), border: focused ? new Color(244, 230, 158) : new Color(76, 90, 110));
+            DrawText(mode.Name, new Vector2(rect.X + 16, rect.Y + 8), Color.White, 0.56f);
+            DrawText(mode.ProgressionEligible ? "Progression eligible" : "Progression disabled", new Vector2(rect.X + 16, rect.Y + 32), mode.ProgressionEligible ? new Color(148, 224, 164) : new Color(255, 190, 120), 0.4f);
+            if (Button(new Rectangle(rect.Right - 92, rect.Y + 12, 74, 34), "View", selected: focused))
+            {
+                _modeFocus = i;
+            }
+        }
+
+        var detailPanel = new Rectangle(604, 198, 940, 560);
+        DrawPanel(detailPanel, new Color(31, 37, 46), border: new Color(81, 96, 116));
+        DrawText(selected.Name, new Vector2(detailPanel.X + 30, detailPanel.Y + 28), Color.White, 1.0f);
+        DrawText(selected.Description, new Rectangle(detailPanel.X + 30, detailPanel.Y + 76, detailPanel.Width - 60, 68), new Color(205, 214, 225), 0.62f);
+
+        if (selected.Id == DragonCardsModeIds.DragonAvatar)
+        {
+            DrawDragonAvatarModeDetail(detailPanel);
+        }
+        else if (selected.Id == DragonCardsModeIds.SealedGauntlet)
+        {
+            DrawSealedGauntletModeDetail(detailPanel);
+        }
+        else if (selected.Id == DragonCardsModeIds.StarterClash)
+        {
+            DrawStarterClashModeDetail(detailPanel);
+        }
+        else
+        {
+            DrawText(ModeDataSummary(selected.Id), new Rectangle(detailPanel.X + 30, detailPanel.Y + 164, detailPanel.Width - 60, 130), new Color(244, 230, 158), 0.58f);
+        }
+
+        DrawModePlayButtons(detailPanel, selected);
+
+        if (Button(new Rectangle(54, 786, 150, 42), "Back"))
+        {
+            _screen = Screen.MainMenu;
+            _status = "Returned to main menu.";
+        }
+    }
+
+    private void DrawDragonAvatarModeDetail(Rectangle panel)
+    {
+        var avatars = DragonAvatarService.PlayableAvatarCandidates(_data);
+        _avatarFocus = Math.Clamp(_avatarFocus, 0, Math.Max(0, avatars.Count - 1));
+        var avatar = avatars.Count == 0 ? null : avatars[_avatarFocus];
+        DrawText("Choose Avatar", new Vector2(panel.X + 30, panel.Y + 162), Color.White, 0.72f);
+        if (avatar is not null)
+        {
+            if (Button(new Rectangle(panel.X + 30, panel.Y + 206, 54, 34), "Prev", avatars.Count > 1))
+            {
+                _avatarFocus = (_avatarFocus - 1 + avatars.Count) % avatars.Count;
+            }
+
+            if (Button(new Rectangle(panel.X + 96, panel.Y + 206, 54, 34), "Next", avatars.Count > 1))
+            {
+                _avatarFocus = (_avatarFocus + 1) % avatars.Count;
+            }
+
+            DrawCardFrame(new Rectangle(panel.X + 30, panel.Y + 258, 168, 236), avatar, selected: true, exhausted: false, count: 1, compact: false);
+            DrawText($"{avatar.Name}   {avatar.Rarity}   {string.Join("/", avatar.Elements)}", new Rectangle(panel.X + 230, panel.Y + 208, 620, 36), new Color(244, 230, 158), 0.62f);
+            DrawText("Rules: 60-card singleton, avatar element identity, 10 damage limit, replay tax +2 generic per prior command-zone cast. Progression disabled for v1.", new Rectangle(panel.X + 230, panel.Y + 258, 600, 110), new Color(205, 214, 225), 0.58f);
+            var sampleDeck = DragonAvatarService.BuildSampleAvatarDeck(_data, avatar.Id);
+            var issues = DragonAvatarService.ValidateAvatarDeck(_data, avatar.Id, sampleDeck);
+            DrawText(issues.Count == 0 ? "Generated avatar deck is legal." : issues[0].Message, new Rectangle(panel.X + 230, panel.Y + 386, 600, 42), issues.Count == 0 ? new Color(148, 224, 164) : new Color(255, 162, 128), 0.54f);
+        }
+    }
+
+    private void DrawSealedGauntletModeDetail(Rectangle panel)
+    {
+        _sealedPool ??= SealedGauntletService.GeneratePool(_data, Environment.TickCount);
+        DrawText("Temporary Pool", new Vector2(panel.X + 30, panel.Y + 162), Color.White, 0.72f);
+        DrawText($"6 boosters -> {_sealedPool.CardIds.Count} cards. Auto-builds a 40-card sealed deck for this prototype pass.", new Rectangle(panel.X + 30, panel.Y + 204, 760, 40), new Color(244, 230, 158), 0.58f);
+        DrawText("No owned cards are consumed. Progression is disabled except future one-time gauntlet completion rewards.", new Rectangle(panel.X + 30, panel.Y + 252, 760, 44), new Color(205, 214, 225), 0.54f);
+        if (Button(new Rectangle(panel.X + 30, panel.Y + 320, 168, 38), "Reroll Pool"))
+        {
+            _sealedPool = SealedGauntletService.GeneratePool(_data, Environment.TickCount);
+            _status = "Sealed pool regenerated.";
+        }
+
+        foreach (var (cardId, index) in _sealedPool.CardIds.Distinct(StringComparer.OrdinalIgnoreCase).Take(6).Select((id, index) => (id, index)))
+        {
+            var card = _data.CardsById[cardId];
+            DrawCardFrame(new Rectangle(panel.X + 230 + index * 104, panel.Y + 318, 82, 116), card, selected: false, exhausted: false, count: _sealedPool.CardIds.Count(id => id.Equals(cardId, StringComparison.OrdinalIgnoreCase)), compact: true);
+        }
+    }
+
+    private void DrawStarterClashModeDetail(Rectangle panel)
+    {
+        var starters = StarterDecks();
+        _starterClashOpponentIndex = Math.Clamp(_starterClashOpponentIndex, 0, starters.Count - 1);
+        DrawText("Opponent Starter", new Vector2(panel.X + 30, panel.Y + 162), Color.White, 0.72f);
+        for (var i = 0; i < starters.Count; i++)
+        {
+            var rect = new Rectangle(panel.X + 30 + (i % 4) * 160, panel.Y + 206 + (i / 4) * 52, 142, 38);
+            if (Button(rect, StarterElement(starters[i]), selected: _starterClashOpponentIndex == i))
+            {
+                _starterClashOpponentIndex = i;
+            }
+        }
+
+        DrawText("Starter Clash uses your active deck against a chosen starter opponent. Sandbox rules can preview locked starters.", new Rectangle(panel.X + 30, panel.Y + 332, 720, 60), new Color(205, 214, 225), 0.58f);
+    }
+
+    private string ModeDataSummary(string modeId)
+    {
+        if (!_data.GameModesById.TryGetValue(modeId, out var mode))
+        {
+            return "Mode opens an existing screen.";
+        }
+
+        var category = string.IsNullOrWhiteSpace(mode.Display?.Category) ? "Standard" : mode.Display.Category;
+        var feature = string.IsNullOrWhiteSpace(mode.Display?.FeatureText) ? mode.Description : mode.Display.FeatureText;
+        return $"{category}  |  {mode.DeckRules.DeckSize} cards  |  Max copies {mode.DeckRules.MaxCopies}  |  Damage limit {mode.DamageLimit}\n{feature}";
+    }
+
+    private string ModeName(string modeId) =>
+        _data.GameModesById.TryGetValue(modeId, out var mode) && !string.IsNullOrWhiteSpace(mode.Name)
+            ? mode.Name
+            : PlayableModeCatalog.All.FirstOrDefault(mode => mode.Id.Equals(modeId, StringComparison.OrdinalIgnoreCase))?.Name ?? modeId;
+
+    private void DrawModePlayButtons(Rectangle panel, PlayableModeDefinition selected)
+    {
+        if (selected.Id == DragonCardsModeIds.TutorialTrials)
+        {
+            if (Button(new Rectangle(panel.X + 30, panel.Bottom - 74, 190, 42), "Open Tutorials", _profile is not null))
+            {
+                StartSelectedMode(selected, MatchKind.VsAi);
+            }
+
+            return;
+        }
+
+        var enabled = CanStartSelectedMode(selected);
+        if (Button(new Rectangle(panel.X + 30, panel.Bottom - 74, 150, 42), "Solo AI", enabled))
+        {
+            StartSelectedMode(selected, MatchKind.VsAi);
+        }
+
+        if (Button(new Rectangle(panel.X + 196, panel.Bottom - 74, 150, 42), "Local Hotseat", enabled))
+        {
+            StartSelectedMode(selected, MatchKind.Hotseat);
+        }
+
+        if (Button(new Rectangle(panel.X + 362, panel.Bottom - 74, 150, 42), "Host LAN", enabled))
+        {
+            HostSelectedMode(selected);
+        }
+
+        if (Button(new Rectangle(panel.X + 528, panel.Bottom - 74, 150, 42), "Join LAN"))
+        {
+            EnsureHostInvite();
+            _screen = Screen.Multiplayer;
+            _status = "Paste or type a LAN invite to join the host's mode.";
+        }
+    }
+
+    private bool CanStartSelectedMode(PlayableModeDefinition mode) =>
+        mode.Id == DragonCardsModeIds.TutorialTrials ||
+        (_profile is not null &&
+            (mode.Id != DragonCardsModeIds.DragonAvatar || DragonAvatarService.PlayableAvatarCandidates(_data).Count > 0));
+
+    private void StartSelectedMode(PlayableModeDefinition mode, MatchKind matchKind)
+    {
+        if (mode.Id == DragonCardsModeIds.TutorialTrials)
+        {
+            _screen = Screen.Tutorials;
+            _status = "Tutorial Trials opened.";
+            return;
+        }
+
+        if (_profile is null)
+        {
+            _status = "Create a player profile first.";
+            BeginNewGame();
+            return;
+        }
+
+        if (!TryCreateDecksForMode(mode.Id, out var playerDeck, out var opponentDeck, out var error))
+        {
+            _status = error;
+            return;
+        }
+
+        StartMatch(playerDeck, opponentDeck, matchKind, mode.Id);
+        if (mode.Id == DragonCardsModeIds.DragonAvatar && DragonAvatarService.PlayableAvatarCandidates(_data).Count > 0)
+        {
+            var avatar = DragonAvatarService.PlayableAvatarCandidates(_data)[Math.Clamp(_avatarFocus, 0, DragonAvatarService.PlayableAvatarCandidates(_data).Count - 1)];
+            _status = $"Dragon Avatar started with {avatar.Name}.";
+        }
+    }
+
+    private void HostSelectedMode(PlayableModeDefinition mode)
+    {
+        if (mode.Id == DragonCardsModeIds.TutorialTrials)
+        {
+            _screen = Screen.Tutorials;
+            _status = "Tutorials are local-only.";
+            return;
+        }
+
+        if (!TryCreateDecksForMode(mode.Id, out var playerDeck, out _, out var error))
+        {
+            _status = error;
+            return;
+        }
+
+        BeginHostDirectMatch(mode.Id, playerDeck);
+    }
+
+    private bool TryCreateDecksForMode(string modeId, out DeckDefinition playerDeck, out DeckDefinition opponentDeck, out string error)
+    {
+        playerDeck = CurrentDeck();
+        opponentDeck = OpponentDeck();
+        error = "";
+
+        if (_profile is null)
+        {
+            error = "Create a player profile first.";
+            BeginNewGame();
+            return false;
+        }
+
+        if (modeId == DragonCardsModeIds.DragonDuel)
+        {
+            return true;
+        }
+
+        if (modeId == DragonCardsModeIds.StarterClash)
+        {
+            opponentDeck = StarterDecks()[_starterClashOpponentIndex];
+            return true;
+        }
+
+        if (modeId == DragonCardsModeIds.DragonAvatar)
+        {
+            var avatars = DragonAvatarService.PlayableAvatarCandidates(_data);
+            if (avatars.Count == 0)
+            {
+                error = "No Dragon Avatar has enough identity cards for a legal deck yet.";
+                return false;
+            }
+
+            var avatar = avatars[Math.Clamp(_avatarFocus, 0, avatars.Count - 1)];
+            playerDeck = DragonAvatarService.BuildSampleAvatarDeck(_data, avatar.Id, "-player");
+            var opponentAvatar = avatars.FirstOrDefault(card => !card.Elements.SequenceEqual(avatar.Elements)) ?? avatars[^1];
+            opponentDeck = DragonAvatarService.BuildSampleAvatarDeck(_data, opponentAvatar.Id, "-ai");
+            return true;
+        }
+
+        if (modeId == DragonCardsModeIds.SealedGauntlet)
+        {
+            _sealedPool ??= SealedGauntletService.GeneratePool(_data, Environment.TickCount);
+            playerDeck = _sealedPool.Deck;
+            opponentDeck = SealedGauntletService.GeneratePool(_data, Environment.TickCount + 71).Deck;
+            return true;
+        }
+
+        if (modeId == DragonCardsModeIds.SandboxLab)
+        {
+            return true;
+        }
+
+        error = $"Mode '{modeId}' cannot start a match.";
+        return false;
+    }
+
+    private bool TryCreateLocalDeckForMode(string modeId, out DeckDefinition deck, out string error)
+    {
+        if (TryCreateDecksForMode(modeId, out deck, out _, out error))
+        {
+            return true;
+        }
+
+        deck = CurrentDeck();
+        return false;
+    }
+
     private void DrawMultiplayerMenu()
     {
         EnsureHostInvite();
-        var currentDeck = CurrentDeck();
-        var opponentDeck = OpponentDeck();
-        var canStart = GameDataValidator.ValidateDeck(currentDeck, _data).Count == 0 &&
-            GameDataValidator.ValidateDeck(opponentDeck, _data).Count == 0 &&
-            ValidateCurrentDeckOwnership(currentDeck).Count == 0 &&
+        var selectedMode = PlayableModeCatalog.All[Math.Clamp(_modeFocus, 0, PlayableModeCatalog.All.Count - 1)];
+        var canStart = selectedMode.StartsMatch &&
+            selectedMode.Id != DragonCardsModeIds.TutorialTrials &&
+            CanStartSelectedMode(selectedMode) &&
             _dataIssues.Count == 0;
 
         DrawText("Multiplayer", new Vector2(54, 108), Color.White, 1.2f);
-        DrawText("Local play and direct LAN host/join are available now. Host a match, share the invite, or type a join code.", new Rectangle(56, 146, 980, 36), new Color(196, 207, 220), 0.68f);
+        DrawText("Local hotseat and direct LAN host/join use the selected prototype mode. Join mode is determined by the invite.", new Rectangle(56, 146, 980, 36), new Color(196, 207, 220), 0.68f);
 
-        DrawPanel(new Rectangle(54, 198, 560, 386), new Color(31, 37, 46), border: new Color(81, 96, 116));
+        DrawPanel(new Rectangle(54, 198, 560, 456), new Color(31, 37, 46), border: new Color(81, 96, 116));
         DrawText("Play", new Vector2(84, 232), Color.White, 0.96f);
-        if (Button(new Rectangle(84, 286, 280, 52), "Local Hotseat", canStart, _usingController && _multiplayerFocus == 0))
+        DrawText($"Mode: {selectedMode.Name}", new Rectangle(84, 278, 320, 30), selectedMode.ProgressionEligible ? new Color(148, 224, 164) : new Color(255, 190, 120), 0.58f);
+        if (Button(new Rectangle(414, 270, 70, 34), "Prev"))
         {
-            StartMatch(currentDeck, opponentDeck, MatchKind.Hotseat);
+            _modeFocus = (_modeFocus - 1 + PlayableModeCatalog.All.Count) % PlayableModeCatalog.All.Count;
+            GenerateHostInviteForSelectedMode();
         }
 
-        if (Button(new Rectangle(84, 354, 280, 52), "Host Direct Match", focused: _usingController && _multiplayerFocus == 1))
+        if (Button(new Rectangle(494, 270, 70, 34), "Next"))
         {
-            BeginHostDirectMatch();
+            _modeFocus = (_modeFocus + 1) % PlayableModeCatalog.All.Count;
+            GenerateHostInviteForSelectedMode();
         }
 
-        if (Button(new Rectangle(84, 422, 280, 52), "Join Direct Match", focused: _usingController && _multiplayerFocus == 2))
+        DrawText(selectedMode.Description, new Rectangle(84, 318, 440, 54), new Color(205, 214, 225), 0.46f);
+        if (Button(new Rectangle(84, 388, 280, 52), "Local Hotseat", canStart, _usingController && _multiplayerFocus == 0))
+        {
+            StartSelectedMode(selectedMode, MatchKind.Hotseat);
+        }
+
+        if (Button(new Rectangle(84, 456, 280, 52), "Host Direct Match", canStart, _usingController && _multiplayerFocus == 1))
+        {
+            HostSelectedMode(selectedMode);
+        }
+
+        if (Button(new Rectangle(84, 524, 280, 52), "Join Direct Match", focused: _usingController && _multiplayerFocus == 2))
         {
             BeginJoinDirectMatch();
         }
 
-        if (Button(new Rectangle(84, 490, 280, 52), "Back", focused: _usingController && _multiplayerFocus == 3))
+        if (Button(new Rectangle(84, 592, 280, 42), "Back", focused: _usingController && _multiplayerFocus == 3))
         {
             _screen = Screen.MainMenu;
             _status = "Returned to main menu.";
@@ -613,15 +977,30 @@ public sealed partial class DragonCardsGame : Game
         DrawChoiceRow(3, new Rectangle(panel.X + 34, panel.Y + 350, 720, 42), "Sound Volume", $"{_settings.SoundVolume}%", () => AdjustSoundVolume(-10), () => AdjustSoundVolume(10));
         DrawToggleRow(4, new Rectangle(panel.X + 34, panel.Y + 402, 720, 42), "Mute Audio", _settings.MuteAudio ? "On" : "Off", ToggleMuteAudio);
 
+        DrawPanel(new Rectangle(818, 274, 250, 276), new Color(34, 41, 51), border: new Color(84, 99, 119));
+        DrawText("Audio Status", new Vector2(846, 304), Color.White, 0.82f);
+        DrawText($"SFX {_audio.LoadedSoundCount}/{_audio.ExpectedSoundCount}", new Rectangle(846, 340, 184, 24), new Color(196, 207, 220), 0.56f);
+        DrawText(_audio.MusicStatus, new Rectangle(846, 370, 184, 42), new Color(196, 207, 220), 0.56f);
+        if (Button(new Rectangle(846, 424, 160, 34), "Test Music", _audio.MusicLoaded, focused: _usingController && _optionsFocus == 6))
+        {
+            _audio.RestartMusic();
+            _status = "BGM restarted.";
+        }
+
+        if (Button(new Rectangle(846, 468, 160, 34), "Test Sound", focused: _usingController && _optionsFocus == 7))
+        {
+            _audio.Play(SoundKeys.RarePull, throttleSeconds: 0);
+            _status = "Sound test played.";
+        }
+
         DrawText("Gameplay", new Vector2(panel.X + 34, panel.Y + 476), Color.White, 0.94f);
         DrawToggleRow(5, new Rectangle(panel.X + 34, panel.Y + 520, 720, 42), "Card Hover Zoom", _settings.CardZoom ? "On" : "Off", ToggleCardZoom);
 
-        DrawPanel(new Rectangle(818, 274, 250, 276), new Color(34, 41, 51), border: new Color(84, 99, 119));
-        DrawText("Settings File", new Vector2(846, 304), Color.White, 0.82f);
-        DrawText(ShortPath(GameSettings.SettingsFilePath), new Rectangle(846, 344, 184, 96), new Color(196, 207, 220), 0.52f);
-        DrawText("Audio controls are stored now and ready for future music and sound systems.", new Rectangle(846, 462, 180, 64), new Color(196, 207, 220), 0.56f);
+        DrawPanel(new Rectangle(818, 574, 250, 132), new Color(34, 41, 51), border: new Color(84, 99, 119));
+        DrawText("Settings File", new Vector2(846, 604), Color.White, 0.76f);
+        DrawText(ShortPath(GameSettings.SettingsFilePath), new Rectangle(846, 638, 184, 46), new Color(196, 207, 220), 0.5f);
 
-        if (Button(new Rectangle(54, 786, 150, 42), "Back", focused: _usingController && _optionsFocus == 6))
+        if (Button(new Rectangle(54, 786, 150, 42), "Back", focused: _usingController && _optionsFocus == 8))
         {
             _screen = Screen.MainMenu;
             _status = "Options saved.";
@@ -2642,6 +3021,16 @@ public sealed partial class DragonCardsGame : Game
     {
         var clicked = enabled && Hit(rect);
         var hover = enabled && rect.Contains(_virtualMouse);
+        if (hover)
+        {
+            _buttonHoveredThisFrame = true;
+            if (_hoveredButtonRect != rect)
+            {
+                _hoveredButtonRect = rect;
+                _audio.Play(SoundKeys.UiHover, throttleSeconds: 0.08);
+            }
+        }
+
         var fill = selected
             ? new Color(80, 111, 137)
             : hover || focused
@@ -2656,6 +3045,11 @@ public sealed partial class DragonCardsGame : Game
         Border(rect, focused ? new Color(244, 230, 158) : new Color(88, 102, 120), focused ? 3 : 1);
         var scale = rect.Height < 34 ? 0.6f : 0.66f;
         DrawFittedCenteredText(label, Inset(rect, 8), enabled ? Color.White : new Color(120, 126, 136), scale, 0.42f);
+        if (clicked)
+        {
+            _audio.Play(SoundKeys.UiClick);
+        }
+
         return clicked;
     }
 
@@ -3081,9 +3475,10 @@ public sealed partial class DragonCardsGame : Game
                 _usingController = true;
                 var currentDeck = CurrentDeck();
                 var opponentDeck = OpponentDeck();
-                if (_menuFocus == 0 && GameDataValidator.ValidateDeck(currentDeck, _data).Count == 0 && ValidateCurrentDeckOwnership(currentDeck).Count == 0)
+                if (_menuFocus == 0 && _profile is not null && _dataIssues.Count == 0)
                 {
-                    StartMatch(currentDeck, opponentDeck, MatchKind.VsAi);
+                    _screen = Screen.ModeSelect;
+                    _status = "Choose a game mode.";
                 }
                 else if (_menuFocus == 1)
                 {
@@ -3121,6 +3516,10 @@ public sealed partial class DragonCardsGame : Game
                     catch (PlatformNotSupportedException) { }
                 }
             }
+        }
+        else if (_screen == Screen.ModeSelect)
+        {
+            HandleModeSelectController();
         }
         else if (_screen == Screen.Multiplayer)
         {
@@ -3164,7 +3563,7 @@ public sealed partial class DragonCardsGame : Game
     {
         if (DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out var vertical))
         {
-            _optionsFocus = Math.Clamp(_optionsFocus + vertical, 0, 6);
+            _optionsFocus = Math.Clamp(_optionsFocus + vertical, 0, 8);
         }
 
         if (DirectionPressed(Buttons.DPadLeft, Buttons.DPadRight, out var horizontal))
@@ -3181,9 +3580,54 @@ public sealed partial class DragonCardsGame : Game
             }
             else if (_optionsFocus == 6)
             {
+                _audio.RestartMusic();
+                _status = "BGM restarted.";
+            }
+            else if (_optionsFocus == 7)
+            {
+                _audio.Play(SoundKeys.RarePull, throttleSeconds: 0);
+                _status = "Sound test played.";
+            }
+            else if (_optionsFocus == 8)
+            {
                 _screen = Screen.MainMenu;
                 _status = "Options saved.";
             }
+        }
+    }
+
+    private void HandleModeSelectController()
+    {
+        if (DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out var vertical))
+        {
+            _modeFocus = Math.Clamp(_modeFocus + vertical, 0, PlayableModeCatalog.All.Count - 1);
+        }
+
+        if (DirectionPressed(Buttons.DPadLeft, Buttons.DPadRight, out var horizontal))
+        {
+            var selected = PlayableModeCatalog.All[_modeFocus];
+            if (selected.Id == DragonCardsModeIds.DragonAvatar)
+            {
+                var count = Math.Max(1, DragonAvatarService.PlayableAvatarCandidates(_data).Count);
+                _avatarFocus = (_avatarFocus + horizontal + count) % count;
+            }
+            else if (selected.Id == DragonCardsModeIds.StarterClash)
+            {
+                var count = StarterDecks().Count;
+                _starterClashOpponentIndex = (_starterClashOpponentIndex + horizontal + count) % count;
+            }
+        }
+
+        if (Pressed(Buttons.A))
+        {
+            _usingController = true;
+            StartSelectedMode(PlayableModeCatalog.All[_modeFocus], MatchKind.VsAi);
+        }
+
+        if (Pressed(Buttons.B))
+        {
+            _screen = Screen.MainMenu;
+            _status = "Returned to main menu.";
         }
     }
 
@@ -3209,6 +3653,14 @@ public sealed partial class DragonCardsGame : Game
             case 5:
                 ToggleCardZoom();
                 break;
+            case 6:
+                _audio.RestartMusic();
+                _status = "BGM restarted.";
+                break;
+            case 7:
+                _audio.Play(SoundKeys.RarePull, throttleSeconds: 0);
+                _status = "Sound test played.";
+                break;
         }
     }
 
@@ -3219,21 +3671,27 @@ public sealed partial class DragonCardsGame : Game
             _multiplayerFocus = Math.Clamp(_multiplayerFocus + vertical, 0, 3);
         }
 
+        if (DirectionPressed(Buttons.DPadLeft, Buttons.DPadRight, out var horizontal))
+        {
+            _modeFocus = (_modeFocus + horizontal + PlayableModeCatalog.All.Count) % PlayableModeCatalog.All.Count;
+            GenerateHostInviteForSelectedMode();
+        }
+
         if (!Pressed(Buttons.A))
         {
             return;
         }
 
         _usingController = true;
-        var currentDeck = CurrentDeck();
-        var opponentDeck = OpponentDeck();
-        if (_multiplayerFocus == 0 && GameDataValidator.ValidateDeck(currentDeck, _data).Count == 0 && ValidateCurrentDeckOwnership(currentDeck).Count == 0)
+        var selectedMode = PlayableModeCatalog.All[Math.Clamp(_modeFocus, 0, PlayableModeCatalog.All.Count - 1)];
+        var canStart = selectedMode.StartsMatch && selectedMode.Id != DragonCardsModeIds.TutorialTrials && CanStartSelectedMode(selectedMode);
+        if (_multiplayerFocus == 0 && canStart)
         {
-            StartMatch(currentDeck, opponentDeck, MatchKind.Hotseat);
+            StartSelectedMode(selectedMode, MatchKind.Hotseat);
         }
         else if (_multiplayerFocus == 1)
         {
-            BeginHostDirectMatch();
+            HostSelectedMode(selectedMode);
         }
         else if (_multiplayerFocus == 2)
         {
@@ -3632,15 +4090,18 @@ public sealed partial class DragonCardsGame : Game
         ClearSelections();
     }
 
-    private void StartMatch(DeckDefinition firstDeck, DeckDefinition secondDeck, MatchKind matchKind)
+    private void StartMatch(DeckDefinition firstDeck, DeckDefinition secondDeck, MatchKind matchKind) =>
+        StartMatch(firstDeck, secondDeck, matchKind, DragonCardsModeIds.DragonDuel);
+
+    private void StartMatch(DeckDefinition firstDeck, DeckDefinition secondDeck, MatchKind matchKind, string modeId)
     {
         _tutorial = null;
         _tutorialNotice = "";
         _matchKind = matchKind;
         var opponentDeck = matchKind == MatchKind.VsAi
-            ? OpponentDeck()
+            ? secondDeck
             : secondDeck;
-        _engine = DragonDuelEngine.Create(_data, "dragon-duel", firstDeck, opponentDeck, seed: Environment.TickCount);
+        _engine = DragonDuelEngine.Create(_data, modeId, firstDeck, opponentDeck, seed: Environment.TickCount);
         ConfigureMatchStart(firstDeck, opponentDeck, matchKind);
 
         var flowResult = _engine.AdvanceToNextDecisionPhase();
@@ -3649,7 +4110,7 @@ public sealed partial class DragonCardsGame : Game
         _matchFocus = MatchFocus.Hand;
         QueuePresentation(flowResult.Events);
         _status = _matchKind == MatchKind.VsAi
-            ? "Single player started. Your Main Phase."
+            ? $"{_engine.State.Mode.Name} started. Your Main Phase."
             : flowResult.Success ? flowResult.Message : "Match started.";
     }
 
@@ -3657,26 +4118,37 @@ public sealed partial class DragonCardsGame : Game
     {
         if (string.IsNullOrWhiteSpace(_hostInviteCode))
         {
-            GenerateHostInvite();
+            GenerateHostInviteForSelectedMode();
         }
     }
 
-    private void GenerateHostInvite()
+    private void GenerateHostInviteForSelectedMode()
     {
-        var deck = CurrentDeck();
+        var selectedMode = PlayableModeCatalog.All[Math.Clamp(_modeFocus, 0, PlayableModeCatalog.All.Count - 1)];
+        if (!selectedMode.StartsMatch || !TryCreateDecksForMode(selectedMode.Id, out var deck, out _, out _))
+        {
+            GenerateHostInvite(DragonCardsModeIds.DragonDuel, CurrentDeck());
+            return;
+        }
+
+        GenerateHostInvite(selectedMode.Id, deck);
+    }
+
+    private void GenerateHostInvite(string modeId, DeckDefinition deck)
+    {
         var rules = CurrentRules();
         _hostInvite = new NetworkInvite
         {
             Host = "127.0.0.1",
             Port = 47288,
-            ModeId = "dragon-duel",
+            ModeId = modeId,
             ProtocolVersion = InviteCode.ProtocolVersion,
             DeckHash = InviteCode.DeckHash(deck.Cards),
             RulesHash = InviteCode.RulesHash(rules)
         };
         _hostInviteCode = InviteCode.Encode(_hostInvite);
         _joinInviteCode = _hostInviteCode;
-        _multiplayerNotice = "Invite code is valid. Direct online transport is ready for a peer on this LAN.";
+        _multiplayerNotice = $"Invite code is valid for {ModeName(modeId)}.";
     }
 
     private void ValidateJoinInvite()
@@ -3711,6 +4183,11 @@ public sealed partial class DragonCardsGame : Game
     private void ApplyResult(GameActionResult result)
     {
         _status = result.Message;
+        if (!result.Success)
+        {
+            _audio.Play(SoundKeys.UiError);
+        }
+
         QueuePresentation(result.Events);
         if (result.Success && _engine?.State.WinnerIndex is not null)
         {
@@ -3735,6 +4212,7 @@ public sealed partial class DragonCardsGame : Game
             return;
         }
 
+        _audio.PlayForEvents(events);
         _presentation.Enqueue(events);
     }
 
@@ -3927,6 +4405,29 @@ public sealed partial class DragonCardsGame : Game
             PrepareCaptureProfile();
             _screen = Screen.MainMenu;
             _status = "Capture: main menu.";
+        });
+        CaptureScreen(target, "mode-select.png", () =>
+        {
+            PrepareCaptureProfile();
+            _screen = Screen.ModeSelect;
+            _modeFocus = 0;
+            _status = "Capture: mode select.";
+        });
+        CaptureScreen(target, "dragon-avatar-setup.png", () =>
+        {
+            PrepareCaptureProfile();
+            _screen = Screen.ModeSelect;
+            _modeFocus = PlayableModeCatalog.All.ToList().FindIndex(mode => mode.Id == DragonCardsModeIds.DragonAvatar);
+            _avatarFocus = 0;
+            _status = "Capture: Dragon Avatar setup.";
+        });
+        CaptureScreen(target, "sealed-gauntlet-setup.png", () =>
+        {
+            PrepareCaptureProfile();
+            _screen = Screen.ModeSelect;
+            _modeFocus = PlayableModeCatalog.All.ToList().FindIndex(mode => mode.Id == DragonCardsModeIds.SealedGauntlet);
+            _sealedPool = SealedGauntletService.GeneratePool(_data, 44);
+            _status = "Capture: Sealed Gauntlet setup.";
         });
         CaptureScreen(target, "tutorials-menu.png", () =>
         {
@@ -4430,6 +4931,7 @@ public sealed partial class DragonCardsGame : Game
     {
         PlayerCreation,
         MainMenu,
+        ModeSelect,
         Multiplayer,
         Tutorials,
         Options,

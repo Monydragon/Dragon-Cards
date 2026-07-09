@@ -79,3 +79,170 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:Icons/Rarity/mythic.png
+
+#begin Branding/dragon-cards-logo.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=False
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Branding/dragon-cards-logo.png
+
+#begin Audio/ui_click.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/ui_click.wav
+
+#begin Audio/ui_hover.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/ui_hover.wav
+
+#begin Audio/ui_back.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/ui_back.wav
+
+#begin Audio/ui_error.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/ui_error.wav
+
+#begin Audio/phase.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/phase.wav
+
+#begin Audio/card_play.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/card_play.wav
+
+#begin Audio/spell.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/spell.wav
+
+#begin Audio/unit_summon.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/unit_summon.wav
+
+#begin Audio/support.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/support.wav
+
+#begin Audio/ability.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/ability.wav
+
+#begin Audio/attack.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/attack.wav
+
+#begin Audio/block.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/block.wav
+
+#begin Audio/damage.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/damage.wav
+
+#begin Audio/combat_window.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/combat_window.wav
+
+#begin Audio/target_resolve.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/target_resolve.wav
+
+#begin Audio/card_discard.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/card_discard.wav
+
+#begin Audio/card_return.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/card_return.wav
+
+#begin Audio/card_ready.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/card_ready.wav
+
+#begin Audio/cost_reduce.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/cost_reduce.wav
+
+#begin Audio/card_draw.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/card_draw.wav
+
+#begin Audio/energy_gain.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/energy_gain.wav
+
+#begin Audio/energy_spend.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/energy_spend.wav
+
+#begin Audio/sacrifice.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/sacrifice.wav
+
+#begin Audio/target_prompt.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/target_prompt.wav
+
+#begin Audio/victory.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/victory.wav
+
+#begin Audio/defeat.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/defeat.wav
+
+#begin Audio/pack_open.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/pack_open.wav
+
+#begin Audio/rare_pull.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/rare_pull.wav
+
+#begin Audio/mythic_pull.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/mythic_pull.wav
+
+#begin Audio/combat_resolve.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/build:Audio/combat_resolve.wav
+
+#begin Audio/Throne_of_Parchment.mp3
+/importer:Mp3Importer
+/processor:SongProcessor
+/build:Audio/Throne_of_Parchment.mp3

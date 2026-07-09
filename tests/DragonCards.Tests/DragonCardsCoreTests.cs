@@ -11,6 +11,8 @@ public sealed class DragonCardsCoreTests
         var data = LoadData();
 
         Assert.True(data.GameModesById.ContainsKey("dragon-duel"));
+        Assert.True(data.GameModesById.ContainsKey("dragon-avatar"));
+        Assert.True(data.GameModesById.ContainsKey("sealed-gauntlet"));
         Assert.True(data.Cards.Count >= 80);
         Assert.Contains(data.Cards, card => card.Type == "Unit");
         Assert.Contains(data.Cards, card => card.Type == "Support");
@@ -19,6 +21,67 @@ public sealed class DragonCardsCoreTests
         Assert.Equal(2000, data.GameModesById["dragon-duel"].ElementAdvantage?.PowerBonus);
         Assert.Contains("Fire", data.GameModesById["dragon-duel"].ElementAdvantage!.StrongAgainst["Water"]);
         Assert.Empty(GameDataValidator.Validate(data));
+    }
+
+    [Fact]
+    public void ReleaseModesLoadWithExpectedProgressionEligibility()
+    {
+        var data = LoadData();
+
+        Assert.Contains(PlayableModeCatalog.All, mode => mode.Id == DragonCardsModeIds.DragonDuel);
+        Assert.Contains(PlayableModeCatalog.All, mode => mode.Id == DragonCardsModeIds.DragonAvatar);
+        Assert.True(data.GameModesById[DragonCardsModeIds.DragonDuel].ProgressionEligible);
+        Assert.True(data.GameModesById[DragonCardsModeIds.StarterClash].ProgressionEligible);
+        Assert.False(data.GameModesById[DragonCardsModeIds.DragonAvatar].ProgressionEligible);
+        Assert.False(data.GameModesById[DragonCardsModeIds.SealedGauntlet].ProgressionEligible);
+        Assert.False(data.GameModesById[DragonCardsModeIds.SandboxLab].ProgressionEligible);
+        Assert.True(data.GameModesById[DragonCardsModeIds.TutorialTrials].ProgressionEligible);
+        Assert.True(data.GameModesById[DragonCardsModeIds.DragonAvatar].DeckRules.Singleton);
+        Assert.Equal(60, data.GameModesById[DragonCardsModeIds.DragonAvatar].DeckRules.DeckSize);
+        Assert.Equal(10, data.GameModesById[DragonCardsModeIds.DragonAvatar].DamageLimit);
+    }
+
+    [Fact]
+    public void DragonAvatarDeckValidationEnforcesSingletonIdentityAndAvatarRules()
+    {
+        var data = LoadData();
+        var avatar = DragonAvatarService.PlayableAvatarCandidates(data).First();
+        var valid = DragonAvatarService.BuildSampleAvatarDeck(data, avatar.Id);
+
+        Assert.Empty(DragonAvatarService.ValidateAvatarDeck(data, avatar.Id, valid));
+
+        var invalidCards = valid.Cards.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
+        invalidCards[invalidCards.Keys.First()] = 2;
+        invalidCards[data.Cards.First(card => !card.Elements.Contains(avatar.Elements[0], StringComparer.OrdinalIgnoreCase)).Id] = 1;
+        var invalid = valid with { Cards = invalidCards };
+
+        var issues = DragonAvatarService.ValidateAvatarDeck(data, avatar.Id, invalid);
+
+        Assert.Contains(issues, issue => issue.Code == "avatar.singleton");
+        Assert.Contains(issues, issue => issue.Code == "avatar.identity");
+    }
+
+    [Fact]
+    public void DragonAvatarReplayCostScalesByTwoGeneric()
+    {
+        Assert.Equal(0, DragonAvatarService.ReplayCostIncrease(0));
+        Assert.Equal(2, DragonAvatarService.ReplayCostIncrease(1));
+        Assert.Equal(6, DragonAvatarService.ReplayCostIncrease(3));
+    }
+
+    [Fact]
+    public void SealedPoolGenerationIsDeterministicAndBuildsFortyCardDeck()
+    {
+        var data = LoadData();
+
+        var first = SealedGauntletService.GeneratePool(data, seed: 1234);
+        var second = SealedGauntletService.GeneratePool(data, seed: 1234);
+
+        Assert.Equal(first.CardIds, second.CardIds);
+        Assert.Equal(SealedGauntletService.BoosterCount * BoosterService.CardsPerPack, first.CardIds.Count);
+        Assert.Equal(SealedGauntletService.DeckSize, first.Deck.Count);
+        Assert.Equal(DragonCardsModeIds.SealedGauntlet, first.Deck.ModeId);
+        Assert.Empty(GameDataValidator.ValidateDeck(first.Deck, data));
     }
 
     [Fact]
@@ -1263,6 +1326,31 @@ public sealed class DragonCardsCoreTests
         Assert.Equal(invite.RulesHash, decoded.RulesHash);
         Assert.False(InviteCode.TryDecode("bad-code", out _, out var error));
         Assert.Contains(InviteCode.Prefix, error);
+    }
+
+    [Fact]
+    public void NetworkHandshakePreservesReleaseModeIds()
+    {
+        var data = LoadData();
+        var rules = GameRulesConfig.ForPreset(GameRulesPreset.Casual);
+        var avatar = DragonAvatarService.PlayableAvatarCandidates(data).First();
+        var deck = DragonAvatarService.BuildSampleAvatarDeck(data, avatar.Id);
+
+        var handshake = DirectMatchConnection.CreateHandshake("Host", DragonCardsModeIds.DragonAvatar, deck, rules);
+        var invite = new NetworkInvite
+        {
+            Host = "127.0.0.1",
+            Port = 47288,
+            ModeId = DragonCardsModeIds.DragonAvatar,
+            ProtocolVersion = InviteCode.ProtocolVersion,
+            DeckHash = InviteCode.DeckHash(deck.Cards),
+            RulesHash = InviteCode.RulesHash(rules)
+        };
+        var decoded = InviteCode.Decode(InviteCode.Encode(invite));
+
+        Assert.Equal(DragonCardsModeIds.DragonAvatar, handshake.ModeId);
+        Assert.Equal(DragonCardsModeIds.DragonAvatar, decoded.ModeId);
+        Assert.Equal(deck.Id, handshake.Deck.Id);
     }
 
     [Fact]

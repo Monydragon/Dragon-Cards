@@ -1,0 +1,33 @@
+{
+  "title": "Dragon Cards",
+  "shortDescription": "A fantasy digital TCG prototype with elemental energy, deck building, boosters, tutorials, direct LAN play, and prototype modes.",
+  "classification": "Games",
+  "kind": "Downloadable",
+  "platforms": ["Windows"],
+  "genre": "Strategy",
+  "tags": [
+    "Card Game",
+    "Trading Card Game",
+    "Deck Building",
+    "Fantasy",
+    "Strategy",
+    "Singleplayer",
+    "Local Multiplayer",
+    "Online Multiplayer",
+    "Prototype",
+    "Windows"
+  ],
+  "multiplayer": ["Local multiplayer", "Server-based network multiplayer"],
+  "status": "Prototype",
+  "pricingSuggestion": "Free or pay-what-you-want for early playtests",
+  "coverImage": "assets/cover-630x500.png",
+  "bannerImage": "assets/banner-1000x300.png",
+  "screenshots": [
+    "../../artifacts/render-captures/main-menu.png",
+    "../../artifacts/render-captures/deck-builder.png",
+    "../../artifacts/render-captures/match.png",
+    "../../artifacts/render-captures/store.png",
+    "../../artifacts/render-captures/result-screen.png"
+  ],
+  "accuratePlatformNote": "Only mark Windows unless another platform build has been created and tested."
+}

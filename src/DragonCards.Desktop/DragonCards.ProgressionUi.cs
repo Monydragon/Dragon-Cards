@@ -52,6 +52,7 @@ public sealed partial class DragonCardsGame
     private DeckDefinition? _rematchFirstDeck;
     private DeckDefinition? _rematchSecondDeck;
     private MatchKind _rematchKind;
+    private string _rematchModeId = DragonCardsModeIds.DragonDuel;
     private DirectMatchConnection? _networkConnection;
     private Task<DirectMatchConnection>? _networkConnectTask;
     private Task<NetworkCommand>? _networkReadTask;
@@ -393,7 +394,7 @@ public sealed partial class DragonCardsGame
 
         if (Button(new Rectangle(224, y, 150, 42), "Rematch", _rematchFirstDeck is not null && _rematchSecondDeck is not null))
         {
-            StartMatch(_rematchFirstDeck!, _rematchSecondDeck!, _rematchKind);
+            StartMatch(_rematchFirstDeck!, _rematchSecondDeck!, _rematchKind, _rematchModeId);
         }
 
         if (Button(new Rectangle(394, y, 150, 42), "Deck Builder"))
@@ -821,6 +822,7 @@ public sealed partial class DragonCardsGame
         _packOpeningScrollOffset = 0;
         SaveProfile();
         _screen = Screen.PackOpening;
+        _audio.Play(PackOpeningSound(_lastBoosterOpening));
         _status = $"{item.Name} x{quantity} opened.";
     }
 
@@ -885,6 +887,7 @@ public sealed partial class DragonCardsGame
         _rematchFirstDeck = firstDeck;
         _rematchSecondDeck = secondDeck;
         _rematchKind = matchKind;
+        _rematchModeId = _engine.State.Mode.Id;
         _matchRewardApplied = false;
         _pendingResultScreen = false;
         _lastMatchReward = null;
@@ -921,11 +924,14 @@ public sealed partial class DragonCardsGame
         if (_profile is not null && !_matchRewardApplied)
         {
             var rewardKind = _matchKind == MatchKind.VsAi ? MatchRewardKind.Ai : MatchRewardKind.HumanMultiplayer;
-            _lastMatchReward = ProgressionService.ApplyMatchReward(_profile, CurrentRules(), rewardKind, _lastMatchWon);
+            var rewardRules = _engine.State.Mode.ProgressionEligible
+                ? CurrentRules()
+                : GameRulesConfig.ForPreset(GameRulesPreset.Casual);
+            _lastMatchReward = ProgressionService.ApplyMatchReward(_profile, rewardRules, rewardKind, _lastMatchWon);
             var opponentDeck = profilePlayerIndex == 0 ? _rematchSecondDeck : _rematchFirstDeck;
             if (opponentDeck is not null)
             {
-                _lastBattleSpoils = BattleSpoilsService.GrantVictorySpoils(_data, _profile, CurrentRules(), opponentDeck, _lastMatchWon);
+                _lastBattleSpoils = BattleSpoilsService.GrantVictorySpoils(_data, _profile, rewardRules, opponentDeck, _lastMatchWon);
             }
 
             _matchRewardApplied = true;
@@ -933,9 +939,22 @@ public sealed partial class DragonCardsGame
         }
 
         _screen = Screen.MatchResult;
+        _audio.Play(_lastMatchWon ? SoundKeys.Victory : SoundKeys.Defeat);
         _presentation.Clear();
         ClearSelections();
         return true;
+    }
+
+    private static string PackOpeningSound(BoosterOpening opening)
+    {
+        if (opening.Cards.Any(card => CardRarities.Normalize(card.Rarity) == CardRarities.Mythic))
+        {
+            return SoundKeys.MythicPull;
+        }
+
+        return opening.Cards.Any(card => CardRarities.Normalize(card.Rarity) is CardRarities.Rare or CardRarities.Legendary)
+            ? SoundKeys.RarePull
+            : SoundKeys.PackOpen;
     }
 
     private int LocalPlayerIndexForMatch() => _matchKind == MatchKind.Online ? _networkLocalPlayerIndex : HumanPlayerIndex;
@@ -943,7 +962,10 @@ public sealed partial class DragonCardsGame
     private int LocalBoardPlayerIndex(MatchState state) =>
         _matchKind == MatchKind.Hotseat ? state.ActivePlayerIndex : LocalPlayerIndexForMatch();
 
-    private void BeginHostDirectMatch()
+    private void BeginHostDirectMatch() =>
+        BeginHostDirectMatch(DragonCardsModeIds.DragonDuel, CurrentDeck());
+
+    private void BeginHostDirectMatch(string modeId, DeckDefinition hostDeck)
     {
         if (_networkConnectTask is not null && !_networkConnectTask.IsCompleted)
         {
@@ -951,13 +973,13 @@ public sealed partial class DragonCardsGame
             return;
         }
 
-        GenerateHostInvite();
-        var handshake = DirectMatchConnection.CreateHandshake(_profile?.PlayerName ?? "Player", "dragon-duel", CurrentDeck(), CurrentRules());
+        GenerateHostInvite(modeId, hostDeck);
+        var handshake = DirectMatchConnection.CreateHandshake(_profile?.PlayerName ?? "Player", modeId, hostDeck, CurrentRules());
         _networkCancellation?.Cancel();
         _networkCancellation = new CancellationTokenSource();
         _networkConnectTask = DirectMatchConnection.HostAsync(_hostInvite, handshake, Environment.TickCount, _networkCancellation.Token);
-        _multiplayerNotice = "Hosting direct match. Share the invite code with another player on your LAN.";
-        _status = "Waiting for direct join.";
+        _multiplayerNotice = $"Hosting {ModeName(modeId)}. Share the invite code with another player on your LAN.";
+        _status = $"Waiting for direct join: {ModeName(modeId)}.";
     }
 
     private void BeginJoinDirectMatch()
@@ -969,11 +991,18 @@ public sealed partial class DragonCardsGame
             return;
         }
 
-        var handshake = DirectMatchConnection.CreateHandshake(_profile?.PlayerName ?? "Player", invite.ModeId, CurrentDeck(), CurrentRules());
+        if (!TryCreateLocalDeckForMode(invite.ModeId, out var joinDeck, out var deckError))
+        {
+            _multiplayerNotice = deckError;
+            _status = "Could not build a compatible deck for this invite.";
+            return;
+        }
+
+        var handshake = DirectMatchConnection.CreateHandshake(_profile?.PlayerName ?? "Player", invite.ModeId, joinDeck, CurrentRules());
         _networkCancellation?.Cancel();
         _networkCancellation = new CancellationTokenSource();
         _networkConnectTask = DirectMatchConnection.JoinAsync(invite, handshake, _networkCancellation.Token);
-        _multiplayerNotice = "Joining direct match.";
+        _multiplayerNotice = $"Joining {ModeName(invite.ModeId)}.";
         _status = "Connecting to host.";
     }
 

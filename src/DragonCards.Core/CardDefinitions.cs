@@ -44,6 +44,7 @@ public sealed record GameModeDefinition
     public string Id { get; init; } = "";
     public string Name { get; init; } = "";
     public string Description { get; init; } = "";
+    public GameModeDisplayDefinition Display { get; init; } = new();
     public List<string> Elements { get; set; } = [];
     public List<string> Phases { get; set; } = [];
     public List<string> AllowedCardTypes { get; set; } = [];
@@ -51,14 +52,27 @@ public sealed record GameModeDefinition
     public ZoneLimitDefinition ZoneLimits { get; init; } = new();
     public EnergyRulesDefinition EnergyRules { get; init; } = new();
     public ElementAdvantageDefinition? ElementAdvantage { get; init; }
+    public AvatarRulesDefinition? AvatarRules { get; init; }
+    public SealedRulesDefinition? SealedRules { get; init; }
+    public bool ProgressionEligible { get; init; } = true;
     public int DamageLimit { get; init; } = 7;
     public int StartingHand { get; init; } = 5;
+}
+
+public sealed record GameModeDisplayDefinition
+{
+    public string Category { get; init; } = "";
+    public string ShortName { get; init; } = "";
+    public string FeatureText { get; init; } = "";
+    public string[] Tags { get; init; } = [];
 }
 
 public sealed record DeckRulesDefinition
 {
     public int DeckSize { get; init; } = 50;
     public int MaxCopies { get; init; } = 3;
+    public bool Singleton { get; init; }
+    public bool EnforceElementIdentity { get; init; }
 }
 
 public sealed record ZoneLimitDefinition
@@ -77,6 +91,24 @@ public sealed record ElementAdvantageDefinition
 {
     public int PowerBonus { get; init; }
     public Dictionary<string, List<string>> StrongAgainst { get; set; } = [];
+}
+
+public sealed record AvatarRulesDefinition
+{
+    public bool Enabled { get; init; }
+    public string RequiredType { get; init; } = "Unit";
+    public string[] AllowedRarities { get; init; } = [CardRarities.Legendary, CardRarities.Mythic];
+    public int ReplayGenericCostIncrease { get; init; } = 2;
+    public int StartingCommandZoneCards { get; init; } = 1;
+}
+
+public sealed record SealedRulesDefinition
+{
+    public bool Enabled { get; init; }
+    public int BoosterCount { get; init; } = 6;
+    public int BuildDeckSize { get; init; } = 40;
+    public int GauntletWinsRequired { get; init; } = 3;
+    public int CompletionCoins { get; init; } = 500;
 }
 
 public sealed record CardDefinition

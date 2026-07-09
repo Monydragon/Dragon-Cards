@@ -1,0 +1,42 @@
+{
+  "id": "sandbox-lab",
+  "name": "Sandbox Lab",
+  "description": "All-cards testing mode with no progression rewards.",
+  "display": {
+    "category": "Sandbox",
+    "shortName": "Lab",
+    "featureText": "Unlimited deck building and unlocked cards for experimentation.",
+    "tags": ["sandbox", "all-cards", "testing"]
+  },
+  "elements": ["Fire", "Ice", "Wind", "Earth", "Lightning", "Water", "Light", "Dark"],
+  "phases": ["Ready", "Draw", "Main", "Combat", "Second Main", "End"],
+  "allowedCardTypes": ["Unit", "Support", "Spell"],
+  "deckRules": {
+    "deckSize": 50,
+    "maxCopies": 3
+  },
+  "zoneLimits": {
+    "unitSlots": 5,
+    "supportSlots": 5
+  },
+  "energyRules": {
+    "maxPerElement": 10,
+    "addsPerTurn": 1
+  },
+  "elementAdvantage": {
+    "powerBonus": 2000,
+    "strongAgainst": {
+      "Water": ["Fire"],
+      "Fire": ["Ice"],
+      "Ice": ["Wind"],
+      "Wind": ["Earth"],
+      "Earth": ["Lightning"],
+      "Lightning": ["Light"],
+      "Light": ["Dark"],
+      "Dark": ["Water"]
+    }
+  },
+  "progressionEligible": false,
+  "damageLimit": 7,
+  "startingHand": 5
+}

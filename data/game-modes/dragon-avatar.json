@@ -1,0 +1,51 @@
+{
+  "id": "dragon-avatar",
+  "name": "Dragon Avatar",
+  "description": "A 1v1 singleton identity format built around a chosen Legendary or Mythic Unit avatar.",
+  "display": {
+    "category": "Featured Variant",
+    "shortName": "Avatar",
+    "featureText": "Pick a powerful identity card, build singleton around its element, and duel with a higher damage limit.",
+    "tags": ["singleton", "avatar", "identity"]
+  },
+  "elements": ["Fire", "Ice", "Wind", "Earth", "Lightning", "Water", "Light", "Dark"],
+  "phases": ["Ready", "Draw", "Main", "Combat", "Second Main", "End"],
+  "allowedCardTypes": ["Unit", "Support", "Spell"],
+  "deckRules": {
+    "deckSize": 60,
+    "maxCopies": 1,
+    "singleton": true,
+    "enforceElementIdentity": true
+  },
+  "zoneLimits": {
+    "unitSlots": 5,
+    "supportSlots": 5
+  },
+  "energyRules": {
+    "maxPerElement": 10,
+    "addsPerTurn": 1
+  },
+  "elementAdvantage": {
+    "powerBonus": 2000,
+    "strongAgainst": {
+      "Water": ["Fire"],
+      "Fire": ["Ice"],
+      "Ice": ["Wind"],
+      "Wind": ["Earth"],
+      "Earth": ["Lightning"],
+      "Lightning": ["Light"],
+      "Light": ["Dark"],
+      "Dark": ["Water"]
+    }
+  },
+  "avatarRules": {
+    "enabled": true,
+    "requiredType": "Unit",
+    "allowedRarities": ["Legendary", "Mythic"],
+    "replayGenericCostIncrease": 2,
+    "startingCommandZoneCards": 1
+  },
+  "progressionEligible": false,
+  "damageLimit": 10,
+  "startingHand": 7
+}

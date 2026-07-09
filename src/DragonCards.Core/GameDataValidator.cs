@@ -106,6 +106,11 @@ public static class GameDataValidator
             issues.Add(new ValidationIssue("mode.max_copies", $"Mode '{mode.Name}' must use a positive copy limit.", mode.Id));
         }
 
+        if (mode.DeckRules.Singleton && mode.DeckRules.MaxCopies != 1)
+        {
+            issues.Add(new ValidationIssue("mode.singleton_copies", $"Mode '{mode.Name}' is singleton but does not use max copies of 1.", mode.Id));
+        }
+
         if (mode.ZoneLimits.UnitSlots <= 0 || mode.ZoneLimits.SupportSlots <= 0)
         {
             issues.Add(new ValidationIssue("mode.zone_limits", $"Mode '{mode.Name}' must use positive unit/support limits.", mode.Id));
@@ -121,7 +126,53 @@ public static class GameDataValidator
             issues.Add(new ValidationIssue("mode.energy_adds", $"Mode '{mode.Name}' must allow at least one energy add per turn.", mode.Id));
         }
 
+        ValidateAvatarRules(mode, issues);
+        ValidateSealedRules(mode, issues);
         ValidateElementAdvantage(mode, issues);
+    }
+
+    private static void ValidateAvatarRules(GameModeDefinition mode, List<ValidationIssue> issues)
+    {
+        var rules = mode.AvatarRules;
+        if (rules is null || !rules.Enabled)
+        {
+            return;
+        }
+
+        if (!mode.AllowedCardTypes.Contains(rules.RequiredType, StringComparer.OrdinalIgnoreCase))
+        {
+            issues.Add(new ValidationIssue("mode.avatar_type", $"Mode '{mode.Name}' requires an unsupported avatar type '{rules.RequiredType}'.", mode.Id));
+        }
+
+        if (rules.AllowedRarities.Length == 0 ||
+            rules.AllowedRarities.Any(rarity => !CardRarities.All.Contains(CardRarities.Normalize(rarity), StringComparer.OrdinalIgnoreCase)))
+        {
+            issues.Add(new ValidationIssue("mode.avatar_rarity", $"Mode '{mode.Name}' has invalid avatar rarity rules.", mode.Id));
+        }
+
+        if (rules.ReplayGenericCostIncrease < 0 || rules.StartingCommandZoneCards <= 0)
+        {
+            issues.Add(new ValidationIssue("mode.avatar_replay", $"Mode '{mode.Name}' has invalid avatar replay rules.", mode.Id));
+        }
+    }
+
+    private static void ValidateSealedRules(GameModeDefinition mode, List<ValidationIssue> issues)
+    {
+        var rules = mode.SealedRules;
+        if (rules is null || !rules.Enabled)
+        {
+            return;
+        }
+
+        if (rules.BoosterCount <= 0 || rules.BuildDeckSize <= 0 || rules.GauntletWinsRequired <= 0 || rules.CompletionCoins < 0)
+        {
+            issues.Add(new ValidationIssue("mode.sealed_rules", $"Mode '{mode.Name}' has invalid sealed gauntlet rules.", mode.Id));
+        }
+
+        if (rules.BuildDeckSize != mode.DeckRules.DeckSize)
+        {
+            issues.Add(new ValidationIssue("mode.sealed_deck_size", $"Mode '{mode.Name}' sealed deck size does not match deck rules.", mode.Id));
+        }
     }
 
     private static void ValidateElementAdvantage(GameModeDefinition mode, List<ValidationIssue> issues)

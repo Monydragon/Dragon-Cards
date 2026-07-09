@@ -30,6 +30,7 @@
       "Dark": ["Water"]
     }
   },
+  "progressionEligible": true,
   "damageLimit": 7,
   "startingHand": 5
 }
