@@ -26,6 +26,7 @@ public sealed class MatchState
     public int EnergyAddsThisTurn { get; set; }
     public bool HasAddedEnergyThisTurn => EnergyAddsThisTurn >= Mode.EnergyRules.AddsPerTurn;
     public PendingAttack? PendingAttack { get; set; }
+    public PendingCombatAction? PendingCombatAction { get; set; }
     public PendingEnergyChoice? PendingEnergyChoice { get; set; }
     public PendingTargetChoice? PendingTargetChoice { get; set; }
     public int? WinnerIndex { get; set; }
@@ -70,9 +71,9 @@ public sealed class PlayerState
 
 public sealed class CardInstance
 {
-    public CardInstance(string cardId)
+    public CardInstance(string cardId, string? id = null)
     {
-        Id = Guid.NewGuid().ToString("N");
+        Id = string.IsNullOrWhiteSpace(id) ? Guid.NewGuid().ToString("N") : id;
         CardId = cardId;
     }
 
@@ -83,7 +84,20 @@ public sealed class CardInstance
 
 public sealed record PendingAttack(int AttackerPlayerIndex, string AttackerInstanceId);
 
-public sealed record PendingEnergyChoice(int PlayerIndex, PendingEnergyChoiceType Type, int Amount, string Message);
+public sealed record PendingCombatAction(
+    int PriorityPlayerIndex,
+    string AttackerInstanceId,
+    string BlockerInstanceId,
+    int ConsecutivePasses);
+
+public sealed record PendingEnergyChoice(
+    int PlayerIndex,
+    PendingEnergyChoiceType Type,
+    int Amount,
+    string Message,
+    string SourceInstanceId = "",
+    string CardId = "",
+    string EffectText = "");
 
 public enum PendingEnergyChoiceType
 {
@@ -96,19 +110,34 @@ public sealed record PendingTargetChoice(
     PendingTargetChoiceType Type,
     TargetScope Scope,
     string SourceInstanceId,
-    string Message);
+    string Message,
+    TargetZoneKind Zones = TargetZoneKind.Units,
+    string CardId = "",
+    string EffectText = "");
 
 public enum PendingTargetChoiceType
 {
     ExhaustUnit,
-    ReadyUnit
+    ReadyUnit,
+    ReturnToHand
 }
 
 public enum TargetScope
 {
     EnemyUnit,
     FriendlyUnit,
-    AnyUnit
+    AnyUnit,
+    EnemyField,
+    FriendlyField,
+    AnyField
+}
+
+[Flags]
+public enum TargetZoneKind
+{
+    Units = 1,
+    Supports = 2,
+    Field = Units | Supports
 }
 
 public enum SacrificeSource
@@ -148,9 +177,12 @@ public enum MatchEventKind
     TargetResolved,
     AttackDeclared,
     BlockDeclared,
+    CombatActionQueued,
+    CombatActionPassed,
     CombatResolved,
     DamageTaken,
-    CardReadied
+    CardReadied,
+    CardReturnedToHand
 }
 
 public sealed record MatchEvent
@@ -159,6 +191,8 @@ public sealed record MatchEvent
     public int PlayerIndex { get; init; } = -1;
     public string CardId { get; init; } = "";
     public string InstanceId { get; init; } = "";
+    public string EffectText { get; init; } = "";
+    public string AbilityName { get; init; } = "";
     public ZoneRef? From { get; init; }
     public ZoneRef? To { get; init; }
     public string Element { get; init; } = "";

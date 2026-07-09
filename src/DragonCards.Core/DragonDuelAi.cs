@@ -4,8 +4,15 @@ public sealed class DragonDuelAi
 {
     private const int DefaultMaxActions = 30;
 
-    public AiTurnResult RunUntilHumanInput(DragonDuelEngine engine, int aiPlayerIndex, int maxActions = DefaultMaxActions)
+    public AiTurnResult RunUntilHumanInput(DragonDuelEngine engine, int aiPlayerIndex, int maxActions = DefaultMaxActions) =>
+        RunUntilHumanInput(engine, aiPlayerIndex, rules: null, maxActions);
+
+    public AiTurnResult RunUntilHumanInput(DragonDuelEngine engine, int aiPlayerIndex, GameRulesConfig? rules, int maxActions = DefaultMaxActions)
     {
+        var normalizedRules = (rules ?? GameRulesConfig.ForPreset(GameRulesPreset.Standard)).Normalize();
+        maxActions = rules is null
+            ? maxActions
+            : Math.Clamp((int)Math.Round(maxActions * normalizedRules.AiDifficultyModifier, MidpointRounding.AwayFromZero), 8, 60);
         var decisions = new List<AiDecision>();
         var actions = 0;
         var handSacrificedTurnKey = "";
@@ -37,6 +44,22 @@ public sealed class DragonDuelAi
 
                 var targetResult = ResolveAiTarget(engine, aiPlayerIndex);
                 decisions.Add(new AiDecision("target-choice", targetResult.Message, targetResult.Events));
+                actions++;
+                continue;
+            }
+
+            if (engine.State.PendingCombatAction is not null)
+            {
+                if (engine.State.PendingCombatAction.PriorityPlayerIndex != aiPlayerIndex)
+                {
+                    return new AiTurnResult(AiTurnStatus.WaitingForHuman, decisions);
+                }
+
+                var combatAbility = ChooseAbility(engine, aiPlayerIndex, normalizedRules.Playstyle);
+                var result = combatAbility is not null
+                    ? engine.ActivateAbility(aiPlayerIndex, combatAbility.SourceInstanceId, combatAbility.Ability.Id)
+                    : engine.PassCombatAction(aiPlayerIndex);
+                decisions.Add(new AiDecision(combatAbility is null ? "combat-pass" : "combat-ability", result.Message, result.Events));
                 actions++;
                 continue;
             }
@@ -80,7 +103,7 @@ public sealed class DragonDuelAi
                     continue;
                 }
 
-                var ability = ChooseAbility(engine, aiPlayerIndex);
+                var ability = ChooseAbility(engine, aiPlayerIndex, normalizedRules.Playstyle);
                 if (ability is not null)
                 {
                     var result = engine.ActivateAbility(aiPlayerIndex, ability.SourceInstanceId, ability.Ability.Id);
@@ -89,7 +112,7 @@ public sealed class DragonDuelAi
                     continue;
                 }
 
-                var handIndex = ChoosePlayableCard(engine);
+                var handIndex = ChoosePlayableCard(engine, normalizedRules.Playstyle);
                 if (handIndex is not null)
                 {
                     var result = engine.PlayCardFromHand(handIndex.Value);
@@ -98,7 +121,7 @@ public sealed class DragonDuelAi
                     continue;
                 }
 
-                var fullZoneSacrifice = ChooseFullZoneSacrifice(engine);
+                var fullZoneSacrifice = ChooseFullZoneSacrifice(engine, normalizedRules.Playstyle);
                 if (fullZoneSacrifice is not null)
                 {
                     var result = engine.SacrificeForEnergy(fullZoneSacrifice.Value.Source, fullZoneSacrifice.Value.Index);
@@ -109,7 +132,7 @@ public sealed class DragonDuelAi
 
                 if (!turnKey.Equals(handSacrificedTurnKey, StringComparison.OrdinalIgnoreCase))
                 {
-                    var handSacrificeIndex = ChooseHandSacrifice(engine);
+                    var handSacrificeIndex = ChooseHandSacrifice(engine, normalizedRules.Playstyle);
                     if (handSacrificeIndex is not null)
                     {
                         var result = engine.SacrificeForEnergy(SacrificeSource.Hand, handSacrificeIndex.Value);
@@ -158,18 +181,18 @@ public sealed class DragonDuelAi
         return end.Success ? engine.AdvanceToNextDecisionPhase() : end;
     }
 
-    private static int? ChoosePlayableCard(DragonDuelEngine engine)
+    private static int? ChoosePlayableCard(DragonDuelEngine engine, Playstyle playstyle)
     {
         return engine.GetPlayableHandIndices()
             .Select(index => (Index: index, Card: engine.State.DefinitionFor(engine.State.ActivePlayer.Hand[index])))
-            .OrderByDescending(item => PlayPriority(item.Card))
+            .OrderByDescending(item => PlayPriority(item.Card, playstyle))
             .ThenBy(item => item.Card.TotalCost)
             .ThenBy(item => item.Index)
             .Select(item => (int?)item.Index)
             .FirstOrDefault();
     }
 
-    private static (SacrificeSource Source, int Index)? ChooseFullZoneSacrifice(DragonDuelEngine engine)
+    private static (SacrificeSource Source, int Index)? ChooseFullZoneSacrifice(DragonDuelEngine engine, Playstyle playstyle)
     {
         var player = engine.State.ActivePlayer;
         var candidates = player.Hand
@@ -177,7 +200,7 @@ public sealed class DragonDuelAi
             .Where(item => item.Card.Type.Equals("Unit", StringComparison.OrdinalIgnoreCase) ||
                 item.Card.Type.Equals("Support", StringComparison.OrdinalIgnoreCase))
             .Where(item => IsZoneFull(engine, item.Card.Type))
-            .OrderByDescending(item => PlayPriority(item.Card))
+            .OrderByDescending(item => PlayPriority(item.Card, playstyle))
             .ThenByDescending(item => item.Card.Power)
             .ToArray();
 
@@ -186,7 +209,7 @@ public sealed class DragonDuelAi
             var source = candidate.Card.Type.Equals("Unit", StringComparison.OrdinalIgnoreCase)
                 ? SacrificeSource.UnitField
                 : SacrificeSource.SupportField;
-            var sacrificeIndex = ChooseWeakestFieldCard(engine, source, candidate.Card);
+            var sacrificeIndex = ChooseWeakestFieldCard(engine, source, candidate.Card, playstyle);
             if (sacrificeIndex is null || !engine.CanSacrificeForEnergy(source, sacrificeIndex.Value))
             {
                 continue;
@@ -203,7 +226,7 @@ public sealed class DragonDuelAi
         return null;
     }
 
-    private static int? ChooseHandSacrifice(DragonDuelEngine engine)
+    private static int? ChooseHandSacrifice(DragonDuelEngine engine, Playstyle playstyle)
     {
         var player = engine.State.ActivePlayer;
         var unmetElement = ChooseEnergyElement(engine, engine.State.ActivePlayerIndex);
@@ -224,7 +247,7 @@ public sealed class DragonDuelAi
             .Where(item => item.Unlocks || item.ImprovesNeed)
             .OrderByDescending(item => item.Unlocks)
             .ThenByDescending(item => item.ImprovesNeed)
-            .ThenBy(item => PlayPriority(item.Card))
+            .ThenBy(item => PlayPriority(item.Card, playstyle))
             .ThenBy(item => item.Card.TotalCost)
             .ThenBy(item => item.Index)
             .ToArray();
@@ -232,12 +255,12 @@ public sealed class DragonDuelAi
         return sacrifices.Select(item => (int?)item.Index).FirstOrDefault();
     }
 
-    private static int? ChooseWeakestFieldCard(DragonDuelEngine engine, SacrificeSource source, CardDefinition incoming)
+    private static int? ChooseWeakestFieldCard(DragonDuelEngine engine, SacrificeSource source, CardDefinition incoming, Playstyle playstyle)
     {
         var field = FieldFor(engine.State.ActivePlayer, source);
         var weakest = field
             .Select((instance, index) => (Instance: instance, Index: index, Card: engine.State.DefinitionFor(instance)))
-            .OrderBy(item => PlayPriority(item.Card))
+            .OrderBy(item => PlayPriority(item.Card, playstyle))
             .ThenBy(item => item.Card.Power)
             .ThenByDescending(item => item.Card.TotalCost)
             .ThenBy(item => item.Index)
@@ -248,8 +271,8 @@ public sealed class DragonDuelAi
             return null;
         }
 
-        var incomingScore = PlayPriority(incoming) * 100000 + incoming.Power + incoming.TotalCost;
-        var weakestScore = PlayPriority(weakest.Card) * 100000 + weakest.Card.Power + weakest.Card.TotalCost;
+        var incomingScore = PlayPriority(incoming, playstyle) * 100000 + incoming.Power + incoming.TotalCost;
+        var weakestScore = PlayPriority(weakest.Card, playstyle) * 100000 + weakest.Card.Power + weakest.Card.TotalCost;
         return incomingScore > weakestScore ? weakest.Index : null;
     }
 
@@ -320,51 +343,86 @@ public sealed class DragonDuelAi
         return available.Values.Where(amount => amount > 0).Sum() >= generic;
     }
 
-    private static int PlayPriority(CardDefinition card)
+    private static int PlayPriority(CardDefinition card, Playstyle playstyle)
     {
+        var styleBonus = PlaystyleBonus(card, playstyle);
         if (card.Tags.Contains("Finisher", StringComparer.OrdinalIgnoreCase))
         {
-            return 95;
+            return 95 + styleBonus;
         }
 
         if (IsRampCard(card) && card.Type.Equals("Support", StringComparison.OrdinalIgnoreCase))
         {
-            return 90;
+            return 90 + styleBonus;
         }
 
-        if (card.Tags.Contains("Removal", StringComparer.OrdinalIgnoreCase) || HasHook(card, "exhaust"))
+        if (card.Tags.Contains("Removal", StringComparer.OrdinalIgnoreCase) ||
+            HasHook(card, "exhaust") ||
+            HasHook(card, "return_enemy") ||
+            HasHook(card, "discard_opponent"))
         {
-            return 82;
+            return 82 + styleBonus;
         }
 
         if (card.Type.Equals("Unit", StringComparison.OrdinalIgnoreCase))
         {
-            return 70;
+            return 70 + styleBonus;
         }
 
         if (IsRampCard(card) || HasHook(card, "draw"))
         {
-            return 60;
+            return 60 + styleBonus;
         }
 
         if (HasHook(card, "deal"))
         {
-            return 50;
+            return 50 + styleBonus;
         }
 
         if (card.Type.Equals("Support", StringComparison.OrdinalIgnoreCase))
         {
-            return 40;
+            return 40 + styleBonus;
         }
 
-        return 10;
+        return 10 + styleBonus;
     }
 
-    private static ActivatableAbility? ChooseAbility(DragonDuelEngine engine, int aiPlayerIndex)
+    private static int PlaystyleBonus(CardDefinition card, Playstyle playstyle)
+    {
+        if (playstyle == Playstyle.Balanced)
+        {
+            return card.Tags.Contains("Balanced", StringComparer.OrdinalIgnoreCase) ? 12 : 0;
+        }
+
+        var tag = playstyle.ToString();
+        if (card.Tags.Contains(tag, StringComparer.OrdinalIgnoreCase))
+        {
+            return 42;
+        }
+
+        return playstyle switch
+        {
+            Playstyle.Aggro when card.Keywords.Contains("Strike", StringComparer.OrdinalIgnoreCase) ||
+                HasHook(card, "deal") ||
+                HasHook(card, "discard") => 16,
+            Playstyle.Control when card.Tags.Contains("Removal", StringComparer.OrdinalIgnoreCase) ||
+                HasHook(card, "exhaust") ||
+                HasHook(card, "return_enemy") ||
+                HasHook(card, "recover") => 16,
+            Playstyle.Ramp when IsRampCard(card) => 18,
+            Playstyle.Combo when HasHook(card, "draw") ||
+                HasHook(card, "ready") ||
+                HasHook(card, "refund") ||
+                card.Tags.Contains("Finisher", StringComparer.OrdinalIgnoreCase) => 14,
+            _ => 0
+        };
+    }
+
+    private static ActivatableAbility? ChooseAbility(DragonDuelEngine engine, int aiPlayerIndex, Playstyle playstyle)
     {
         return engine.GetActivatableAbilities(aiPlayerIndex)
             .Where(item => IsHelpfulAbility(item.Ability))
-            .OrderByDescending(item => AbilityPriority(item.Ability))
+            .OrderByDescending(item => AbilityPriority(item.Ability, playstyle))
             .ThenBy(item => item.Card.TotalCost)
             .FirstOrDefault();
     }
@@ -376,26 +434,42 @@ public sealed class DragonDuelAi
         ability.Hook.Contains("refund", StringComparison.OrdinalIgnoreCase) ||
         ability.Hook.Contains("convert", StringComparison.OrdinalIgnoreCase) ||
         ability.Hook.Contains("exhaust", StringComparison.OrdinalIgnoreCase) ||
-        ability.Hook.Contains("ready", StringComparison.OrdinalIgnoreCase);
+        ability.Hook.Contains("ready", StringComparison.OrdinalIgnoreCase) ||
+        ability.Hook.Contains("return", StringComparison.OrdinalIgnoreCase) ||
+        ability.Hook.Contains("discard", StringComparison.OrdinalIgnoreCase);
 
-    private static int AbilityPriority(ActivatedAbilityDefinition ability)
+    private static int AbilityPriority(ActivatedAbilityDefinition ability, Playstyle playstyle)
     {
+        var styleBonus = playstyle switch
+        {
+            Playstyle.Ramp when IsRampHook(ability.Hook) => 20,
+            Playstyle.Control when ability.Hook.Contains("exhaust", StringComparison.OrdinalIgnoreCase) ||
+                ability.Hook.Contains("recover", StringComparison.OrdinalIgnoreCase) ||
+                ability.Hook.Contains("return", StringComparison.OrdinalIgnoreCase) => 18,
+            Playstyle.Aggro when ability.Hook.Contains("deal", StringComparison.OrdinalIgnoreCase) ||
+                ability.Hook.Contains("discard", StringComparison.OrdinalIgnoreCase) => 16,
+            Playstyle.Combo when ability.Hook.Contains("draw", StringComparison.OrdinalIgnoreCase) ||
+                ability.Hook.Contains("refund", StringComparison.OrdinalIgnoreCase) ||
+                ability.Hook.Contains("ready", StringComparison.OrdinalIgnoreCase) => 14,
+            _ => 0
+        };
+
         if (ability.Hook.Contains("energy", StringComparison.OrdinalIgnoreCase))
         {
-            return 100;
+            return 100 + styleBonus;
         }
 
         if (ability.Hook.Contains("reduce", StringComparison.OrdinalIgnoreCase))
         {
-            return 80;
+            return 80 + styleBonus;
         }
 
         if (ability.Hook.Contains("draw", StringComparison.OrdinalIgnoreCase))
         {
-            return 60;
+            return 60 + styleBonus;
         }
 
-        return 40;
+        return 40 + styleBonus;
     }
 
     private static int? ChooseAttacker(DragonDuelEngine engine)
@@ -461,16 +535,25 @@ public sealed class DragonDuelAi
 
         var candidates = engine.State.Players
             .SelectMany((player, playerIndex) => player.UnitField.Select((instance, index) =>
-                (PlayerIndex: playerIndex, Index: index, Instance: instance, Card: engine.State.DefinitionFor(instance))))
-            .Where(item => engine.CanResolveTargetChoice(item.PlayerIndex, item.Index))
+                    (PlayerIndex: playerIndex, Index: index, Target: new ZoneRef(playerIndex, "UnitField", index), Instance: instance, Card: engine.State.DefinitionFor(instance)))
+                .Concat(player.SupportField.Select((instance, index) =>
+                    (PlayerIndex: playerIndex, Index: index, Target: new ZoneRef(playerIndex, "SupportField", index), Instance: instance, Card: engine.State.DefinitionFor(instance)))))
+            .Where(item => engine.CanResolveTargetChoice(item.Target))
             .ToArray();
 
+        var friendlyScope = choice.Scope is TargetScope.FriendlyUnit or TargetScope.FriendlyField;
         var target = choice.Type == PendingTargetChoiceType.ReadyUnit
             ? candidates
                 .Where(item => item.PlayerIndex == aiPlayerIndex && item.Instance.Exhausted)
                 .OrderByDescending(item => item.Card.Power)
                 .ThenBy(item => item.Index)
                 .FirstOrDefault()
+            : friendlyScope
+                ? candidates
+                    .Where(item => item.PlayerIndex == aiPlayerIndex)
+                    .OrderBy(item => item.Card.TotalCost)
+                    .ThenBy(item => item.Index)
+                    .FirstOrDefault()
             : candidates
                 .Where(item => item.PlayerIndex != aiPlayerIndex)
                 .OrderByDescending(item => item.Card.Power)
@@ -483,7 +566,7 @@ public sealed class DragonDuelAi
             return GameActionResult.Fail("No legal target is available.");
         }
 
-        return engine.ResolveTargetChoice(target.PlayerIndex, target.Index);
+        return engine.ResolveTargetChoice(target.Target);
     }
 
     private static string ChooseEnergyElement(DragonDuelEngine engine, int playerIndex)

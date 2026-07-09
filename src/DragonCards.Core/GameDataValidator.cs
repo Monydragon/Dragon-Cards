@@ -208,6 +208,11 @@ public static class GameDataValidator
             }
         }
 
+        if (!CardRarities.All.Contains(card.Rarity, StringComparer.OrdinalIgnoreCase))
+        {
+            issues.Add(new ValidationIssue("card.rarity", $"Card '{card.Name}' uses unknown rarity '{card.Rarity}'.", card.Id));
+        }
+
         foreach (var hook in card.Hooks)
         {
             if (!hooks.HasHook(hook))
@@ -249,6 +254,15 @@ public static class GameDataValidator
             foreach (var (costElement, amount) in ability.Cost)
             {
                 ValidateCost($"{card.Name} ability {ability.Name}", card.Id, costElement, amount, allElements, "card.ability", issues);
+            }
+
+            foreach (var timing in ability.Timings)
+            {
+                if (!timing.Equals(DragonCardConstants.MainTiming, StringComparison.OrdinalIgnoreCase) &&
+                    !timing.Equals(DragonCardConstants.CombatTiming, StringComparison.OrdinalIgnoreCase))
+                {
+                    issues.Add(new ValidationIssue("card.ability_timing", $"Card '{card.Name}' ability '{ability.Name}' uses unknown timing '{timing}'.", card.Id));
+                }
             }
         }
     }

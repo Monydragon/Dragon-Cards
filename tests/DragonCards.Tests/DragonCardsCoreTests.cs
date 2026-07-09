@@ -51,12 +51,59 @@ public sealed class DragonCardsCoreTests
     }
 
     [Fact]
-    public void StarterLibraryExpandedToOneHundredTwentyCardsWithVisualMetadata()
+    public void CardLibraryIncludesElementalAscensionExpansionWithVisualMetadata()
     {
         var data = LoadData();
 
-        Assert.Equal(120, data.Cards.Count);
+        Assert.Equal(480, data.Cards.Count);
         Assert.Equal(data.Cards.Count, data.Cards.Select(card => card.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+        Assert.All(data.Cards, card => Assert.Contains(card.Rarity, CardRarities.All));
+        Assert.Equal(232, data.Cards.Count(card => card.Rarity == CardRarities.Common));
+        Assert.Equal(96, data.Cards.Count(card => card.Rarity == CardRarities.Uncommon));
+        Assert.Equal(88, data.Cards.Count(card => card.Rarity == CardRarities.Rare));
+        Assert.Equal(40, data.Cards.Count(card => card.Rarity == CardRarities.Legendary));
+        Assert.Equal(24, data.Cards.Count(card => card.Rarity == CardRarities.Mythic));
+        Assert.All(data.Cards.Where(card => card.Id.EndsWith("-ancient-dragon", StringComparison.OrdinalIgnoreCase)), card =>
+        {
+            Assert.Equal(CardRarities.Mythic, card.Rarity);
+            Assert.Equal(CardSets.AncientAwakening, card.SetId);
+        });
+        Assert.Equal(40, data.Cards.Count(card => card.SetId == CardSets.AncientAwakening));
+        Assert.Equal(160, data.Cards.Count(card => card.SetId == CardSets.ElementalAscension));
+        Assert.Equal(160, data.Cards.Count(card => card.SetId == CardSets.PrimalClash));
+        foreach (var element in data.GameModesById["dragon-duel"].Elements)
+        {
+            Assert.Equal(60, data.Cards.Count(card => card.Elements.FirstOrDefault()?.Equals(element, StringComparison.OrdinalIgnoreCase) == true));
+            var expansionCards = data.Cards
+                .Where(card => card.SetId == CardSets.ElementalAscension &&
+                    card.Elements.FirstOrDefault()?.Equals(element, StringComparison.OrdinalIgnoreCase) == true)
+                .ToArray();
+            Assert.Equal(20, expansionCards.Length);
+            Assert.Equal(8, expansionCards.Count(card => card.Rarity == CardRarities.Common));
+            Assert.Equal(5, expansionCards.Count(card => card.Rarity == CardRarities.Uncommon));
+            Assert.Equal(4, expansionCards.Count(card => card.Rarity == CardRarities.Rare));
+            Assert.Equal(2, expansionCards.Count(card => card.Rarity == CardRarities.Legendary));
+            Assert.Equal(1, expansionCards.Count(card => card.Rarity == CardRarities.Mythic));
+            Assert.Equal(10, expansionCards.Count(card => card.Type == "Unit"));
+            Assert.Equal(4, expansionCards.Count(card => card.Type == "Support"));
+            Assert.Equal(6, expansionCards.Count(card => card.Type == "Spell"));
+
+            var primalCards = data.Cards
+                .Where(card => card.SetId == CardSets.PrimalClash &&
+                    card.Elements.FirstOrDefault()?.Equals(element, StringComparison.OrdinalIgnoreCase) == true)
+                .ToArray();
+            Assert.Equal(20, primalCards.Length);
+            Assert.Equal(8, primalCards.Count(card => card.Rarity == CardRarities.Common));
+            Assert.Equal(5, primalCards.Count(card => card.Rarity == CardRarities.Uncommon));
+            Assert.Equal(4, primalCards.Count(card => card.Rarity == CardRarities.Rare));
+            Assert.Equal(2, primalCards.Count(card => card.Rarity == CardRarities.Legendary));
+            Assert.Equal(1, primalCards.Count(card => card.Rarity == CardRarities.Mythic));
+            Assert.Equal(10, primalCards.Count(card => card.Type == "Unit"));
+            Assert.Equal(4, primalCards.Count(card => card.Type == "Support"));
+            Assert.Equal(6, primalCards.Count(card => card.Type == "Spell"));
+            Assert.Contains(primalCards, card => card.Abilities.Any(ability => ability.Timings.Contains(DragonCardConstants.CombatTiming, StringComparer.OrdinalIgnoreCase)));
+        }
+
         Assert.All(data.Cards.Where(card => card.Visual is not null), card =>
         {
             Assert.False(string.IsNullOrWhiteSpace(card.Visual!.Frame));
@@ -64,6 +111,7 @@ public sealed class DragonCardsCoreTests
         });
         Assert.Contains(data.Cards, card => card.Tags.Contains("Finisher", StringComparer.OrdinalIgnoreCase));
         Assert.Contains(data.Cards, card => card.Hooks.Contains("exhaust_enemy_unit_choice"));
+        Assert.Contains(data.Cards, card => card.Hooks.Contains("return_enemy_field_to_hand_choice"));
     }
 
     [Fact]
@@ -83,18 +131,343 @@ public sealed class DragonCardsCoreTests
     public void StarterDecksContainRequiredRampPackage()
     {
         var data = LoadData();
-        var flame = data.DecksById["starter-flame-gale"];
-        var frost = data.DecksById["starter-frost-stone"];
+        var elements = data.GameModesById["dragon-duel"].Elements;
 
         Assert.All(data.Decks, deck => Assert.All(deck.Cards, entry => Assert.InRange(entry.Value, 1, 3)));
-        Assert.Equal(3, flame.Cards["fire-hearth-shrine"]);
-        Assert.Equal(3, flame.Cards["wind-waystone-shrine"]);
-        Assert.Equal(2, flame.Cards["fire-forge-caller"]);
-        Assert.Equal(2, flame.Cards["wind-mapmaker"]);
-        Assert.Equal(3, frost.Cards["ice-winter-shrine"]);
-        Assert.Equal(3, frost.Cards["earth-grove-shrine"]);
-        Assert.Equal(2, frost.Cards["ice-mirror-sage"]);
-        Assert.Equal(2, frost.Cards["earth-grove-keeper"]);
+        Assert.Equal(elements.Count, data.Decks.Count);
+        foreach (var element in elements)
+        {
+            var deck = data.DecksById[$"starter-{element.ToLowerInvariant()}"];
+            Assert.All(deck.Cards.Keys, cardId => Assert.Equal(element, data.CardsById[cardId].Elements[0]));
+            Assert.Contains(deck.Cards.Keys, cardId => data.CardsById[cardId].Hooks.Any(hook => hook.Contains("energy", StringComparison.OrdinalIgnoreCase)));
+        }
+    }
+
+    [Fact]
+    public void RulesPresetsControlProgressionAndSandboxDeckBuilding()
+    {
+        var casual = GameRulesConfig.ForPreset(GameRulesPreset.Casual);
+        var standard = GameRulesConfig.ForPreset(GameRulesPreset.Standard);
+        var customSandbox = GameRulesConfig.ForPreset(GameRulesPreset.Custom) with { UnlimitedDeckBuilder = true };
+
+        Assert.False(casual.Normalize().IsProgressionSafe);
+        Assert.True(casual.UnlimitedDeckBuilder);
+        Assert.True(standard.Normalize().IsProgressionSafe);
+        Assert.False(customSandbox.Normalize().IsProgressionSafe);
+    }
+
+    [Fact]
+    public void ProfileCreationGrantsChosenStarterAndSerializes()
+    {
+        var data = LoadData();
+        var starter = data.DecksById["starter-fire"];
+
+        var profile = ProgressionService.CreateProfile("Astra", GameRulesConfig.ForPreset(GameRulesPreset.Standard, Playstyle.Ramp), starter, data);
+        var json = PlayerProfileSerializer.ToJson(profile);
+        var roundTripped = PlayerProfileSerializer.FromJson(json);
+
+        Assert.Equal("Astra", roundTripped.PlayerName);
+        Assert.Equal(1, roundTripped.Level);
+        Assert.Contains("starter-fire", roundTripped.OwnedStarterDeckIds);
+        Assert.All(starter.Cards, entry => Assert.Equal(entry.Value, roundTripped.OwnedCards[entry.Key]));
+        Assert.Equal(Playstyle.Ramp, roundTripped.DefaultRules.Playstyle);
+    }
+
+    [Fact]
+    public void TutorialCompletionGrantsCoinsOnce()
+    {
+        var profile = new PlayerProfile { PlayerName = "Astra", Coins = 10 };
+
+        var first = TutorialRewardService.CompleteTutorial(profile, "sacrifice-energy");
+        var second = TutorialRewardService.CompleteTutorial(profile, "sacrifice-energy");
+
+        Assert.True(first.Awarded);
+        Assert.Equal(250, first.CoinsAwarded);
+        Assert.False(second.Awarded);
+        Assert.Equal(0, second.CoinsAwarded);
+        Assert.Equal(260, profile.Coins);
+        Assert.Single(profile.CompletedTutorialIds);
+        Assert.Contains("sacrifice-energy", profile.CompletedTutorialIds);
+    }
+
+    [Fact]
+    public void ProfileSerializationPreservesCompletedTutorialIds()
+    {
+        var profile = new PlayerProfile { PlayerName = "Astra" };
+        TutorialRewardService.CompleteTutorial(profile, "add-energy");
+        TutorialRewardService.CompleteTutorial(profile, "blocking-attacks");
+
+        var roundTripped = PlayerProfileSerializer.FromJson(PlayerProfileSerializer.ToJson(profile));
+
+        Assert.Contains("add-energy", roundTripped.CompletedTutorialIds);
+        Assert.Contains("blocking-attacks", roundTripped.CompletedTutorialIds);
+        Assert.Equal(2, roundTripped.CompletedTutorialIds.Count);
+        Assert.Equal(500, roundTripped.Coins);
+    }
+
+    [Fact]
+    public void MatchRewardsUseLinearLevelCurveAndDifficultyMultipliers()
+    {
+        var profile = new PlayerProfile { PlayerName = "Astra", Experience = 3900 };
+        profile.Normalize();
+        var hard = GameRulesConfig.ForPreset(GameRulesPreset.Hard);
+
+        var reward = ProgressionService.ApplyMatchReward(profile, hard, MatchRewardKind.Ai, won: true);
+
+        Assert.True(reward.ProgressionApplied);
+        Assert.Equal(720, reward.ExperienceGained);
+        Assert.Equal(4, reward.StartingLevel);
+        Assert.Equal(5, reward.EndingLevel);
+        Assert.Equal(1, reward.BoostersGained);
+        Assert.Equal(5, profile.Level);
+        Assert.Equal(170, profile.Coins);
+        Assert.Equal(1, BoosterService.GetUnopenedPackCount(profile, BoosterService.StandardBoosterId));
+    }
+
+    [Fact]
+    public void SandboxRewardsDoNotApply()
+    {
+        var profile = new PlayerProfile { PlayerName = "Astra" };
+        var reward = ProgressionService.ApplyMatchReward(profile, GameRulesConfig.ForPreset(GameRulesPreset.Casual), MatchRewardKind.HumanMultiplayer, won: true);
+
+        Assert.False(reward.ProgressionApplied);
+        Assert.Equal(0, profile.Experience);
+        Assert.Equal(0, profile.Coins);
+    }
+
+    [Fact]
+    public void DeckOwnershipValidatorHonorsSandboxOverrides()
+    {
+        var deck = LoadData().DecksById["starter-fire"];
+        var profile = new PlayerProfile { OwnedCards = new Dictionary<string, int> { ["fire-ember-whelp"] = 1 } };
+        profile.Normalize();
+
+        var progressionIssues = DeckOwnershipValidator.ValidateDeckOwnership(deck, profile, GameRulesConfig.ForPreset(GameRulesPreset.Standard));
+        var sandboxIssues = DeckOwnershipValidator.ValidateDeckOwnership(deck, profile, GameRulesConfig.ForPreset(GameRulesPreset.Casual));
+
+        Assert.NotEmpty(progressionIssues);
+        Assert.Empty(sandboxIssues);
+    }
+
+    [Fact]
+    public void BoosterOpeningUsesFiveRaritySlotsAndConvertsDuplicates()
+    {
+        var data = LoadData();
+        var profile = new PlayerProfile { UnopenedBoosters = 1 };
+        foreach (var card in data.Cards)
+        {
+            profile.OwnedCards[card.Id] = PlayerCollection.MaxOwnedCopies;
+        }
+
+        var opening = BoosterService.OpenBooster(data, profile, seed: 11);
+
+        Assert.Equal(5, opening.Cards.Count);
+        Assert.Equal(0, profile.UnopenedBoosters);
+        Assert.Equal(0, BoosterService.GetUnopenedPackCount(profile, BoosterService.StandardBoosterId));
+        Assert.True(opening.CoinsFromDuplicates > 0);
+        Assert.Contains(opening.Cards, grant => grant.Rarity == CardRarities.Uncommon);
+        Assert.Contains(opening.Cards, grant => CardRarities.IsRarePlus(grant.Rarity));
+    }
+
+    [Fact]
+    public void RarityNormalizationSupportsLegacyAliasesAndMythical()
+    {
+        Assert.Equal(CardRarities.Legendary, CardRarities.Normalize("Legend"));
+        Assert.Equal(CardRarities.Legendary, CardRarities.Normalize("legendary"));
+        Assert.Equal(CardRarities.Mythic, CardRarities.Normalize("Mythical"));
+        Assert.True(CardRarities.IsRarePlus("Mythical"));
+    }
+
+    [Fact]
+    public void BoosterRarePlusRollUsesRareLegendaryMythicOdds()
+    {
+        Assert.Equal(CardRarities.Rare, BoosterService.RollRarePlusRarity(new Random(0)));
+        Assert.Equal(CardRarities.Legendary, BoosterService.RollRarePlusRarity(new Random(14)));
+        Assert.Equal(CardRarities.Mythic, BoosterService.RollRarePlusRarity(new Random(146)));
+    }
+
+    [Fact]
+    public void BoosterInventoryTracksPackIdsAndQuantityPurchases()
+    {
+        var data = LoadData();
+        var profile = new PlayerProfile { Coins = 5000, UnopenedBoosters = 2 };
+        profile.Normalize();
+
+        Assert.Equal(2, BoosterService.GetUnopenedPackCount(profile, BoosterService.StandardBoosterId));
+        Assert.True(BoosterService.BuyBooster(profile, BoosterService.AncientAwakeningBoosterId, quantity: 3));
+        var opening = BoosterService.OpenBoosters(data, profile, BoosterService.AncientAwakeningBoosterId, quantity: 2, seed: 9);
+
+        Assert.Equal(10, opening.Cards.Count);
+        Assert.Equal(1, BoosterService.GetUnopenedPackCount(profile, BoosterService.AncientAwakeningBoosterId));
+        Assert.All(opening.Cards, grant => Assert.True(data.CardsById.ContainsKey(grant.CardId)));
+    }
+
+    [Fact]
+    public void ElementalAscensionBoosterPullsFromExpansionSet()
+    {
+        var data = LoadData();
+        var profile = new PlayerProfile();
+        BoosterService.AddUnopenedPack(profile, BoosterService.ElementalAscensionBoosterId);
+
+        var opening = BoosterService.OpenBooster(data, profile, BoosterService.ElementalAscensionBoosterId, seed: 17);
+
+        Assert.Equal("Elemental Ascension Booster", opening.PackName);
+        Assert.Equal(5, opening.Cards.Count);
+        Assert.All(opening.Cards, grant => Assert.Equal(CardSets.ElementalAscension, data.CardsById[grant.CardId].SetId));
+    }
+
+    [Fact]
+    public void PrimalClashBoosterPullsFromCombatExpansionSet()
+    {
+        var data = LoadData();
+        var profile = new PlayerProfile();
+        BoosterService.AddUnopenedPack(profile, BoosterService.PrimalClashBoosterId);
+
+        var opening = BoosterService.OpenBooster(data, profile, BoosterService.PrimalClashBoosterId, seed: 23);
+
+        Assert.Equal("Primal Clash Booster", opening.PackName);
+        Assert.Equal(5, opening.Cards.Count);
+        Assert.All(opening.Cards, grant => Assert.Equal(CardSets.PrimalClash, data.CardsById[grant.CardId].SetId));
+    }
+
+    [Fact]
+    public void MythicDuplicateConvertsToCoins()
+    {
+        var data = LoadData();
+        var profile = new PlayerProfile();
+        var mythic = data.Cards.First(card => card.Rarity == CardRarities.Mythic);
+        profile.OwnedCards[mythic.Id] = PlayerCollection.MaxOwnedCopies;
+
+        var grant = PlayerCollection.GrantCard(profile, mythic);
+
+        Assert.Equal(0, grant.CopiesAdded);
+        Assert.Equal(750, grant.DuplicateCoins);
+        Assert.Equal(750, profile.Coins);
+    }
+
+    [Fact]
+    public void BattleSpoilsApplyOnlyForProgressionSafeWins()
+    {
+        var data = LoadData();
+        var standardProfile = new PlayerProfile { PlayerName = "Astra" };
+        var sandboxProfile = new PlayerProfile { PlayerName = "Astra" };
+
+        var reward = BattleSpoilsService.GrantVictorySpoils(data, standardProfile, GameRulesConfig.ForPreset(GameRulesPreset.Standard), data.DecksById["starter-fire"], won: true, seed: 5);
+        var sandbox = BattleSpoilsService.GrantVictorySpoils(data, sandboxProfile, GameRulesConfig.ForPreset(GameRulesPreset.Casual), data.DecksById["starter-fire"], won: true, seed: 5);
+        var loss = BattleSpoilsService.GrantVictorySpoils(data, standardProfile, GameRulesConfig.ForPreset(GameRulesPreset.Standard), data.DecksById["starter-fire"], won: false, seed: 5);
+
+        Assert.True(reward.ProgressionApplied);
+        Assert.NotNull(reward.Grant);
+        Assert.True(CardRarities.IsRarePlus(reward.Grant!.Rarity));
+        Assert.False(sandbox.ProgressionApplied);
+        Assert.False(loss.ProgressionApplied);
+    }
+
+    [Fact]
+    public void BattleSpoilsCanTargetMythicAndConvertDuplicates()
+    {
+        var data = LoadData();
+        var mythic = data.Cards.First(card => card.Rarity == CardRarities.Mythic);
+        var deck = new DeckDefinition
+        {
+            Id = "mythic-only",
+            Name = "Mythic Only",
+            ModeId = "dragon-duel",
+            Cards = new Dictionary<string, int> { [mythic.Id] = 3 }
+        };
+        var profile = new PlayerProfile { OwnedCards = new Dictionary<string, int> { [mythic.Id] = PlayerCollection.MaxOwnedCopies } };
+
+        var reward = BattleSpoilsService.GrantVictorySpoils(data, profile, GameRulesConfig.ForPreset(GameRulesPreset.Standard), deck, won: true, seed: 2);
+
+        Assert.True(reward.ProgressionApplied);
+        Assert.Equal(mythic.Id, reward.Grant?.CardId);
+        Assert.Equal(0, reward.Grant?.CopiesAdded);
+        Assert.Equal(750, reward.Grant?.DuplicateCoins);
+    }
+
+    [Fact]
+    public void BattleSpoilsCanLootElementalAscensionRarePlusCards()
+    {
+        var data = LoadData();
+        var expansionMythic = data.CardsById["fire-solar-apex-dragon"];
+        var deck = new DeckDefinition
+        {
+            Id = "ascension-spoils",
+            Name = "Ascension Spoils",
+            ModeId = "dragon-duel",
+            Cards = new Dictionary<string, int> { [expansionMythic.Id] = 2 }
+        };
+        var profile = new PlayerProfile();
+
+        var reward = BattleSpoilsService.GrantVictorySpoils(data, profile, GameRulesConfig.ForPreset(GameRulesPreset.Standard), deck, won: true, seed: 12);
+
+        Assert.True(reward.ProgressionApplied);
+        Assert.Equal(expansionMythic.Id, reward.Grant?.CardId);
+        Assert.Equal(CardSets.ElementalAscension, data.CardsById[reward.Grant!.CardId].SetId);
+    }
+
+    [Fact]
+    public void ShopCatalogIncludesBoostersStartersAndSingles()
+    {
+        var data = LoadData();
+        var catalog = ShopCatalogService.CreateCatalog(data);
+
+        Assert.Contains(catalog, item => item.Kind == ShopItemKind.Booster && item.PackId == BoosterService.StandardBoosterId);
+        Assert.Contains(catalog, item => item.Kind == ShopItemKind.Booster && item.PackId == BoosterService.AncientAwakeningBoosterId);
+        Assert.Contains(catalog, item => item.Kind == ShopItemKind.Booster && item.PackId == BoosterService.ElementalAscensionBoosterId && item.SetId == CardSets.ElementalAscension);
+        Assert.Contains(catalog, item => item.Kind == ShopItemKind.Booster && item.PackId == BoosterService.PrimalClashBoosterId && item.SetId == CardSets.PrimalClash);
+        Assert.Contains(catalog, item => item.Kind == ShopItemKind.StarterDeck && item.DeckId == "starter-fire");
+        Assert.Contains(catalog, item => item.Kind == ShopItemKind.SingleCard && item.CardId == "fire-ancient-dragon" && item.Cost == 5000);
+        Assert.Contains(catalog, item => item.Kind == ShopItemKind.SingleCard && item.CardId == "fire-solar-apex-dragon" && item.Cost == 5000);
+    }
+
+    [Fact]
+    public void ShopSingleCardPurchaseEnforcesCoinsAndMaxCopies()
+    {
+        var data = LoadData();
+        var card = data.CardsById["fire-ancient-dragon"];
+        var profile = new PlayerProfile { Coins = 5000 };
+
+        var purchased = ShopCatalogService.BuySingleCard(profile, card);
+        var ownedAfterPurchase = PlayerCollection.CountOwned(profile, card.Id);
+        profile.Coins = 5000;
+        profile.OwnedCards[card.Id] = PlayerCollection.MaxOwnedCopies;
+        var maxed = ShopCatalogService.BuySingleCard(profile, card);
+
+        Assert.True(purchased.Success);
+        Assert.Equal(1, ownedAfterPurchase);
+        Assert.False(maxed.Success);
+    }
+
+    [Fact]
+    public void CardDetailFormatterIncludesStandardFields()
+    {
+        var card = LoadData().CardsById["fire-ancient-dragon"];
+
+        var text = CardDetailFormatter.Format(card, "Advantage: sample");
+
+        Assert.Contains("Name:", text);
+        Assert.Contains("Rarity: Mythic", text);
+        Assert.Contains("Type:", text);
+        Assert.Contains("Elements:", text);
+        Assert.Contains("Cost:", text);
+        Assert.Contains("Power:", text);
+        Assert.Contains("Rules Text:", text);
+        Assert.Contains("Keywords:", text);
+        Assert.Contains("Tags:", text);
+        Assert.Contains("Advantage: sample", text);
+    }
+
+    [Fact]
+    public void SeededMatchesCreateDeterministicInstanceIds()
+    {
+        var first = CreateEngine();
+        var second = CreateEngine();
+
+        Assert.Equal(
+            first.State.Players[0].Hand.Select(card => card.Id),
+            second.State.Players[0].Hand.Select(card => card.Id));
+        Assert.All(first.State.Players[0].Hand, card => Assert.StartsWith("p0-d", card.Id));
     }
 
     [Fact]
@@ -400,13 +773,22 @@ public sealed class DragonCardsCoreTests
         AdvanceToMain(engine);
         var player = engine.State.ActivePlayer;
         player.Hand.Clear();
-        player.Hand.Add(new CardInstance("fire-hearth-shrine"));
+        var source = new CardInstance("fire-hearth-shrine");
+        player.Hand.Add(source);
         player.EnergyPool["Fire"] = 1;
 
         var playResult = engine.PlayCardFromHand(0);
 
         Assert.True(playResult.Success);
         Assert.NotNull(engine.State.PendingEnergyChoice);
+        Assert.Equal(source.Id, engine.State.PendingEnergyChoice.SourceInstanceId);
+        Assert.Equal(source.CardId, engine.State.PendingEnergyChoice.CardId);
+        Assert.Contains("choose an element", engine.State.PendingEnergyChoice.EffectText, StringComparison.OrdinalIgnoreCase);
+        var queued = Assert.Single(playResult.Events, item => item.Kind == MatchEventKind.TargetChoiceQueued);
+        Assert.Equal(source.Id, queued.InstanceId);
+        Assert.Equal(source.CardId, queued.CardId);
+        Assert.Equal(2, queued.Amount);
+        Assert.Contains("choose an element", queued.EffectText, StringComparison.OrdinalIgnoreCase);
         Assert.Equal(0, player.EnergyPool["Fire"]);
 
         var choiceResult = engine.ResolveEnergyChoice("Fire");
@@ -476,6 +858,13 @@ public sealed class DragonCardsCoreTests
         var result = engine.ActivateAbility(0, source.Id, "kindle");
         Assert.True(result.Success);
         Assert.NotNull(engine.State.PendingEnergyChoice);
+        var activated = Assert.Single(result.Events, item => item.Kind == MatchEventKind.AbilityActivated);
+        Assert.Equal("Kindle", activated.AbilityName);
+        Assert.Contains("Gain 1 energy", activated.EffectText);
+        var queued = Assert.Single(result.Events, item => item.Kind == MatchEventKind.TargetChoiceQueued);
+        Assert.Equal(source.Id, queued.InstanceId);
+        Assert.Equal(source.CardId, queued.CardId);
+        Assert.Contains("Gain 1 energy", queued.EffectText);
         Assert.Equal(0, player.EnergyPool["Fire"]);
 
         var choice = engine.ResolveEnergyChoice("Ice");
@@ -562,7 +951,8 @@ public sealed class DragonCardsCoreTests
         var player = engine.State.ActivePlayer;
         var defender = engine.State.DefendingPlayer;
         player.Hand.Clear();
-        player.Hand.Add(new CardInstance("fire-battle-seer"));
+        var source = new CardInstance("fire-battle-seer");
+        player.Hand.Add(source);
         player.EnergyPool["Fire"] = 2;
         player.EnergyPool["Wind"] = 1;
         defender.UnitField.Add(new CardInstance("ice-crystal-champion"));
@@ -571,6 +961,13 @@ public sealed class DragonCardsCoreTests
 
         Assert.True(play.Success);
         Assert.NotNull(engine.State.PendingTargetChoice);
+        Assert.Equal(source.Id, engine.State.PendingTargetChoice.SourceInstanceId);
+        Assert.Equal(source.CardId, engine.State.PendingTargetChoice.CardId);
+        Assert.Contains("choose an enemy Unit", engine.State.PendingTargetChoice.EffectText, StringComparison.OrdinalIgnoreCase);
+        var queued = Assert.Single(play.Events, item => item.Kind == MatchEventKind.TargetChoiceQueued);
+        Assert.Equal(source.Id, queued.InstanceId);
+        Assert.Equal(source.CardId, queued.CardId);
+        Assert.Contains("choose an enemy Unit", queued.EffectText, StringComparison.OrdinalIgnoreCase);
         Assert.True(engine.CanResolveTargetChoice(1, 0));
 
         var target = engine.ResolveTargetChoice(1, 0);
@@ -593,6 +990,77 @@ public sealed class DragonCardsCoreTests
         Assert.False(engine.CanResolveTargetChoice(0, 0));
         Assert.False(engine.ResolveTargetChoice(0, 0).Success);
         Assert.True(engine.ResolveTargetChoice(1, 0).Success);
+    }
+
+    [Fact]
+    public void ReturnToHandTargetChoiceSupportsUnitsAndSupports()
+    {
+        var engine = CreateEngine();
+        AdvanceToMain(engine);
+        var source = new CardInstance("fire-ember-whelp");
+        var enemySupport = new CardInstance("ice-winter-shrine") { Exhausted = true };
+        engine.State.ActivePlayer.UnitField.Add(source);
+        engine.State.DefendingPlayer.SupportField.Add(enemySupport);
+        var startingHandCount = engine.State.DefendingPlayer.Hand.Count;
+        engine.QueueTargetChoice(
+            0,
+            PendingTargetChoiceType.ReturnToHand,
+            TargetScope.EnemyField,
+            source,
+            "Choose an enemy field card.",
+            TargetZoneKind.Field);
+
+        var target = new ZoneRef(1, "SupportField", 0);
+        Assert.True(engine.CanResolveTargetChoice(target));
+
+        var result = engine.ResolveTargetChoice(target);
+
+        Assert.True(result.Success);
+        Assert.Empty(engine.State.DefendingPlayer.SupportField);
+        Assert.Equal(startingHandCount + 1, engine.State.DefendingPlayer.Hand.Count);
+        Assert.Same(enemySupport, engine.State.DefendingPlayer.Hand[^1]);
+        Assert.False(engine.State.DefendingPlayer.Hand[^1].Exhausted);
+        Assert.Contains(result.Events, item => item.Kind == MatchEventKind.CardReturnedToHand);
+    }
+
+    [Fact]
+    public void UnitOnlyTargetChoiceRejectsSupportField()
+    {
+        var engine = CreateEngine();
+        AdvanceToMain(engine);
+        var source = new CardInstance("fire-ember-whelp");
+        engine.State.ActivePlayer.UnitField.Add(source);
+        engine.State.DefendingPlayer.SupportField.Add(new CardInstance("ice-winter-shrine"));
+        engine.State.DefendingPlayer.UnitField.Add(new CardInstance("ice-glacial-wisp"));
+        engine.QueueTargetChoice(
+            0,
+            PendingTargetChoiceType.ReturnToHand,
+            TargetScope.EnemyUnit,
+            source,
+            "Choose an enemy unit.",
+            TargetZoneKind.Units);
+
+        Assert.False(engine.CanResolveTargetChoice(new ZoneRef(1, "SupportField", 0)));
+        Assert.True(engine.CanResolveTargetChoice(new ZoneRef(1, "UnitField", 0)));
+    }
+
+    [Fact]
+    public void DiscardFromHandMovesCardsDeterministicallyAndEmitsEvents()
+    {
+        var engine = CreateEngine();
+        AdvanceToMain(engine);
+        var player = engine.State.ActivePlayer;
+        player.Hand.Clear();
+        player.Hand.Add(new CardInstance("fire-ember-whelp"));
+        player.Hand.Add(new CardInstance("fire-cinder-adept"));
+
+        var events = engine.DiscardCardsFromHand(0, 1);
+
+        Assert.Single(events);
+        Assert.Equal(MatchEventKind.CardDiscarded, events[0].Kind);
+        Assert.Single(player.Hand);
+        Assert.Single(player.DiscardPile);
+        Assert.Equal("fire-cinder-adept", player.DiscardPile[0].CardId);
     }
 
     [Fact]
@@ -636,8 +1104,41 @@ public sealed class DragonCardsCoreTests
 
         Assert.True(engine.DeclareAttack(0).Success);
         Assert.True(engine.PassBlock().Success);
+        Assert.NotNull(engine.State.PendingCombatAction);
+
+        PassCombatPriorityUntilResolved(engine);
 
         Assert.Single(engine.State.DefendingPlayer.DamageZone);
+        Assert.Null(engine.State.PendingAttack);
+    }
+
+    [Fact]
+    public void CombatActionWindowAllowsCombatTimedAbilitiesBeforeDamage()
+    {
+        var engine = CreateEngine();
+        var attacker = engine.State.Players[0];
+        var defender = engine.State.Players[1];
+        attacker.UnitField.Add(new CardInstance("fire-ember-whelp"));
+        var support = new CardInstance("fire-primal-watch-post");
+        defender.SupportField.Add(support);
+        defender.EnergyPool["Fire"] = 1;
+        AdvanceToCombat(engine);
+
+        Assert.True(engine.DeclareAttack(0).Success);
+        Assert.True(engine.PassBlock().Success);
+        Assert.NotNull(engine.State.PendingCombatAction);
+        Assert.True(engine.CanActivateAbility(1, support.Id, "combat-watch-post"));
+
+        var ability = engine.ActivateAbility(1, support.Id, "combat-watch-post");
+
+        Assert.True(ability.Success);
+        Assert.True(support.Exhausted);
+        Assert.Single(attacker.DamageZone);
+        Assert.Equal(0, engine.State.PendingCombatAction?.PriorityPlayerIndex);
+
+        PassCombatPriorityUntilResolved(engine);
+
+        Assert.Single(defender.DamageZone);
         Assert.Null(engine.State.PendingAttack);
     }
 
@@ -653,6 +1154,9 @@ public sealed class DragonCardsCoreTests
 
         Assert.True(engine.DeclareAttack(0).Success);
         Assert.True(engine.Block(0).Success);
+        Assert.NotNull(engine.State.PendingCombatAction);
+
+        PassCombatPriorityUntilResolved(engine);
 
         Assert.Empty(attacker.UnitField);
         Assert.Single(attacker.DiscardPile);
@@ -676,7 +1180,8 @@ public sealed class DragonCardsCoreTests
 
         Assert.Equal(attackerDefinition.Power + 2000, engine.GetEffectiveCombatPower(attackerDefinition, blockerDefinition));
         Assert.True(engine.DeclareAttack(0).Success);
-        var result = engine.Block(0);
+        Assert.True(engine.Block(0).Success);
+        var result = PassCombatPriorityUntilResolved(engine);
 
         Assert.True(result.Success);
         Assert.Empty(attacker.UnitField);
@@ -736,13 +1241,15 @@ public sealed class DragonCardsCoreTests
     public void DirectInviteCodesRoundTripAndValidate()
     {
         var data = LoadData();
+        var rules = GameRulesConfig.ForPreset(GameRulesPreset.Standard);
         var invite = new NetworkInvite
         {
             Host = "127.0.0.1",
             Port = 47288,
             ModeId = "dragon-duel",
             ProtocolVersion = InviteCode.ProtocolVersion,
-            DeckHash = InviteCode.DeckHash(data.DecksById["starter-flame-gale"].Cards)
+            DeckHash = InviteCode.DeckHash(data.DecksById["starter-fire"].Cards),
+            RulesHash = InviteCode.RulesHash(rules)
         };
 
         var code = InviteCode.Encode(invite);
@@ -753,8 +1260,44 @@ public sealed class DragonCardsCoreTests
         Assert.Equal(invite.Port, decoded.Port);
         Assert.Equal(invite.ModeId, decoded.ModeId);
         Assert.Equal(invite.DeckHash, decoded.DeckHash);
+        Assert.Equal(invite.RulesHash, decoded.RulesHash);
         Assert.False(InviteCode.TryDecode("bad-code", out _, out var error));
         Assert.Contains(InviteCode.Prefix, error);
+    }
+
+    [Fact]
+    public async Task DirectTcpConnectionExchangesHandshakeAndCommands()
+    {
+        var data = LoadData();
+        var rules = GameRulesConfig.ForPreset(GameRulesPreset.Standard);
+        var port = GetFreeTcpPort();
+        var invite = new NetworkInvite
+        {
+            Host = "127.0.0.1",
+            Port = port,
+            ModeId = "dragon-duel",
+            ProtocolVersion = InviteCode.ProtocolVersion,
+            DeckHash = InviteCode.DeckHash(data.DecksById["starter-fire"].Cards),
+            RulesHash = InviteCode.RulesHash(rules)
+        };
+        var hostHandshake = DirectMatchConnection.CreateHandshake("Host", "dragon-duel", data.DecksById["starter-fire"], rules);
+        var joinHandshake = DirectMatchConnection.CreateHandshake("Joiner", "dragon-duel", data.DecksById["starter-ice"], rules);
+
+        var hostTask = DirectMatchConnection.HostAsync(invite, hostHandshake, seed: 123);
+        await using var joiner = await DirectMatchConnection.JoinAsync(invite, joinHandshake);
+        await using var host = await hostTask;
+
+        Assert.True(host.IsHost);
+        Assert.False(joiner.IsHost);
+        Assert.Equal(123, host.MatchStart.Seed);
+        Assert.Equal("Joiner", host.MatchStart.Joiner.PlayerName);
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        await host.SendCommandAsync(new NetworkCommand { Kind = "advance", PlayerIndex = 0, Sequence = 1, PayloadJson = "" }, timeout.Token);
+        var command = await joiner.ReadCommandAsync(timeout.Token);
+
+        Assert.Equal("advance", command.Kind);
+        Assert.Equal(1, command.Sequence);
     }
 
     [Fact]
@@ -787,6 +1330,27 @@ public sealed class DragonCardsCoreTests
 
         Assert.Contains(result.Decisions, decision => decision.Kind == "play-card");
         Assert.Single(aiPlayer.UnitField);
+    }
+
+    [Fact]
+    public void AiPlaystyleChangesPlayableCardPriority()
+    {
+        var aggroEngine = CreateEngine();
+        SetActivePhase(aggroEngine, playerIndex: 1, phase: "Main");
+        PrepareStylePriorityHand(aggroEngine);
+        var ai = new DragonDuelAi();
+
+        ai.RunUntilHumanInput(aggroEngine, aiPlayerIndex: 1, GameRulesConfig.ForPreset(GameRulesPreset.Standard, Playstyle.Aggro), maxActions: 1);
+
+        Assert.Contains(aggroEngine.State.Players[1].UnitField, card => card.CardId == "lightning-arc-lancer");
+
+        var rampEngine = CreateEngine();
+        SetActivePhase(rampEngine, playerIndex: 1, phase: "Main");
+        PrepareStylePriorityHand(rampEngine);
+
+        ai.RunUntilHumanInput(rampEngine, aiPlayerIndex: 1, GameRulesConfig.ForPreset(GameRulesPreset.Standard, Playstyle.Ramp), maxActions: 1);
+
+        Assert.Contains(rampEngine.State.Players[1].SupportField, card => card.CardId == "lightning-thunder-relay");
     }
 
     [Fact]
@@ -850,6 +1414,9 @@ public sealed class DragonCardsCoreTests
         var result = ai.RunUntilHumanInput(engine, aiPlayerIndex: 1);
 
         Assert.Equal(AiTurnStatus.WaitingForHuman, result.Status);
+        Assert.NotNull(engine.State.PendingCombatAction);
+        PassCombatPriorityUntilResolved(engine);
+
         Assert.Null(engine.State.PendingAttack);
         Assert.Single(engine.State.Players[0].DiscardPile);
         Assert.Single(engine.State.Players[1].DiscardPile);
@@ -939,14 +1506,23 @@ public sealed class DragonCardsCoreTests
 
     private static GameData LoadData() => GameData.LoadDefault();
 
+    private static int GetFreeTcpPort()
+    {
+        var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start();
+        var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
+    }
+
     private static DragonDuelEngine CreateEngine()
     {
         var data = LoadData();
         return DragonDuelEngine.Create(
             data,
             "dragon-duel",
-            data.DecksById["starter-flame-gale"],
-            data.DecksById["starter-frost-stone"],
+            data.DecksById["starter-fire"],
+            data.DecksById["starter-ice"],
             seed: 7,
             shuffle: false);
     }
@@ -1002,6 +1578,20 @@ public sealed class DragonCardsCoreTests
     private static void AdvanceToMainForPlayer(DragonDuelEngine engine, int playerIndex) =>
         AdvanceToPhaseForPlayer(engine, playerIndex, "Main");
 
+    private static GameActionResult PassCombatPriorityUntilResolved(DragonDuelEngine engine)
+    {
+        var result = GameActionResult.Fail("Combat action window did not resolve.");
+        for (var guard = 0; guard < 4 && engine.State.PendingCombatAction is not null; guard++)
+        {
+            var priorityPlayer = engine.State.PendingCombatAction.PriorityPlayerIndex;
+            result = engine.PassCombatAction(priorityPlayer);
+            Assert.True(result.Success, result.Message);
+        }
+
+        Assert.Null(engine.State.PendingCombatAction);
+        return result;
+    }
+
     private static void AdvanceToPhaseForPlayer(DragonDuelEngine engine, int playerIndex, string phase)
     {
         for (var guard = 0; guard < 30; guard++)
@@ -1029,5 +1619,15 @@ public sealed class DragonCardsCoreTests
         engine.State.EnergyAddsThisTurn = 0;
         engine.State.PendingAttack = null;
         engine.State.PendingEnergyChoice = null;
+    }
+
+    private static void PrepareStylePriorityHand(DragonDuelEngine engine)
+    {
+        var aiPlayer = engine.State.Players[1];
+        aiPlayer.Hand.Clear();
+        aiPlayer.Hand.Add(new CardInstance("lightning-arc-lancer"));
+        aiPlayer.Hand.Add(new CardInstance("lightning-thunder-relay"));
+        aiPlayer.EnergyPool["Lightning"] = 5;
+        engine.State.EnergyAddsThisTurn = 1;
     }
 }

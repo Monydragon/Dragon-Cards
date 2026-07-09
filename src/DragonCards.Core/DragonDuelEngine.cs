@@ -92,8 +92,8 @@ public sealed class DragonDuelEngine
         }
 
         var random = seed is null ? Random.Shared : new Random(seed.Value);
-        var firstPlayer = new PlayerState("Player 1", BuildDeck(firstDeck, shuffle, random));
-        var secondPlayer = new PlayerState("Player 2", BuildDeck(secondDeck, shuffle, random));
+        var firstPlayer = new PlayerState("Player 1", BuildDeck(firstDeck, shuffle, random, playerIndex: 0));
+        var secondPlayer = new PlayerState("Player 2", BuildDeck(secondDeck, shuffle, random, playerIndex: 1));
         var state = new MatchState(mode, data.CardsById, firstPlayer, secondPlayer);
         var engine = new DragonDuelEngine(state, hooks ?? DefaultEffectHookRegistry.Create());
 
@@ -114,6 +114,11 @@ public sealed class DragonDuelEngine
         if (State.PendingAttack is not null)
         {
             return GameActionResult.Fail("Resolve the current attack before changing phases.");
+        }
+
+        if (State.PendingCombatAction is not null)
+        {
+            return GameActionResult.Fail("Resolve the combat action window before changing phases.");
         }
 
         if (State.PendingEnergyChoice is not null)
@@ -156,9 +161,19 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("Resolve the current attack first.");
         }
 
+        if (State.PendingCombatAction is not null)
+        {
+            return GameActionResult.Fail("Resolve the combat action window first.");
+        }
+
         if (State.PendingEnergyChoice is not null)
         {
             return GameActionResult.Fail("Choose an energy element first.");
+        }
+
+        if (State.PendingCombatAction is not null)
+        {
+            return GameActionResult.Fail("Resolve the combat action window first.");
         }
 
         if (State.PendingTargetChoice is not null)
@@ -220,6 +235,7 @@ public sealed class DragonDuelEngine
     public bool CanAddEnergy(string? element = null)
     {
         if (State.WinnerIndex is not null ||
+            State.PendingCombatAction is not null ||
             State.PendingEnergyChoice is not null ||
             State.PendingTargetChoice is not null ||
             !IsMainPhase() ||
@@ -272,18 +288,36 @@ public sealed class DragonDuelEngine
         return ConvertOneEnergy(choice.PlayerIndex, element);
     }
 
-    public void QueueEnergyChoice(int playerIndex, PendingEnergyChoiceType type, int amount, string message)
+    public void QueueEnergyChoice(
+        int playerIndex,
+        PendingEnergyChoiceType type,
+        int amount,
+        string message,
+        CardInstance? source = null,
+        string effectText = "")
     {
-        State.PendingEnergyChoice = new PendingEnergyChoice(playerIndex, type, amount, message);
+        State.PendingEnergyChoice = new PendingEnergyChoice(
+            playerIndex,
+            type,
+            amount,
+            message,
+            source?.Id ?? "",
+            source?.CardId ?? "",
+            effectText);
         State.Log.Add(message);
     }
 
-    public void QueueTargetChoice(int playerIndex, PendingTargetChoiceType type, TargetScope scope, CardInstance source, string message)
+    public void QueueTargetChoice(
+        int playerIndex,
+        PendingTargetChoiceType type,
+        TargetScope scope,
+        CardInstance source,
+        string message,
+        TargetZoneKind zones = TargetZoneKind.Units,
+        string effectText = "")
     {
-        State.PendingTargetChoice = new PendingTargetChoice(playerIndex, type, scope, source.Id, message);
-        var hasLegalTarget = State.Players
-            .SelectMany((player, targetPlayerIndex) => player.UnitField.Select((_, targetIndex) => (targetPlayerIndex, targetIndex)))
-            .Any(target => CanResolveTargetChoice(target.targetPlayerIndex, target.targetIndex));
+        State.PendingTargetChoice = new PendingTargetChoice(playerIndex, type, scope, source.Id, message, zones, source.CardId, effectText);
+        var hasLegalTarget = EnumerateTargetZones(zones).Any(CanResolveTargetChoice);
         if (!hasLegalTarget)
         {
             State.PendingTargetChoice = null;
@@ -294,27 +328,33 @@ public sealed class DragonDuelEngine
         State.Log.Add(message);
     }
 
-    public bool CanResolveTargetChoice(int targetPlayerIndex, int targetFieldIndex)
+    public bool CanResolveTargetChoice(int targetPlayerIndex, int targetFieldIndex) =>
+        CanResolveTargetChoice(new ZoneRef(targetPlayerIndex, "UnitField", targetFieldIndex));
+
+    public bool CanResolveTargetChoice(ZoneRef target)
     {
         var choice = State.PendingTargetChoice;
-        if (choice is null ||
-            targetPlayerIndex < 0 ||
-            targetPlayerIndex >= State.Players.Count ||
-            !IsValidIndex(State.Players[targetPlayerIndex].UnitField, targetFieldIndex))
+        if (choice is null || !TryGetFieldTarget(target, choice.Zones, out _, out _, out _))
         {
             return false;
         }
 
         return choice.Scope switch
         {
-            TargetScope.EnemyUnit => targetPlayerIndex == 1 - choice.PlayerIndex,
-            TargetScope.FriendlyUnit => targetPlayerIndex == choice.PlayerIndex,
-            TargetScope.AnyUnit => true,
+            TargetScope.EnemyUnit => target.Zone.Equals("UnitField", StringComparison.OrdinalIgnoreCase) && target.PlayerIndex == 1 - choice.PlayerIndex,
+            TargetScope.FriendlyUnit => target.Zone.Equals("UnitField", StringComparison.OrdinalIgnoreCase) && target.PlayerIndex == choice.PlayerIndex,
+            TargetScope.AnyUnit => target.Zone.Equals("UnitField", StringComparison.OrdinalIgnoreCase),
+            TargetScope.EnemyField => target.PlayerIndex == 1 - choice.PlayerIndex,
+            TargetScope.FriendlyField => target.PlayerIndex == choice.PlayerIndex,
+            TargetScope.AnyField => true,
             _ => false
         };
     }
 
-    public GameActionResult ResolveTargetChoice(int targetPlayerIndex, int targetFieldIndex)
+    public GameActionResult ResolveTargetChoice(int targetPlayerIndex, int targetFieldIndex) =>
+        ResolveTargetChoice(new ZoneRef(targetPlayerIndex, "UnitField", targetFieldIndex));
+
+    public GameActionResult ResolveTargetChoice(ZoneRef targetRef)
     {
         var choice = State.PendingTargetChoice;
         if (choice is null)
@@ -322,12 +362,15 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("There is no pending target choice.");
         }
 
-        if (!CanResolveTargetChoice(targetPlayerIndex, targetFieldIndex))
+        if (!CanResolveTargetChoice(targetRef) ||
+            !TryGetFieldTarget(targetRef, choice.Zones, out var field, out var target, out var zoneName))
         {
             return GameActionResult.Fail("That is not a legal target.");
         }
 
-        var target = State.Players[targetPlayerIndex].UnitField[targetFieldIndex];
+        var targetPlayerIndex = targetRef.PlayerIndex;
+        var targetFieldIndex = targetRef.Index;
+        var targetZone = new ZoneRef(targetPlayerIndex, zoneName, targetFieldIndex);
         var card = State.DefinitionFor(target);
         State.PendingTargetChoice = null;
 
@@ -342,23 +385,108 @@ public sealed class DragonDuelEngine
                 PlayerIndex = choice.PlayerIndex,
                 CardId = target.CardId,
                 InstanceId = target.Id,
-                To = new ZoneRef(targetPlayerIndex, "UnitField", targetFieldIndex),
+                To = targetZone,
                 Message = message
             });
         }
 
-        target.Exhausted = false;
-        var readyMessage = $"{card.Name} was readied.";
-        State.Log.Add(readyMessage);
-        return GameActionResult.Ok(readyMessage, new MatchEvent
+        if (choice.Type == PendingTargetChoiceType.ReadyUnit)
         {
-            Kind = MatchEventKind.CardReadied,
+            target.Exhausted = false;
+            var readyMessage = $"{card.Name} was readied.";
+            State.Log.Add(readyMessage);
+            return GameActionResult.Ok(readyMessage, new MatchEvent
+            {
+                Kind = MatchEventKind.CardReadied,
+                PlayerIndex = choice.PlayerIndex,
+                CardId = target.CardId,
+                InstanceId = target.Id,
+                To = targetZone,
+                Message = readyMessage
+            });
+        }
+
+        field.RemoveAt(targetFieldIndex);
+        target.Exhausted = false;
+        var owner = State.Players[targetPlayerIndex];
+        owner.Hand.Add(target);
+        var returnMessage = $"{card.Name} returned to {owner.Name}'s hand.";
+        State.Log.Add(returnMessage);
+        return GameActionResult.Ok(returnMessage, new MatchEvent
+        {
+            Kind = MatchEventKind.CardReturnedToHand,
             PlayerIndex = choice.PlayerIndex,
             CardId = target.CardId,
             InstanceId = target.Id,
-            To = new ZoneRef(targetPlayerIndex, "UnitField", targetFieldIndex),
-            Message = readyMessage
+            From = targetZone,
+            To = new ZoneRef(targetPlayerIndex, "Hand", owner.Hand.Count - 1),
+            Message = returnMessage
         });
+    }
+
+    private IEnumerable<ZoneRef> EnumerateTargetZones(TargetZoneKind zones)
+    {
+        for (var playerIndex = 0; playerIndex < State.Players.Count; playerIndex++)
+        {
+            var player = State.Players[playerIndex];
+            if (zones.HasFlag(TargetZoneKind.Units))
+            {
+                for (var index = 0; index < player.UnitField.Count; index++)
+                {
+                    yield return new ZoneRef(playerIndex, "UnitField", index);
+                }
+            }
+
+            if (zones.HasFlag(TargetZoneKind.Supports))
+            {
+                for (var index = 0; index < player.SupportField.Count; index++)
+                {
+                    yield return new ZoneRef(playerIndex, "SupportField", index);
+                }
+            }
+        }
+    }
+
+    private bool TryGetFieldTarget(
+        ZoneRef target,
+        TargetZoneKind allowedZones,
+        out List<CardInstance> field,
+        out CardInstance instance,
+        out string zoneName)
+    {
+        field = null!;
+        instance = null!;
+        zoneName = "";
+        if (target.PlayerIndex < 0 || target.PlayerIndex >= State.Players.Count)
+        {
+            return false;
+        }
+
+        var player = State.Players[target.PlayerIndex];
+        if (target.Zone.Equals("UnitField", StringComparison.OrdinalIgnoreCase) &&
+            allowedZones.HasFlag(TargetZoneKind.Units))
+        {
+            field = player.UnitField;
+            zoneName = "UnitField";
+        }
+        else if (target.Zone.Equals("SupportField", StringComparison.OrdinalIgnoreCase) &&
+            allowedZones.HasFlag(TargetZoneKind.Supports))
+        {
+            field = player.SupportField;
+            zoneName = "SupportField";
+        }
+        else
+        {
+            return false;
+        }
+
+        if (!IsValidIndex(field, target.Index))
+        {
+            return false;
+        }
+
+        instance = field[target.Index];
+        return true;
     }
 
     public GameActionResult PlayCardFromHand(int handIndex)
@@ -446,6 +574,9 @@ public sealed class DragonDuelEngine
             {
                 Kind = MatchEventKind.TargetChoiceQueued,
                 PlayerIndex = State.PendingEnergyChoice.PlayerIndex,
+                CardId = State.PendingEnergyChoice.CardId,
+                InstanceId = State.PendingEnergyChoice.SourceInstanceId,
+                EffectText = State.PendingEnergyChoice.EffectText,
                 Amount = State.PendingEnergyChoice.Amount,
                 Message = State.PendingEnergyChoice.Message
             });
@@ -457,7 +588,9 @@ public sealed class DragonDuelEngine
             {
                 Kind = MatchEventKind.TargetChoiceQueued,
                 PlayerIndex = State.PendingTargetChoice.PlayerIndex,
+                CardId = State.PendingTargetChoice.CardId,
                 InstanceId = State.PendingTargetChoice.SourceInstanceId,
+                EffectText = State.PendingTargetChoice.EffectText,
                 Message = State.PendingTargetChoice.Message
             });
         }
@@ -482,16 +615,16 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("Choose a target first.");
         }
 
-        if (ownerIndex != State.ActivePlayerIndex || !IsMainPhase())
+        if (ownerIndex < 0 || ownerIndex >= State.Players.Count)
         {
-            return GameActionResult.Fail("Activated abilities can only be used by the active player during a main phase.");
+            return GameActionResult.Fail("That player does not exist.");
         }
 
         var owner = State.Players[ownerIndex];
         var source = owner.UnitField.Concat(owner.SupportField).FirstOrDefault(card => card.Id == sourceInstanceId);
         if (source is null)
         {
-            return GameActionResult.Fail("That card is not on the active player's field.");
+            return GameActionResult.Fail("That card is not on that player's field.");
         }
 
         if (source.Exhausted)
@@ -504,6 +637,13 @@ public sealed class DragonDuelEngine
         if (ability is null)
         {
             return GameActionResult.Fail($"{card.Name} does not have that ability.");
+        }
+
+        if (!CanUseAbilityTiming(ownerIndex, ability))
+        {
+            return State.PendingCombatAction is not null
+                ? GameActionResult.Fail("That player does not have combat action priority or that ability is not a combat action.")
+                : GameActionResult.Fail("Activated abilities can only be used by the active player during a main phase.");
         }
 
         if (!SpendCost(ownerIndex, ability.Cost, consumeNextCardReduction: false, out var paymentPlan))
@@ -522,14 +662,51 @@ public sealed class DragonDuelEngine
             PlayerIndex = ownerIndex,
             CardId = source.CardId,
             InstanceId = source.Id,
+            AbilityName = ability.Name,
+            EffectText = ability.RulesText,
             Message = $"{ability.Name} activated."
         });
+        if (State.PendingCombatAction is not null)
+        {
+            AdvanceCombatActionPriorityAfterAction(ownerIndex, events);
+        }
+
+        if (State.PendingEnergyChoice is not null)
+        {
+            events.Add(new MatchEvent
+            {
+                Kind = MatchEventKind.TargetChoiceQueued,
+                PlayerIndex = State.PendingEnergyChoice.PlayerIndex,
+                CardId = State.PendingEnergyChoice.CardId,
+                InstanceId = State.PendingEnergyChoice.SourceInstanceId,
+                EffectText = State.PendingEnergyChoice.EffectText,
+                Amount = State.PendingEnergyChoice.Amount,
+                Message = State.PendingEnergyChoice.Message
+            });
+        }
+
+        if (State.PendingTargetChoice is not null)
+        {
+            events.Add(new MatchEvent
+            {
+                Kind = MatchEventKind.TargetChoiceQueued,
+                PlayerIndex = State.PendingTargetChoice.PlayerIndex,
+                CardId = State.PendingTargetChoice.CardId,
+                InstanceId = State.PendingTargetChoice.SourceInstanceId,
+                EffectText = State.PendingTargetChoice.EffectText,
+                Message = State.PendingTargetChoice.Message
+            });
+        }
+
         return GameActionResult.Ok($"{ability.Name} activated.", events);
     }
 
     public bool CanPlayCardFromHand(int handIndex)
     {
-        if (!IsMainPhase() || State.PendingEnergyChoice is not null || State.PendingTargetChoice is not null)
+        if (!IsMainPhase() ||
+            State.PendingCombatAction is not null ||
+            State.PendingEnergyChoice is not null ||
+            State.PendingTargetChoice is not null)
         {
             return false;
         }
@@ -550,8 +727,8 @@ public sealed class DragonDuelEngine
         if (State.WinnerIndex is not null ||
             State.PendingEnergyChoice is not null ||
             State.PendingTargetChoice is not null ||
-            ownerIndex != State.ActivePlayerIndex ||
-            !IsMainPhase())
+            ownerIndex < 0 ||
+            ownerIndex >= State.Players.Count)
         {
             return false;
         }
@@ -569,7 +746,9 @@ public sealed class DragonDuelEngine
         }
 
         var ability = State.DefinitionFor(source).Abilities.FirstOrDefault(item => item.Id.Equals(abilityId, StringComparison.OrdinalIgnoreCase));
-        return ability is not null && CreatePaymentPlan(ownerIndex, ability.Cost, includeNextCardReduction: false) is not null;
+        return ability is not null &&
+            CanUseAbilityTiming(ownerIndex, ability) &&
+            CreatePaymentPlan(ownerIndex, ability.Cost, includeNextCardReduction: false) is not null;
     }
 
     public IReadOnlyList<int> GetPlayableHandIndices()
@@ -589,6 +768,11 @@ public sealed class DragonDuelEngine
     public IReadOnlyList<ActivatableAbility> GetActivatableAbilities(int ownerIndex)
     {
         var abilities = new List<ActivatableAbility>();
+        if (ownerIndex < 0 || ownerIndex >= State.Players.Count)
+        {
+            return abilities;
+        }
+
         var owner = State.Players[ownerIndex];
         foreach (var source in owner.UnitField.Concat(owner.SupportField))
         {
@@ -605,10 +789,35 @@ public sealed class DragonDuelEngine
         return abilities;
     }
 
+    private bool CanUseAbilityTiming(int ownerIndex, ActivatedAbilityDefinition ability)
+    {
+        if (State.PendingCombatAction is not null)
+        {
+            return State.CurrentPhase.Equals("Combat", StringComparison.OrdinalIgnoreCase) &&
+                State.PendingCombatAction.PriorityPlayerIndex == ownerIndex &&
+                AbilityHasTiming(ability, DragonCardConstants.CombatTiming);
+        }
+
+        return ownerIndex == State.ActivePlayerIndex &&
+            IsMainPhase() &&
+            AbilityHasTiming(ability, DragonCardConstants.MainTiming);
+    }
+
+    private static bool AbilityHasTiming(ActivatedAbilityDefinition ability, string timing)
+    {
+        if (ability.Timings.Count == 0)
+        {
+            return timing.Equals(DragonCardConstants.MainTiming, StringComparison.OrdinalIgnoreCase);
+        }
+
+        return ability.Timings.Contains(timing, StringComparer.OrdinalIgnoreCase);
+    }
+
     public bool CanSacrificeForEnergy(SacrificeSource source, int index)
     {
         if (State.WinnerIndex is not null ||
             State.PendingAttack is not null ||
+            State.PendingCombatAction is not null ||
             State.PendingEnergyChoice is not null ||
             State.PendingTargetChoice is not null ||
             !IsMainPhase())
@@ -781,6 +990,34 @@ public sealed class DragonDuelEngine
         return events;
     }
 
+    public IReadOnlyList<MatchEvent> DiscardCardsFromHand(int playerIndex, int count)
+    {
+        var events = new List<MatchEvent>();
+        var player = State.Players[playerIndex];
+        for (var i = 0; i < count && player.Hand.Count > 0; i++)
+        {
+            var handIndex = player.Hand.Count - 1;
+            var discarded = player.Hand[handIndex];
+            player.Hand.RemoveAt(handIndex);
+            discarded.Exhausted = false;
+            player.DiscardPile.Add(discarded);
+            var message = $"{player.Name} discarded {State.CardName(discarded)}.";
+            State.Log.Add(message);
+            events.Add(new MatchEvent
+            {
+                Kind = MatchEventKind.CardDiscarded,
+                PlayerIndex = playerIndex,
+                CardId = discarded.CardId,
+                InstanceId = discarded.Id,
+                From = new ZoneRef(playerIndex, "Hand", handIndex),
+                To = new ZoneRef(playerIndex, "DiscardPile", player.DiscardPile.Count - 1),
+                Message = message
+            });
+        }
+
+        return events;
+    }
+
     public IReadOnlyList<MatchEvent> DealDamageToOpponent(int ownerIndex, int amount)
     {
         var events = new List<MatchEvent>();
@@ -906,6 +1143,11 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("Choose a target first.");
         }
 
+        if (State.PendingCombatAction is not null)
+        {
+            return GameActionResult.Fail("Resolve the combat action window first.");
+        }
+
         if (!State.CurrentPhase.Equals("Combat", StringComparison.OrdinalIgnoreCase))
         {
             return GameActionResult.Fail("Units can only attack during combat.");
@@ -945,6 +1187,7 @@ public sealed class DragonDuelEngine
     public bool CanDeclareAttack(int attackerFieldIndex)
     {
         if (State.WinnerIndex is not null ||
+            State.PendingCombatAction is not null ||
             State.PendingEnergyChoice is not null ||
             State.PendingTargetChoice is not null ||
             !State.CurrentPhase.Equals("Combat", StringComparison.OrdinalIgnoreCase) ||
@@ -962,6 +1205,11 @@ public sealed class DragonDuelEngine
         if (State.PendingAttack is null)
         {
             return GameActionResult.Fail("There is no pending attack to block.");
+        }
+
+        if (State.PendingCombatAction is not null)
+        {
+            return GameActionResult.Fail("Resolve the combat action window first.");
         }
 
         var defender = State.Players[1 - State.PendingAttack.AttackerPlayerIndex];
@@ -989,14 +1237,12 @@ public sealed class DragonDuelEngine
                 Message = $"{State.CardName(blocker)} blocked."
             }
         };
-        var result = ResolveCombat(blocker);
-        events.AddRange(result.Events);
-        return result.Success ? GameActionResult.Ok(result.Message, events) : result;
+        return OpenCombatActionWindow(blocker.Id, events, $"{State.CardName(blocker)} blocked.");
     }
 
     public bool CanBlock(int blockerFieldIndex)
     {
-        if (State.PendingAttack is null)
+        if (State.PendingAttack is null || State.PendingCombatAction is not null)
         {
             return false;
         }
@@ -1012,13 +1258,127 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("There is no pending attack.");
         }
 
-        return ResolveCombat(null);
+        if (State.PendingCombatAction is not null)
+        {
+            return GameActionResult.Fail("Resolve the combat action window first.");
+        }
+
+        return OpenCombatActionWindow("", [], "No blocker declared.");
     }
 
-    private static IReadOnlyList<CardInstance> BuildDeck(DeckDefinition deck, bool shuffle, Random random)
+    public bool CanPassCombatAction(int playerIndex) =>
+        State.WinnerIndex is null &&
+        State.PendingCombatAction is not null &&
+        State.PendingEnergyChoice is null &&
+        State.PendingTargetChoice is null &&
+        State.PendingCombatAction.PriorityPlayerIndex == playerIndex;
+
+    public GameActionResult PassCombatAction(int playerIndex)
     {
+        var action = State.PendingCombatAction;
+        if (action is null)
+        {
+            return GameActionResult.Fail("There is no combat action window.");
+        }
+
+        if (!CanPassCombatAction(playerIndex))
+        {
+            return GameActionResult.Fail("That player does not have combat action priority.");
+        }
+
+        var player = State.Players[playerIndex];
+        var events = new List<MatchEvent>
+        {
+            new()
+            {
+                Kind = MatchEventKind.CombatActionPassed,
+                PlayerIndex = playerIndex,
+                Message = $"{player.Name} passed combat action priority."
+            }
+        };
+        State.Log.Add($"{player.Name} passed combat action priority.");
+        var passes = action.ConsecutivePasses + 1;
+        if (passes >= 2)
+        {
+            State.PendingCombatAction = null;
+            var result = ResolveCombatByIds(action);
+            events.AddRange(result.Events);
+            return result.Success
+                ? GameActionResult.Ok(result.Message, events)
+                : result;
+        }
+
+        var nextPlayer = 1 - playerIndex;
+        State.PendingCombatAction = action with { PriorityPlayerIndex = nextPlayer, ConsecutivePasses = passes };
+        events.Add(new MatchEvent
+        {
+            Kind = MatchEventKind.CombatActionQueued,
+            PlayerIndex = nextPlayer,
+            Message = $"{State.Players[nextPlayer].Name} has combat action priority."
+        });
+        return GameActionResult.Ok($"{player.Name} passed. {State.Players[nextPlayer].Name} may act.", events);
+    }
+
+    private GameActionResult OpenCombatActionWindow(string blockerInstanceId, IReadOnlyList<MatchEvent> openingEvents, string message)
+    {
+        var pending = State.PendingAttack;
+        if (pending is null)
+        {
+            return GameActionResult.Fail("There is no pending attack.");
+        }
+
+        var defenderIndex = 1 - pending.AttackerPlayerIndex;
+        var attacker = State.Players[pending.AttackerPlayerIndex].UnitField
+            .FirstOrDefault(card => card.Id.Equals(pending.AttackerInstanceId, StringComparison.OrdinalIgnoreCase));
+        State.PendingCombatAction = new PendingCombatAction(defenderIndex, pending.AttackerInstanceId, blockerInstanceId, 0);
+        State.Log.Add($"{State.Players[defenderIndex].Name} has combat action priority.");
+        var events = new List<MatchEvent>(openingEvents)
+        {
+            new()
+            {
+                Kind = MatchEventKind.CombatActionQueued,
+                PlayerIndex = defenderIndex,
+                CardId = attacker?.CardId ?? "",
+                InstanceId = pending.AttackerInstanceId,
+                Message = $"{State.Players[defenderIndex].Name} has combat action priority."
+            }
+        };
+        return GameActionResult.Ok(message, events);
+    }
+
+    private void AdvanceCombatActionPriorityAfterAction(int playerIndex, List<MatchEvent> events)
+    {
+        var action = State.PendingCombatAction;
+        if (action is null || action.PriorityPlayerIndex != playerIndex)
+        {
+            return;
+        }
+
+        var nextPlayer = 1 - playerIndex;
+        State.PendingCombatAction = action with { PriorityPlayerIndex = nextPlayer, ConsecutivePasses = 0 };
+        State.Log.Add($"{State.Players[nextPlayer].Name} has combat action priority.");
+        events.Add(new MatchEvent
+        {
+            Kind = MatchEventKind.CombatActionQueued,
+            PlayerIndex = nextPlayer,
+            Message = $"{State.Players[nextPlayer].Name} has combat action priority."
+        });
+    }
+
+    private GameActionResult ResolveCombatByIds(PendingCombatAction action)
+    {
+        var defender = State.Players[1 - State.PendingAttack!.AttackerPlayerIndex];
+        var blocker = string.IsNullOrWhiteSpace(action.BlockerInstanceId)
+            ? null
+            : defender.UnitField.FirstOrDefault(card => card.Id.Equals(action.BlockerInstanceId, StringComparison.OrdinalIgnoreCase));
+        return ResolveCombat(blocker, blockedDeclared: !string.IsNullOrWhiteSpace(action.BlockerInstanceId));
+    }
+
+    private static IReadOnlyList<CardInstance> BuildDeck(DeckDefinition deck, bool shuffle, Random random, int playerIndex)
+    {
+        var sequence = 0;
         var cards = deck.Cards
-            .SelectMany(entry => Enumerable.Range(0, entry.Value).Select(_ => new CardInstance(entry.Key)))
+            .SelectMany(entry => Enumerable.Range(0, entry.Value).Select(_ => new CardInstance(entry.Key, $"p{playerIndex}-d{sequence++:0000}-{entry.Key}")))
             .ToList();
 
         if (!shuffle)
@@ -1104,7 +1464,7 @@ public sealed class DragonDuelEngine
         }
     }
 
-    private GameActionResult ResolveCombat(CardInstance? blocker)
+    private GameActionResult ResolveCombat(CardInstance? blocker, bool blockedDeclared)
     {
         var pending = State.PendingAttack;
         if (pending is null)
@@ -1117,13 +1477,36 @@ public sealed class DragonDuelEngine
         if (attacker is null)
         {
             State.PendingAttack = null;
-            return GameActionResult.Fail("The attacking unit is no longer on the field.");
+            State.PendingCombatAction = null;
+            var message = "The attacking unit left combat.";
+            State.Log.Add(message);
+            return GameActionResult.Ok(message, new MatchEvent
+            {
+                Kind = MatchEventKind.CombatResolved,
+                PlayerIndex = pending.AttackerPlayerIndex,
+                Message = message
+            });
         }
 
         if (blocker is null)
         {
+            if (blockedDeclared)
+            {
+                State.PendingAttack = null;
+                State.PendingCombatAction = null;
+                var blockedMessage = "The attack stayed blocked, but no blocker remained for combat damage.";
+                State.Log.Add(blockedMessage);
+                return GameActionResult.Ok(blockedMessage, new MatchEvent
+                {
+                    Kind = MatchEventKind.CombatResolved,
+                    PlayerIndex = pending.AttackerPlayerIndex,
+                    Message = blockedMessage
+                });
+            }
+
             var damageEvents = DealDamageToOpponent(pending.AttackerPlayerIndex, 1);
             State.PendingAttack = null;
+            State.PendingCombatAction = null;
             var events = new List<MatchEvent>(damageEvents)
             {
                 new()
@@ -1192,6 +1575,7 @@ public sealed class DragonDuelEngine
         }
 
         State.PendingAttack = null;
+        State.PendingCombatAction = null;
         combatEvents.Add(new MatchEvent
         {
             Kind = MatchEventKind.CombatResolved,

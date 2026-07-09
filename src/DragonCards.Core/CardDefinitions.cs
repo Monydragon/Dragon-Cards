@@ -3,6 +3,8 @@ namespace DragonCards.Core;
 public static class DragonCardConstants
 {
     public const string GenericCost = "Generic";
+    public const string MainTiming = "Main";
+    public const string CombatTiming = "Combat";
 
     public static readonly string[] BuiltInPhases =
     [
@@ -27,6 +29,14 @@ public static class DragonCardConstants
         "Refresh",
         "Strike"
     ];
+}
+
+public static class CardSets
+{
+    public const string Core = "core";
+    public const string AncientAwakening = "ancient-awakening";
+    public const string ElementalAscension = "elemental-ascension";
+    public const string PrimalClash = "primal-clash";
 }
 
 public sealed record GameModeDefinition
@@ -82,6 +92,8 @@ public sealed record CardDefinition
     public List<string> Hooks { get; set; } = [];
     public List<ActivatedAbilityDefinition> Abilities { get; set; } = [];
     public CardVisualDefinition? Visual { get; init; }
+    public string Rarity { get; set; } = CardRarities.Common;
+    public string SetId { get; set; } = CardSets.Core;
     public string RulesText { get; init; } = "";
 
     public int TotalCost => Cost.Values.Sum();
@@ -100,6 +112,7 @@ public sealed record ActivatedAbilityDefinition
     public string Id { get; init; } = "";
     public string Name { get; init; } = "";
     public Dictionary<string, int> Cost { get; set; } = [];
+    public List<string> Timings { get; set; } = [];
     public string Hook { get; init; } = "";
     public string RulesText { get; init; } = "";
 }

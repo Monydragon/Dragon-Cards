@@ -38,9 +38,16 @@ public sealed class GameData
             card.Keywords ??= [];
             card.Hooks ??= [];
             card.Abilities ??= [];
+            card.Rarity = CardRarities.Normalize(string.IsNullOrWhiteSpace(card.Rarity)
+                ? card.Visual?.Rarity
+                : card.Rarity);
+            card.SetId = string.IsNullOrWhiteSpace(card.SetId) || card.SetId.Equals(CardSets.Core, StringComparison.OrdinalIgnoreCase)
+                ? InferSetId(card)
+                : card.SetId.Trim();
             foreach (var ability in card.Abilities)
             {
                 ability.Cost ??= [];
+                ability.Timings ??= [];
             }
         }
 
@@ -99,6 +106,18 @@ public sealed class GameData
 
     public static string ToJson<T>(T value) => JsonSerializer.Serialize(value, JsonOptions);
 
+    private static string InferSetId(CardDefinition card)
+    {
+        var id = card.Id;
+        return id.EndsWith("-initiate-vanguard", StringComparison.OrdinalIgnoreCase) ||
+            id.EndsWith("-strategy-scroll", StringComparison.OrdinalIgnoreCase) ||
+            id.EndsWith("-battle-standard", StringComparison.OrdinalIgnoreCase) ||
+            id.EndsWith("-command-ritual", StringComparison.OrdinalIgnoreCase) ||
+            id.EndsWith("-ancient-dragon", StringComparison.OrdinalIgnoreCase)
+            ? CardSets.AncientAwakening
+            : CardSets.Core;
+    }
+
     private static IReadOnlyList<T> LoadFolder<T>(string folder)
     {
         if (!Directory.Exists(folder))
@@ -154,6 +173,8 @@ public sealed class GameData
 [JsonSerializable(typeof(GameModeDefinition[]))]
 [JsonSerializable(typeof(CardDefinition))]
 [JsonSerializable(typeof(CardDefinition[]))]
+[JsonSerializable(typeof(GameRulesConfig))]
+[JsonSerializable(typeof(PlayerProfile))]
 [JsonSerializable(typeof(CardVisualDefinition))]
 [JsonSerializable(typeof(CardVisualDefinition[]))]
 [JsonSerializable(typeof(ActivatedAbilityDefinition))]

@@ -1,0 +1,6162 @@
+﻿[
+    {
+        "id":  "fire-primal-frontline-cadet",
+        "name":  "Ember Frontline Cadet",
+        "type":  "Unit",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  1
+                 },
+        "power":  3000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "fire-primal",
+                       "rarity":  "common",
+                       "artKey":  "fire-primal-frontline-cadet"
+                   },
+        "rulesText":  "A steady pressure Unit for early combat.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-quickblade",
+        "name":  "Ember Quickblade",
+        "type":  "Unit",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  1,
+                     "Generic":  1
+                 },
+        "power":  4000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Aggro"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "fire-primal",
+                       "rarity":  "common",
+                       "artKey":  "fire-primal-quickblade"
+                   },
+        "rulesText":  "Strike.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-field-mender",
+        "name":  "Ember Field Mender",
+        "type":  "Unit",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Value"
+                 ],
+        "hooks":  [
+                      "deal_one_damage"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "fire-primal",
+                       "rarity":  "common",
+                       "artKey":  "fire-primal-field-mender"
+                   },
+        "rulesText":  "When played, deal 1 damage to your opponent.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-line-keeper",
+        "name":  "Ember Line Keeper",
+        "type":  "Unit",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-line-keeper",
+                              "name":  "Guard Step",
+                              "cost":  {
+                                           "Fire":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "deal_one_damage",
+                              "rulesText":  "Combat: Deal 1 damage to your opponent."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "fire-primal",
+                       "rarity":  "common",
+                       "artKey":  "fire-primal-line-keeper"
+                   },
+        "rulesText":  "Reliable battlefield presence. Combat: Deal 1 damage to your opponent.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-banner-squire",
+        "name":  "Ember Banner Squire",
+        "type":  "Unit",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  1,
+                     "Generic":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Tempo"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "fire-primal",
+                       "rarity":  "common",
+                       "artKey":  "fire-primal-banner-squire"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-watch-post",
+        "name":  "Ember Watch Post",
+        "type":  "Support",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-watch-post",
+                              "name":  "Signal",
+                              "cost":  {
+                                           "Fire":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "deal_one_damage",
+                              "rulesText":  "Combat: Deal 1 damage to your opponent."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "fire-primal",
+                       "rarity":  "common",
+                       "artKey":  "fire-primal-watch-post"
+                   },
+        "rulesText":  "A cheap Support with a combat action. Combat: Deal 1 damage to your opponent.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-clash-spark",
+        "name":  "Ember Clash Spark",
+        "type":  "Spell",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "deal_one_damage"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "fire-primal",
+                       "rarity":  "common",
+                       "artKey":  "fire-primal-clash-spark"
+                   },
+        "rulesText":  "Resolve a small pressure effect.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-formation-call",
+        "name":  "Ember Formation Call",
+        "type":  "Spell",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  1,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "fire-primal",
+                       "rarity":  "common",
+                       "artKey":  "fire-primal-formation-call"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-duel-captain",
+        "name":  "Ember Duel Captain",
+        "type":  "Unit",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  2,
+                     "Generic":  1
+                 },
+        "power":  7000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "draw_two_discard_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "fire-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "fire-primal-duel-captain"
+                   },
+        "rulesText":  "When played, create a pressure swing.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-reaction-mage",
+        "name":  "Ember Reaction Mage",
+        "type":  "Unit",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-reaction-mage",
+                              "name":  "Reaction",
+                              "cost":  {
+                                           "Fire":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "deal_one_damage",
+                              "rulesText":  "Combat: Deal 1 damage to your opponent."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "fire-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "fire-primal-reaction-mage"
+                   },
+        "rulesText":  "A Unit with a combat action. Combat: Deal 1 damage to your opponent.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-veteran-guard",
+        "name":  "Ember Veteran Guard",
+        "type":  "Unit",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  2,
+                     "Generic":  2
+                 },
+        "power":  8000,
+        "keywords":  [
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "fire-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "fire-primal-veteran-guard"
+                   },
+        "rulesText":  "Refresh.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-war-room",
+        "name":  "Ember War Room",
+        "type":  "Support",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+                      "deal_one_damage"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-war-room",
+                              "name":  "Tactical Order",
+                              "cost":  {
+                                           "Fire":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "deal_one_damage",
+                              "rulesText":  "Combat: Deal 1 damage to your opponent."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "fire-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "fire-primal-war-room"
+                   },
+        "rulesText":  "When played, resolve a small pressure effect. Combat: Deal 1 damage to your opponent.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-turnabout",
+        "name":  "Ember Turnabout",
+        "type":  "Spell",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "draw_two_discard_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "fire-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "fire-primal-turnabout"
+                   },
+        "rulesText":  "Create a tempo swing during setup.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-clash-champion",
+        "name":  "Ember Clash Champion",
+        "type":  "Unit",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  3,
+                     "Generic":  1
+                 },
+        "power":  9000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "deal_one_draw_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-clash-champion",
+                              "name":  "Clash Art",
+                              "cost":  {
+                                           "Fire":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "deal_one_damage",
+                              "rulesText":  "Combat: Deal 1 damage to your opponent."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "fire-primal",
+                       "rarity":  "rare",
+                       "artKey":  "fire-primal-clash-champion"
+                   },
+        "rulesText":  "Strike. When played, resolve a major pressure effect. Combat: Deal 1 damage to your opponent.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-command-table",
+        "name":  "Ember Command Table",
+        "type":  "Support",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  3
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-command-table",
+                              "name":  "Command",
+                              "cost":  {
+                                           "Fire":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "deal_one_damage",
+                              "rulesText":  "Combat: Deal 1 damage to your opponent."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "fire-primal",
+                       "rarity":  "rare",
+                       "artKey":  "fire-primal-command-table"
+                   },
+        "rulesText":  "A repeatable combat Support. Combat: Deal 1 damage to your opponent.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-decisive-line",
+        "name":  "Ember Decisive Line",
+        "type":  "Spell",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  2,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "deal_one_draw_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "fire-primal",
+                       "rarity":  "rare",
+                       "artKey":  "fire-primal-decisive-line"
+                   },
+        "rulesText":  "Resolve a decisive pressure effect.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-momentum-break",
+        "name":  "Ember Momentum Break",
+        "type":  "Spell",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  3
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "draw_two_discard_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "fire-primal",
+                       "rarity":  "rare",
+                       "artKey":  "fire-primal-momentum-break"
+                   },
+        "rulesText":  "Cantrip. Create a pressure interruption.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-twin-banner-hero",
+        "name":  "Ember Twin-Banner Hero",
+        "type":  "Unit",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  4,
+                     "Generic":  1
+                 },
+        "power":  10000,
+        "keywords":  [
+                         "Refresh",
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "deal_one_draw_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-twin-banner-hero",
+                              "name":  "Heroic Response",
+                              "cost":  {
+                                           "Fire":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "deal_one_damage",
+                              "rulesText":  "Combat: Deal 1 damage to your opponent."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "fire-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "fire-primal-twin-banner-hero"
+                   },
+        "rulesText":  "Refresh. Strike. When played, resolve a major pressure effect. Combat: Deal 1 damage to your opponent.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-primal-command",
+        "name":  "Ember Primal Command",
+        "type":  "Support",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  4
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "deal_one_draw_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-primal-command",
+                              "name":  "Primal Order",
+                              "cost":  {
+                                           "Fire":  2
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "deal_one_damage",
+                              "rulesText":  "Combat: Deal 1 damage to your opponent."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "fire-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "fire-primal-primal-command"
+                   },
+        "rulesText":  "When played, resolve a major pressure effect. Combat: Deal 1 damage to your opponent.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "fire-primal-avatar-stratagem",
+        "name":  "Ember Avatar Stratagem",
+        "type":  "Spell",
+        "elements":  [
+                         "Fire"
+                     ],
+        "cost":  {
+                     "Fire":  5,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip",
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "deal_one_draw_one",
+                      "draw_two_discard_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "fire-primal",
+                       "rarity":  "mythic",
+                       "artKey":  "fire-primal-avatar-stratagem"
+                   },
+        "rulesText":  "Cantrip. Refresh. Resolve two powerful pressure effects.",
+        "rarity":  "Mythic",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-frontline-cadet",
+        "name":  "Frost Frontline Cadet",
+        "type":  "Unit",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  1
+                 },
+        "power":  3000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "ice-primal",
+                       "rarity":  "common",
+                       "artKey":  "ice-primal-frontline-cadet"
+                   },
+        "rulesText":  "A steady control Unit for early combat.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-quickblade",
+        "name":  "Frost Quickblade",
+        "type":  "Unit",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  1,
+                     "Generic":  1
+                 },
+        "power":  4000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Aggro"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "ice-primal",
+                       "rarity":  "common",
+                       "artKey":  "ice-primal-quickblade"
+                   },
+        "rulesText":  "Strike.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-field-mender",
+        "name":  "Frost Field Mender",
+        "type":  "Unit",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Value"
+                 ],
+        "hooks":  [
+                      "draw_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "ice-primal",
+                       "rarity":  "common",
+                       "artKey":  "ice-primal-field-mender"
+                   },
+        "rulesText":  "When played, choose an enemy unit. exhaust it.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-line-keeper",
+        "name":  "Frost Line Keeper",
+        "type":  "Unit",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-line-keeper",
+                              "name":  "Guard Step",
+                              "cost":  {
+                                           "Ice":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "exhaust_enemy_unit_choice",
+                              "rulesText":  "Combat: Choose an enemy Unit. Exhaust it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "ice-primal",
+                       "rarity":  "common",
+                       "artKey":  "ice-primal-line-keeper"
+                   },
+        "rulesText":  "Reliable battlefield presence. Combat: Choose an enemy Unit. Exhaust it.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-banner-squire",
+        "name":  "Frost Banner Squire",
+        "type":  "Unit",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  1,
+                     "Generic":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Tempo"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "ice-primal",
+                       "rarity":  "common",
+                       "artKey":  "ice-primal-banner-squire"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-watch-post",
+        "name":  "Frost Watch Post",
+        "type":  "Support",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-watch-post",
+                              "name":  "Signal",
+                              "cost":  {
+                                           "Ice":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "exhaust_enemy_unit_choice",
+                              "rulesText":  "Combat: Choose an enemy Unit. Exhaust it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "ice-primal",
+                       "rarity":  "common",
+                       "artKey":  "ice-primal-watch-post"
+                   },
+        "rulesText":  "A cheap Support with a combat action. Combat: Choose an enemy Unit. Exhaust it.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-clash-spark",
+        "name":  "Frost Clash Spark",
+        "type":  "Spell",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "draw_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "ice-primal",
+                       "rarity":  "common",
+                       "artKey":  "ice-primal-clash-spark"
+                   },
+        "rulesText":  "Resolve a small control effect.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-formation-call",
+        "name":  "Frost Formation Call",
+        "type":  "Spell",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  1,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "ice-primal",
+                       "rarity":  "common",
+                       "artKey":  "ice-primal-formation-call"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-duel-captain",
+        "name":  "Frost Duel Captain",
+        "type":  "Unit",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  2,
+                     "Generic":  1
+                 },
+        "power":  7000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "exhaust_enemy_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "ice-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "ice-primal-duel-captain"
+                   },
+        "rulesText":  "When played, create a control swing.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-reaction-mage",
+        "name":  "Frost Reaction Mage",
+        "type":  "Unit",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-reaction-mage",
+                              "name":  "Reaction",
+                              "cost":  {
+                                           "Ice":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "exhaust_enemy_unit_choice",
+                              "rulesText":  "Combat: Choose an enemy Unit. Exhaust it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "ice-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "ice-primal-reaction-mage"
+                   },
+        "rulesText":  "A Unit with a combat action. Combat: Choose an enemy Unit. Exhaust it.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-veteran-guard",
+        "name":  "Frost Veteran Guard",
+        "type":  "Unit",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  2,
+                     "Generic":  2
+                 },
+        "power":  8000,
+        "keywords":  [
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "ice-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "ice-primal-veteran-guard"
+                   },
+        "rulesText":  "Refresh.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-war-room",
+        "name":  "Frost War Room",
+        "type":  "Support",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+                      "draw_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-war-room",
+                              "name":  "Tactical Order",
+                              "cost":  {
+                                           "Ice":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "exhaust_enemy_unit_choice",
+                              "rulesText":  "Combat: Choose an enemy Unit. Exhaust it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "ice-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "ice-primal-war-room"
+                   },
+        "rulesText":  "When played, resolve a small control effect. Combat: Choose an enemy Unit. Exhaust it.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-turnabout",
+        "name":  "Frost Turnabout",
+        "type":  "Spell",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "exhaust_enemy_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "ice-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "ice-primal-turnabout"
+                   },
+        "rulesText":  "Create a tempo swing during setup.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-clash-champion",
+        "name":  "Frost Clash Champion",
+        "type":  "Unit",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  3,
+                     "Generic":  1
+                 },
+        "power":  9000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "return_enemy_unit_to_hand_choice"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-clash-champion",
+                              "name":  "Clash Art",
+                              "cost":  {
+                                           "Ice":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "exhaust_enemy_unit_choice",
+                              "rulesText":  "Combat: Choose an enemy Unit. Exhaust it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "ice-primal",
+                       "rarity":  "rare",
+                       "artKey":  "ice-primal-clash-champion"
+                   },
+        "rulesText":  "Strike. When played, resolve a major control effect. Combat: Choose an enemy Unit. Exhaust it.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-command-table",
+        "name":  "Frost Command Table",
+        "type":  "Support",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  3
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-command-table",
+                              "name":  "Command",
+                              "cost":  {
+                                           "Ice":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "exhaust_enemy_unit_choice",
+                              "rulesText":  "Combat: Choose an enemy Unit. Exhaust it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "ice-primal",
+                       "rarity":  "rare",
+                       "artKey":  "ice-primal-command-table"
+                   },
+        "rulesText":  "A repeatable combat Support. Combat: Choose an enemy Unit. Exhaust it.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-decisive-line",
+        "name":  "Frost Decisive Line",
+        "type":  "Spell",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  2,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "return_enemy_unit_to_hand_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "ice-primal",
+                       "rarity":  "rare",
+                       "artKey":  "ice-primal-decisive-line"
+                   },
+        "rulesText":  "Resolve a decisive control effect.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-momentum-break",
+        "name":  "Frost Momentum Break",
+        "type":  "Spell",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  3
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "exhaust_enemy_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "ice-primal",
+                       "rarity":  "rare",
+                       "artKey":  "ice-primal-momentum-break"
+                   },
+        "rulesText":  "Cantrip. Create a control interruption.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-twin-banner-hero",
+        "name":  "Frost Twin-Banner Hero",
+        "type":  "Unit",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  4,
+                     "Generic":  1
+                 },
+        "power":  10000,
+        "keywords":  [
+                         "Refresh",
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "return_enemy_unit_to_hand_choice"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-twin-banner-hero",
+                              "name":  "Heroic Response",
+                              "cost":  {
+                                           "Ice":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "exhaust_enemy_unit_choice",
+                              "rulesText":  "Combat: Choose an enemy Unit. Exhaust it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "ice-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "ice-primal-twin-banner-hero"
+                   },
+        "rulesText":  "Refresh. Strike. When played, resolve a major control effect. Combat: Choose an enemy Unit. Exhaust it.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-primal-command",
+        "name":  "Frost Primal Command",
+        "type":  "Support",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  4
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "return_enemy_unit_to_hand_choice"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-primal-command",
+                              "name":  "Primal Order",
+                              "cost":  {
+                                           "Ice":  2
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "exhaust_enemy_unit_choice",
+                              "rulesText":  "Combat: Choose an enemy Unit. Exhaust it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "ice-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "ice-primal-primal-command"
+                   },
+        "rulesText":  "When played, resolve a major control effect. Combat: Choose an enemy Unit. Exhaust it.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "ice-primal-avatar-stratagem",
+        "name":  "Frost Avatar Stratagem",
+        "type":  "Spell",
+        "elements":  [
+                         "Ice"
+                     ],
+        "cost":  {
+                     "Ice":  5,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip",
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "return_enemy_unit_to_hand_choice",
+                      "exhaust_enemy_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "ice-primal",
+                       "rarity":  "mythic",
+                       "artKey":  "ice-primal-avatar-stratagem"
+                   },
+        "rulesText":  "Cantrip. Refresh. Resolve two powerful control effects.",
+        "rarity":  "Mythic",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-frontline-cadet",
+        "name":  "Gale Frontline Cadet",
+        "type":  "Unit",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  1
+                 },
+        "power":  3000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "wind-primal",
+                       "rarity":  "common",
+                       "artKey":  "wind-primal-frontline-cadet"
+                   },
+        "rulesText":  "A steady tempo Unit for early combat.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-quickblade",
+        "name":  "Gale Quickblade",
+        "type":  "Unit",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  1,
+                     "Generic":  1
+                 },
+        "power":  4000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Aggro"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "wind-primal",
+                       "rarity":  "common",
+                       "artKey":  "wind-primal-quickblade"
+                   },
+        "rulesText":  "Strike.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-field-mender",
+        "name":  "Gale Field Mender",
+        "type":  "Unit",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Value"
+                 ],
+        "hooks":  [
+                      "reduce_next_card_cost_1"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "wind-primal",
+                       "rarity":  "common",
+                       "artKey":  "wind-primal-field-mender"
+                   },
+        "rulesText":  "When played, choose a friendly unit. ready it.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-line-keeper",
+        "name":  "Gale Line Keeper",
+        "type":  "Unit",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-line-keeper",
+                              "name":  "Guard Step",
+                              "cost":  {
+                                           "Wind":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "wind-primal",
+                       "rarity":  "common",
+                       "artKey":  "wind-primal-line-keeper"
+                   },
+        "rulesText":  "Reliable battlefield presence. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-banner-squire",
+        "name":  "Gale Banner Squire",
+        "type":  "Unit",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  1,
+                     "Generic":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Tempo"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "wind-primal",
+                       "rarity":  "common",
+                       "artKey":  "wind-primal-banner-squire"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-watch-post",
+        "name":  "Gale Watch Post",
+        "type":  "Support",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-watch-post",
+                              "name":  "Signal",
+                              "cost":  {
+                                           "Wind":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "wind-primal",
+                       "rarity":  "common",
+                       "artKey":  "wind-primal-watch-post"
+                   },
+        "rulesText":  "A cheap Support with a combat action. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-clash-spark",
+        "name":  "Gale Clash Spark",
+        "type":  "Spell",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "reduce_next_card_cost_1"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "wind-primal",
+                       "rarity":  "common",
+                       "artKey":  "wind-primal-clash-spark"
+                   },
+        "rulesText":  "Resolve a small tempo effect.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-formation-call",
+        "name":  "Gale Formation Call",
+        "type":  "Spell",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  1,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "wind-primal",
+                       "rarity":  "common",
+                       "artKey":  "wind-primal-formation-call"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-duel-captain",
+        "name":  "Gale Duel Captain",
+        "type":  "Unit",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  2,
+                     "Generic":  1
+                 },
+        "power":  7000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "ready_friendly_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "wind-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "wind-primal-duel-captain"
+                   },
+        "rulesText":  "When played, create a tempo swing.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-reaction-mage",
+        "name":  "Gale Reaction Mage",
+        "type":  "Unit",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-reaction-mage",
+                              "name":  "Reaction",
+                              "cost":  {
+                                           "Wind":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "wind-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "wind-primal-reaction-mage"
+                   },
+        "rulesText":  "A Unit with a combat action. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-veteran-guard",
+        "name":  "Gale Veteran Guard",
+        "type":  "Unit",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  2,
+                     "Generic":  2
+                 },
+        "power":  8000,
+        "keywords":  [
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "wind-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "wind-primal-veteran-guard"
+                   },
+        "rulesText":  "Refresh.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-war-room",
+        "name":  "Gale War Room",
+        "type":  "Support",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+                      "reduce_next_card_cost_1"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-war-room",
+                              "name":  "Tactical Order",
+                              "cost":  {
+                                           "Wind":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "wind-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "wind-primal-war-room"
+                   },
+        "rulesText":  "When played, resolve a small tempo effect. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-turnabout",
+        "name":  "Gale Turnabout",
+        "type":  "Spell",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "ready_friendly_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "wind-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "wind-primal-turnabout"
+                   },
+        "rulesText":  "Create a tempo swing during setup.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-clash-champion",
+        "name":  "Gale Clash Champion",
+        "type":  "Unit",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  3,
+                     "Generic":  1
+                 },
+        "power":  9000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "return_friendly_unit_to_hand_choice"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-clash-champion",
+                              "name":  "Clash Art",
+                              "cost":  {
+                                           "Wind":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "wind-primal",
+                       "rarity":  "rare",
+                       "artKey":  "wind-primal-clash-champion"
+                   },
+        "rulesText":  "Strike. When played, resolve a major tempo effect. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-command-table",
+        "name":  "Gale Command Table",
+        "type":  "Support",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  3
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-command-table",
+                              "name":  "Command",
+                              "cost":  {
+                                           "Wind":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "wind-primal",
+                       "rarity":  "rare",
+                       "artKey":  "wind-primal-command-table"
+                   },
+        "rulesText":  "A repeatable combat Support. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-decisive-line",
+        "name":  "Gale Decisive Line",
+        "type":  "Spell",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  2,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "return_friendly_unit_to_hand_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "wind-primal",
+                       "rarity":  "rare",
+                       "artKey":  "wind-primal-decisive-line"
+                   },
+        "rulesText":  "Resolve a decisive tempo effect.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-momentum-break",
+        "name":  "Gale Momentum Break",
+        "type":  "Spell",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  3
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "ready_friendly_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "wind-primal",
+                       "rarity":  "rare",
+                       "artKey":  "wind-primal-momentum-break"
+                   },
+        "rulesText":  "Cantrip. Create a tempo interruption.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-twin-banner-hero",
+        "name":  "Gale Twin-Banner Hero",
+        "type":  "Unit",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  4,
+                     "Generic":  1
+                 },
+        "power":  10000,
+        "keywords":  [
+                         "Refresh",
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "return_friendly_unit_to_hand_choice"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-twin-banner-hero",
+                              "name":  "Heroic Response",
+                              "cost":  {
+                                           "Wind":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "wind-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "wind-primal-twin-banner-hero"
+                   },
+        "rulesText":  "Refresh. Strike. When played, resolve a major tempo effect. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-primal-command",
+        "name":  "Gale Primal Command",
+        "type":  "Support",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  4
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "return_friendly_unit_to_hand_choice"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-primal-command",
+                              "name":  "Primal Order",
+                              "cost":  {
+                                           "Wind":  2
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "wind-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "wind-primal-primal-command"
+                   },
+        "rulesText":  "When played, resolve a major tempo effect. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "wind-primal-avatar-stratagem",
+        "name":  "Gale Avatar Stratagem",
+        "type":  "Spell",
+        "elements":  [
+                         "Wind"
+                     ],
+        "cost":  {
+                     "Wind":  5,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip",
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "return_friendly_unit_to_hand_choice",
+                      "ready_friendly_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "wind-primal",
+                       "rarity":  "mythic",
+                       "artKey":  "wind-primal-avatar-stratagem"
+                   },
+        "rulesText":  "Cantrip. Refresh. Resolve two powerful tempo effects.",
+        "rarity":  "Mythic",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-frontline-cadet",
+        "name":  "Root Frontline Cadet",
+        "type":  "Unit",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  1
+                 },
+        "power":  3000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "earth-primal",
+                       "rarity":  "common",
+                       "artKey":  "earth-primal-frontline-cadet"
+                   },
+        "rulesText":  "A steady ramp Unit for early combat.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-quickblade",
+        "name":  "Root Quickblade",
+        "type":  "Unit",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  1,
+                     "Generic":  1
+                 },
+        "power":  4000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Aggro"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "earth-primal",
+                       "rarity":  "common",
+                       "artKey":  "earth-primal-quickblade"
+                   },
+        "rulesText":  "Strike.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-field-mender",
+        "name":  "Root Field Mender",
+        "type":  "Unit",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Value"
+                 ],
+        "hooks":  [
+                      "gain_energy_source_element_1"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "earth-primal",
+                       "rarity":  "common",
+                       "artKey":  "earth-primal-field-mender"
+                   },
+        "rulesText":  "When played, recover 1 damage.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-line-keeper",
+        "name":  "Root Line Keeper",
+        "type":  "Unit",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-line-keeper",
+                              "name":  "Guard Step",
+                              "cost":  {
+                                           "Earth":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "recover_one_damage",
+                              "rulesText":  "Combat: Recover 1 damage."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "earth-primal",
+                       "rarity":  "common",
+                       "artKey":  "earth-primal-line-keeper"
+                   },
+        "rulesText":  "Reliable battlefield presence. Combat: Recover 1 damage.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-banner-squire",
+        "name":  "Root Banner Squire",
+        "type":  "Unit",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  1,
+                     "Generic":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Tempo"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "earth-primal",
+                       "rarity":  "common",
+                       "artKey":  "earth-primal-banner-squire"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-watch-post",
+        "name":  "Root Watch Post",
+        "type":  "Support",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-watch-post",
+                              "name":  "Signal",
+                              "cost":  {
+                                           "Earth":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "recover_one_damage",
+                              "rulesText":  "Combat: Recover 1 damage."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "earth-primal",
+                       "rarity":  "common",
+                       "artKey":  "earth-primal-watch-post"
+                   },
+        "rulesText":  "A cheap Support with a combat action. Combat: Recover 1 damage.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-clash-spark",
+        "name":  "Root Clash Spark",
+        "type":  "Spell",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "gain_energy_source_element_1"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "earth-primal",
+                       "rarity":  "common",
+                       "artKey":  "earth-primal-clash-spark"
+                   },
+        "rulesText":  "Resolve a small ramp effect.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-formation-call",
+        "name":  "Root Formation Call",
+        "type":  "Spell",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  1,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "earth-primal",
+                       "rarity":  "common",
+                       "artKey":  "earth-primal-formation-call"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-duel-captain",
+        "name":  "Root Duel Captain",
+        "type":  "Unit",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  2,
+                     "Generic":  1
+                 },
+        "power":  7000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "recover_one_damage"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "earth-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "earth-primal-duel-captain"
+                   },
+        "rulesText":  "When played, create a ramp swing.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-reaction-mage",
+        "name":  "Root Reaction Mage",
+        "type":  "Unit",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-reaction-mage",
+                              "name":  "Reaction",
+                              "cost":  {
+                                           "Earth":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "recover_one_damage",
+                              "rulesText":  "Combat: Recover 1 damage."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "earth-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "earth-primal-reaction-mage"
+                   },
+        "rulesText":  "A Unit with a combat action. Combat: Recover 1 damage.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-veteran-guard",
+        "name":  "Root Veteran Guard",
+        "type":  "Unit",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  2,
+                     "Generic":  2
+                 },
+        "power":  8000,
+        "keywords":  [
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "earth-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "earth-primal-veteran-guard"
+                   },
+        "rulesText":  "Refresh.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-war-room",
+        "name":  "Root War Room",
+        "type":  "Support",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+                      "gain_energy_source_element_1"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-war-room",
+                              "name":  "Tactical Order",
+                              "cost":  {
+                                           "Earth":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "recover_one_damage",
+                              "rulesText":  "Combat: Recover 1 damage."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "earth-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "earth-primal-war-room"
+                   },
+        "rulesText":  "When played, resolve a small ramp effect. Combat: Recover 1 damage.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-turnabout",
+        "name":  "Root Turnabout",
+        "type":  "Spell",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "recover_one_damage"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "earth-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "earth-primal-turnabout"
+                   },
+        "rulesText":  "Create a tempo swing during setup.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-clash-champion",
+        "name":  "Root Clash Champion",
+        "type":  "Unit",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  3,
+                     "Generic":  1
+                 },
+        "power":  9000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "gain_energy_choice_2"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-clash-champion",
+                              "name":  "Clash Art",
+                              "cost":  {
+                                           "Earth":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "recover_one_damage",
+                              "rulesText":  "Combat: Recover 1 damage."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "earth-primal",
+                       "rarity":  "rare",
+                       "artKey":  "earth-primal-clash-champion"
+                   },
+        "rulesText":  "Strike. When played, resolve a major ramp effect. Combat: Recover 1 damage.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-command-table",
+        "name":  "Root Command Table",
+        "type":  "Support",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  3
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-command-table",
+                              "name":  "Command",
+                              "cost":  {
+                                           "Earth":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "recover_one_damage",
+                              "rulesText":  "Combat: Recover 1 damage."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "earth-primal",
+                       "rarity":  "rare",
+                       "artKey":  "earth-primal-command-table"
+                   },
+        "rulesText":  "A repeatable combat Support. Combat: Recover 1 damage.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-decisive-line",
+        "name":  "Root Decisive Line",
+        "type":  "Spell",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  2,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "gain_energy_choice_2"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "earth-primal",
+                       "rarity":  "rare",
+                       "artKey":  "earth-primal-decisive-line"
+                   },
+        "rulesText":  "Resolve a decisive ramp effect.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-momentum-break",
+        "name":  "Root Momentum Break",
+        "type":  "Spell",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  3
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "recover_one_damage"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "earth-primal",
+                       "rarity":  "rare",
+                       "artKey":  "earth-primal-momentum-break"
+                   },
+        "rulesText":  "Cantrip. Create a ramp interruption.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-twin-banner-hero",
+        "name":  "Root Twin-Banner Hero",
+        "type":  "Unit",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  4,
+                     "Generic":  1
+                 },
+        "power":  10000,
+        "keywords":  [
+                         "Refresh",
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "gain_energy_choice_2"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-twin-banner-hero",
+                              "name":  "Heroic Response",
+                              "cost":  {
+                                           "Earth":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "recover_one_damage",
+                              "rulesText":  "Combat: Recover 1 damage."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "earth-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "earth-primal-twin-banner-hero"
+                   },
+        "rulesText":  "Refresh. Strike. When played, resolve a major ramp effect. Combat: Recover 1 damage.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-primal-command",
+        "name":  "Root Primal Command",
+        "type":  "Support",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  4
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "gain_energy_choice_2"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-primal-command",
+                              "name":  "Primal Order",
+                              "cost":  {
+                                           "Earth":  2
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "recover_one_damage",
+                              "rulesText":  "Combat: Recover 1 damage."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "earth-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "earth-primal-primal-command"
+                   },
+        "rulesText":  "When played, resolve a major ramp effect. Combat: Recover 1 damage.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "earth-primal-avatar-stratagem",
+        "name":  "Root Avatar Stratagem",
+        "type":  "Spell",
+        "elements":  [
+                         "Earth"
+                     ],
+        "cost":  {
+                     "Earth":  5,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip",
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "gain_energy_choice_2",
+                      "recover_one_damage"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "earth-primal",
+                       "rarity":  "mythic",
+                       "artKey":  "earth-primal-avatar-stratagem"
+                   },
+        "rulesText":  "Cantrip. Refresh. Resolve two powerful ramp effects.",
+        "rarity":  "Mythic",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-frontline-cadet",
+        "name":  "Storm Frontline Cadet",
+        "type":  "Unit",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  1
+                 },
+        "power":  3000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "lightning-primal",
+                       "rarity":  "common",
+                       "artKey":  "lightning-primal-frontline-cadet"
+                   },
+        "rulesText":  "A steady burst Unit for early combat.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-quickblade",
+        "name":  "Storm Quickblade",
+        "type":  "Unit",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  1,
+                     "Generic":  1
+                 },
+        "power":  4000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Aggro"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "lightning-primal",
+                       "rarity":  "common",
+                       "artKey":  "lightning-primal-quickblade"
+                   },
+        "rulesText":  "Strike.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-field-mender",
+        "name":  "Storm Field Mender",
+        "type":  "Unit",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Value"
+                 ],
+        "hooks":  [
+                      "deal_one_damage"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "lightning-primal",
+                       "rarity":  "common",
+                       "artKey":  "lightning-primal-field-mender"
+                   },
+        "rulesText":  "When played, your opponent discards one card.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-line-keeper",
+        "name":  "Storm Line Keeper",
+        "type":  "Unit",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-line-keeper",
+                              "name":  "Guard Step",
+                              "cost":  {
+                                           "Lightning":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "lightning-primal",
+                       "rarity":  "common",
+                       "artKey":  "lightning-primal-line-keeper"
+                   },
+        "rulesText":  "Reliable battlefield presence. Combat: Your opponent discards one card.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-banner-squire",
+        "name":  "Storm Banner Squire",
+        "type":  "Unit",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  1,
+                     "Generic":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Tempo"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "lightning-primal",
+                       "rarity":  "common",
+                       "artKey":  "lightning-primal-banner-squire"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-watch-post",
+        "name":  "Storm Watch Post",
+        "type":  "Support",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-watch-post",
+                              "name":  "Signal",
+                              "cost":  {
+                                           "Lightning":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "lightning-primal",
+                       "rarity":  "common",
+                       "artKey":  "lightning-primal-watch-post"
+                   },
+        "rulesText":  "A cheap Support with a combat action. Combat: Your opponent discards one card.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-clash-spark",
+        "name":  "Storm Clash Spark",
+        "type":  "Spell",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "deal_one_damage"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "lightning-primal",
+                       "rarity":  "common",
+                       "artKey":  "lightning-primal-clash-spark"
+                   },
+        "rulesText":  "Resolve a small burst effect.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-formation-call",
+        "name":  "Storm Formation Call",
+        "type":  "Spell",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  1,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "lightning-primal",
+                       "rarity":  "common",
+                       "artKey":  "lightning-primal-formation-call"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-duel-captain",
+        "name":  "Storm Duel Captain",
+        "type":  "Unit",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  2,
+                     "Generic":  1
+                 },
+        "power":  7000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "exhaust_enemy_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "lightning-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "lightning-primal-duel-captain"
+                   },
+        "rulesText":  "When played, create a burst swing.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-reaction-mage",
+        "name":  "Storm Reaction Mage",
+        "type":  "Unit",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-reaction-mage",
+                              "name":  "Reaction",
+                              "cost":  {
+                                           "Lightning":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "lightning-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "lightning-primal-reaction-mage"
+                   },
+        "rulesText":  "A Unit with a combat action. Combat: Your opponent discards one card.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-veteran-guard",
+        "name":  "Storm Veteran Guard",
+        "type":  "Unit",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  2,
+                     "Generic":  2
+                 },
+        "power":  8000,
+        "keywords":  [
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "lightning-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "lightning-primal-veteran-guard"
+                   },
+        "rulesText":  "Refresh.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-war-room",
+        "name":  "Storm War Room",
+        "type":  "Support",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+                      "deal_one_damage"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-war-room",
+                              "name":  "Tactical Order",
+                              "cost":  {
+                                           "Lightning":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "lightning-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "lightning-primal-war-room"
+                   },
+        "rulesText":  "When played, resolve a small burst effect. Combat: Your opponent discards one card.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-turnabout",
+        "name":  "Storm Turnabout",
+        "type":  "Spell",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "exhaust_enemy_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "lightning-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "lightning-primal-turnabout"
+                   },
+        "rulesText":  "Create a tempo swing during setup.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-clash-champion",
+        "name":  "Storm Clash Champion",
+        "type":  "Unit",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  3,
+                     "Generic":  1
+                 },
+        "power":  9000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "discard_opponent_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-clash-champion",
+                              "name":  "Clash Art",
+                              "cost":  {
+                                           "Lightning":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "lightning-primal",
+                       "rarity":  "rare",
+                       "artKey":  "lightning-primal-clash-champion"
+                   },
+        "rulesText":  "Strike. When played, resolve a major burst effect. Combat: Your opponent discards one card.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-command-table",
+        "name":  "Storm Command Table",
+        "type":  "Support",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  3
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-command-table",
+                              "name":  "Command",
+                              "cost":  {
+                                           "Lightning":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "lightning-primal",
+                       "rarity":  "rare",
+                       "artKey":  "lightning-primal-command-table"
+                   },
+        "rulesText":  "A repeatable combat Support. Combat: Your opponent discards one card.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-decisive-line",
+        "name":  "Storm Decisive Line",
+        "type":  "Spell",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  2,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "discard_opponent_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "lightning-primal",
+                       "rarity":  "rare",
+                       "artKey":  "lightning-primal-decisive-line"
+                   },
+        "rulesText":  "Resolve a decisive burst effect.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-momentum-break",
+        "name":  "Storm Momentum Break",
+        "type":  "Spell",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  3
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "exhaust_enemy_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "lightning-primal",
+                       "rarity":  "rare",
+                       "artKey":  "lightning-primal-momentum-break"
+                   },
+        "rulesText":  "Cantrip. Create a burst interruption.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-twin-banner-hero",
+        "name":  "Storm Twin-Banner Hero",
+        "type":  "Unit",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  4,
+                     "Generic":  1
+                 },
+        "power":  10000,
+        "keywords":  [
+                         "Refresh",
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "discard_opponent_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-twin-banner-hero",
+                              "name":  "Heroic Response",
+                              "cost":  {
+                                           "Lightning":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "lightning-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "lightning-primal-twin-banner-hero"
+                   },
+        "rulesText":  "Refresh. Strike. When played, resolve a major burst effect. Combat: Your opponent discards one card.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-primal-command",
+        "name":  "Storm Primal Command",
+        "type":  "Support",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  4
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "discard_opponent_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-primal-command",
+                              "name":  "Primal Order",
+                              "cost":  {
+                                           "Lightning":  2
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "lightning-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "lightning-primal-primal-command"
+                   },
+        "rulesText":  "When played, resolve a major burst effect. Combat: Your opponent discards one card.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "lightning-primal-avatar-stratagem",
+        "name":  "Storm Avatar Stratagem",
+        "type":  "Spell",
+        "elements":  [
+                         "Lightning"
+                     ],
+        "cost":  {
+                     "Lightning":  5,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip",
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "discard_opponent_one",
+                      "exhaust_enemy_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "lightning-primal",
+                       "rarity":  "mythic",
+                       "artKey":  "lightning-primal-avatar-stratagem"
+                   },
+        "rulesText":  "Cantrip. Refresh. Resolve two powerful burst effects.",
+        "rarity":  "Mythic",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-frontline-cadet",
+        "name":  "Tide Frontline Cadet",
+        "type":  "Unit",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  1
+                 },
+        "power":  3000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "water-primal",
+                       "rarity":  "common",
+                       "artKey":  "water-primal-frontline-cadet"
+                   },
+        "rulesText":  "A steady value Unit for early combat.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-quickblade",
+        "name":  "Tide Quickblade",
+        "type":  "Unit",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  1,
+                     "Generic":  1
+                 },
+        "power":  4000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Aggro"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "water-primal",
+                       "rarity":  "common",
+                       "artKey":  "water-primal-quickblade"
+                   },
+        "rulesText":  "Strike.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-field-mender",
+        "name":  "Tide Field Mender",
+        "type":  "Unit",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Value"
+                 ],
+        "hooks":  [
+                      "draw_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "water-primal",
+                       "rarity":  "common",
+                       "artKey":  "water-primal-field-mender"
+                   },
+        "rulesText":  "When played, draw a card.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-line-keeper",
+        "name":  "Tide Line Keeper",
+        "type":  "Unit",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-line-keeper",
+                              "name":  "Guard Step",
+                              "cost":  {
+                                           "Water":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "draw_one",
+                              "rulesText":  "Combat: Draw a card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "water-primal",
+                       "rarity":  "common",
+                       "artKey":  "water-primal-line-keeper"
+                   },
+        "rulesText":  "Reliable battlefield presence. Combat: Draw a card.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-banner-squire",
+        "name":  "Tide Banner Squire",
+        "type":  "Unit",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  1,
+                     "Generic":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Tempo"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "water-primal",
+                       "rarity":  "common",
+                       "artKey":  "water-primal-banner-squire"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-watch-post",
+        "name":  "Tide Watch Post",
+        "type":  "Support",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-watch-post",
+                              "name":  "Signal",
+                              "cost":  {
+                                           "Water":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "draw_one",
+                              "rulesText":  "Combat: Draw a card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "water-primal",
+                       "rarity":  "common",
+                       "artKey":  "water-primal-watch-post"
+                   },
+        "rulesText":  "A cheap Support with a combat action. Combat: Draw a card.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-clash-spark",
+        "name":  "Tide Clash Spark",
+        "type":  "Spell",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "draw_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "water-primal",
+                       "rarity":  "common",
+                       "artKey":  "water-primal-clash-spark"
+                   },
+        "rulesText":  "Resolve a small value effect.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-formation-call",
+        "name":  "Tide Formation Call",
+        "type":  "Spell",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  1,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "water-primal",
+                       "rarity":  "common",
+                       "artKey":  "water-primal-formation-call"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-duel-captain",
+        "name":  "Tide Duel Captain",
+        "type":  "Unit",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  2,
+                     "Generic":  1
+                 },
+        "power":  7000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "draw_two"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "water-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "water-primal-duel-captain"
+                   },
+        "rulesText":  "When played, create a value swing.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-reaction-mage",
+        "name":  "Tide Reaction Mage",
+        "type":  "Unit",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-reaction-mage",
+                              "name":  "Reaction",
+                              "cost":  {
+                                           "Water":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "draw_one",
+                              "rulesText":  "Combat: Draw a card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "water-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "water-primal-reaction-mage"
+                   },
+        "rulesText":  "A Unit with a combat action. Combat: Draw a card.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-veteran-guard",
+        "name":  "Tide Veteran Guard",
+        "type":  "Unit",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  2,
+                     "Generic":  2
+                 },
+        "power":  8000,
+        "keywords":  [
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "water-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "water-primal-veteran-guard"
+                   },
+        "rulesText":  "Refresh.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-war-room",
+        "name":  "Tide War Room",
+        "type":  "Support",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+                      "draw_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-war-room",
+                              "name":  "Tactical Order",
+                              "cost":  {
+                                           "Water":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "draw_one",
+                              "rulesText":  "Combat: Draw a card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "water-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "water-primal-war-room"
+                   },
+        "rulesText":  "When played, resolve a small value effect. Combat: Draw a card.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-turnabout",
+        "name":  "Tide Turnabout",
+        "type":  "Spell",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "draw_two"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "water-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "water-primal-turnabout"
+                   },
+        "rulesText":  "Create a tempo swing during setup.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-clash-champion",
+        "name":  "Tide Clash Champion",
+        "type":  "Unit",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  3,
+                     "Generic":  1
+                 },
+        "power":  9000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "return_enemy_unit_to_hand_choice"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-clash-champion",
+                              "name":  "Clash Art",
+                              "cost":  {
+                                           "Water":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "draw_one",
+                              "rulesText":  "Combat: Draw a card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "water-primal",
+                       "rarity":  "rare",
+                       "artKey":  "water-primal-clash-champion"
+                   },
+        "rulesText":  "Strike. When played, resolve a major value effect. Combat: Draw a card.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-command-table",
+        "name":  "Tide Command Table",
+        "type":  "Support",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  3
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-command-table",
+                              "name":  "Command",
+                              "cost":  {
+                                           "Water":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "draw_one",
+                              "rulesText":  "Combat: Draw a card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "water-primal",
+                       "rarity":  "rare",
+                       "artKey":  "water-primal-command-table"
+                   },
+        "rulesText":  "A repeatable combat Support. Combat: Draw a card.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-decisive-line",
+        "name":  "Tide Decisive Line",
+        "type":  "Spell",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  2,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "return_enemy_unit_to_hand_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "water-primal",
+                       "rarity":  "rare",
+                       "artKey":  "water-primal-decisive-line"
+                   },
+        "rulesText":  "Resolve a decisive value effect.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-momentum-break",
+        "name":  "Tide Momentum Break",
+        "type":  "Spell",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  3
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "draw_two"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "water-primal",
+                       "rarity":  "rare",
+                       "artKey":  "water-primal-momentum-break"
+                   },
+        "rulesText":  "Cantrip. Create a value interruption.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-twin-banner-hero",
+        "name":  "Tide Twin-Banner Hero",
+        "type":  "Unit",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  4,
+                     "Generic":  1
+                 },
+        "power":  10000,
+        "keywords":  [
+                         "Refresh",
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "return_enemy_unit_to_hand_choice"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-twin-banner-hero",
+                              "name":  "Heroic Response",
+                              "cost":  {
+                                           "Water":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "draw_one",
+                              "rulesText":  "Combat: Draw a card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "water-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "water-primal-twin-banner-hero"
+                   },
+        "rulesText":  "Refresh. Strike. When played, resolve a major value effect. Combat: Draw a card.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-primal-command",
+        "name":  "Tide Primal Command",
+        "type":  "Support",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  4
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "return_enemy_unit_to_hand_choice"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-primal-command",
+                              "name":  "Primal Order",
+                              "cost":  {
+                                           "Water":  2
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "draw_one",
+                              "rulesText":  "Combat: Draw a card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "water-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "water-primal-primal-command"
+                   },
+        "rulesText":  "When played, resolve a major value effect. Combat: Draw a card.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "water-primal-avatar-stratagem",
+        "name":  "Tide Avatar Stratagem",
+        "type":  "Spell",
+        "elements":  [
+                         "Water"
+                     ],
+        "cost":  {
+                     "Water":  5,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip",
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "return_enemy_unit_to_hand_choice",
+                      "draw_two"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "water-primal",
+                       "rarity":  "mythic",
+                       "artKey":  "water-primal-avatar-stratagem"
+                   },
+        "rulesText":  "Cantrip. Refresh. Resolve two powerful value effects.",
+        "rarity":  "Mythic",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-frontline-cadet",
+        "name":  "Dawn Frontline Cadet",
+        "type":  "Unit",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  1
+                 },
+        "power":  3000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "light-primal",
+                       "rarity":  "common",
+                       "artKey":  "light-primal-frontline-cadet"
+                   },
+        "rulesText":  "A steady recovery Unit for early combat.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-quickblade",
+        "name":  "Dawn Quickblade",
+        "type":  "Unit",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  1,
+                     "Generic":  1
+                 },
+        "power":  4000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Aggro"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "light-primal",
+                       "rarity":  "common",
+                       "artKey":  "light-primal-quickblade"
+                   },
+        "rulesText":  "Strike.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-field-mender",
+        "name":  "Dawn Field Mender",
+        "type":  "Unit",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Value"
+                 ],
+        "hooks":  [
+                      "recover_one_damage"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "light-primal",
+                       "rarity":  "common",
+                       "artKey":  "light-primal-field-mender"
+                   },
+        "rulesText":  "When played, choose a friendly unit. ready it.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-line-keeper",
+        "name":  "Dawn Line Keeper",
+        "type":  "Unit",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-line-keeper",
+                              "name":  "Guard Step",
+                              "cost":  {
+                                           "Light":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "light-primal",
+                       "rarity":  "common",
+                       "artKey":  "light-primal-line-keeper"
+                   },
+        "rulesText":  "Reliable battlefield presence. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-banner-squire",
+        "name":  "Dawn Banner Squire",
+        "type":  "Unit",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  1,
+                     "Generic":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Tempo"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "light-primal",
+                       "rarity":  "common",
+                       "artKey":  "light-primal-banner-squire"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-watch-post",
+        "name":  "Dawn Watch Post",
+        "type":  "Support",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-watch-post",
+                              "name":  "Signal",
+                              "cost":  {
+                                           "Light":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "light-primal",
+                       "rarity":  "common",
+                       "artKey":  "light-primal-watch-post"
+                   },
+        "rulesText":  "A cheap Support with a combat action. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-clash-spark",
+        "name":  "Dawn Clash Spark",
+        "type":  "Spell",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "recover_one_damage"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "light-primal",
+                       "rarity":  "common",
+                       "artKey":  "light-primal-clash-spark"
+                   },
+        "rulesText":  "Resolve a small recovery effect.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-formation-call",
+        "name":  "Dawn Formation Call",
+        "type":  "Spell",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  1,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "light-primal",
+                       "rarity":  "common",
+                       "artKey":  "light-primal-formation-call"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-duel-captain",
+        "name":  "Dawn Duel Captain",
+        "type":  "Unit",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  2,
+                     "Generic":  1
+                 },
+        "power":  7000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "ready_friendly_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "light-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "light-primal-duel-captain"
+                   },
+        "rulesText":  "When played, create a recovery swing.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-reaction-mage",
+        "name":  "Dawn Reaction Mage",
+        "type":  "Unit",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-reaction-mage",
+                              "name":  "Reaction",
+                              "cost":  {
+                                           "Light":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "light-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "light-primal-reaction-mage"
+                   },
+        "rulesText":  "A Unit with a combat action. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-veteran-guard",
+        "name":  "Dawn Veteran Guard",
+        "type":  "Unit",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  2,
+                     "Generic":  2
+                 },
+        "power":  8000,
+        "keywords":  [
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "light-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "light-primal-veteran-guard"
+                   },
+        "rulesText":  "Refresh.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-war-room",
+        "name":  "Dawn War Room",
+        "type":  "Support",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+                      "recover_one_damage"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-war-room",
+                              "name":  "Tactical Order",
+                              "cost":  {
+                                           "Light":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "light-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "light-primal-war-room"
+                   },
+        "rulesText":  "When played, resolve a small recovery effect. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-turnabout",
+        "name":  "Dawn Turnabout",
+        "type":  "Spell",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "ready_friendly_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "light-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "light-primal-turnabout"
+                   },
+        "rulesText":  "Create a tempo swing during setup.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-clash-champion",
+        "name":  "Dawn Clash Champion",
+        "type":  "Unit",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  3,
+                     "Generic":  1
+                 },
+        "power":  9000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "recover_one_draw_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-clash-champion",
+                              "name":  "Clash Art",
+                              "cost":  {
+                                           "Light":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "light-primal",
+                       "rarity":  "rare",
+                       "artKey":  "light-primal-clash-champion"
+                   },
+        "rulesText":  "Strike. When played, resolve a major recovery effect. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-command-table",
+        "name":  "Dawn Command Table",
+        "type":  "Support",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  3
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-command-table",
+                              "name":  "Command",
+                              "cost":  {
+                                           "Light":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "light-primal",
+                       "rarity":  "rare",
+                       "artKey":  "light-primal-command-table"
+                   },
+        "rulesText":  "A repeatable combat Support. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-decisive-line",
+        "name":  "Dawn Decisive Line",
+        "type":  "Spell",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  2,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "recover_one_draw_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "light-primal",
+                       "rarity":  "rare",
+                       "artKey":  "light-primal-decisive-line"
+                   },
+        "rulesText":  "Resolve a decisive recovery effect.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-momentum-break",
+        "name":  "Dawn Momentum Break",
+        "type":  "Spell",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  3
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "ready_friendly_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "light-primal",
+                       "rarity":  "rare",
+                       "artKey":  "light-primal-momentum-break"
+                   },
+        "rulesText":  "Cantrip. Create a recovery interruption.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-twin-banner-hero",
+        "name":  "Dawn Twin-Banner Hero",
+        "type":  "Unit",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  4,
+                     "Generic":  1
+                 },
+        "power":  10000,
+        "keywords":  [
+                         "Refresh",
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "recover_one_draw_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-twin-banner-hero",
+                              "name":  "Heroic Response",
+                              "cost":  {
+                                           "Light":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "light-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "light-primal-twin-banner-hero"
+                   },
+        "rulesText":  "Refresh. Strike. When played, resolve a major recovery effect. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-primal-command",
+        "name":  "Dawn Primal Command",
+        "type":  "Support",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  4
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "recover_one_draw_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-primal-command",
+                              "name":  "Primal Order",
+                              "cost":  {
+                                           "Light":  2
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "ready_friendly_unit_choice",
+                              "rulesText":  "Combat: Choose a friendly Unit. Ready it."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "light-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "light-primal-primal-command"
+                   },
+        "rulesText":  "When played, resolve a major recovery effect. Combat: Choose a friendly Unit. Ready it.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "light-primal-avatar-stratagem",
+        "name":  "Dawn Avatar Stratagem",
+        "type":  "Spell",
+        "elements":  [
+                         "Light"
+                     ],
+        "cost":  {
+                     "Light":  5,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip",
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "recover_one_draw_one",
+                      "ready_friendly_unit_choice"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "light-primal",
+                       "rarity":  "mythic",
+                       "artKey":  "light-primal-avatar-stratagem"
+                   },
+        "rulesText":  "Cantrip. Refresh. Resolve two powerful recovery effects.",
+        "rarity":  "Mythic",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-frontline-cadet",
+        "name":  "Void Frontline Cadet",
+        "type":  "Unit",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  1
+                 },
+        "power":  3000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "dark-primal",
+                       "rarity":  "common",
+                       "artKey":  "dark-primal-frontline-cadet"
+                   },
+        "rulesText":  "A steady attrition Unit for early combat.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-quickblade",
+        "name":  "Void Quickblade",
+        "type":  "Unit",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  1,
+                     "Generic":  1
+                 },
+        "power":  4000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Aggro"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "dark-primal",
+                       "rarity":  "common",
+                       "artKey":  "dark-primal-quickblade"
+                   },
+        "rulesText":  "Strike.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-field-mender",
+        "name":  "Void Field Mender",
+        "type":  "Unit",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Value"
+                 ],
+        "hooks":  [
+                      "discard_opponent_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "dark-primal",
+                       "rarity":  "common",
+                       "artKey":  "dark-primal-field-mender"
+                   },
+        "rulesText":  "When played, your opponent discards one card.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-line-keeper",
+        "name":  "Void Line Keeper",
+        "type":  "Unit",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-line-keeper",
+                              "name":  "Guard Step",
+                              "cost":  {
+                                           "Dark":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "dark-primal",
+                       "rarity":  "common",
+                       "artKey":  "dark-primal-line-keeper"
+                   },
+        "rulesText":  "Reliable battlefield presence. Combat: Your opponent discards one card.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-banner-squire",
+        "name":  "Void Banner Squire",
+        "type":  "Unit",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  1,
+                     "Generic":  2
+                 },
+        "power":  5000,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Tempo"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "dark-primal",
+                       "rarity":  "common",
+                       "artKey":  "dark-primal-banner-squire"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-watch-post",
+        "name":  "Void Watch Post",
+        "type":  "Support",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-watch-post",
+                              "name":  "Signal",
+                              "cost":  {
+                                           "Dark":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "dark-primal",
+                       "rarity":  "common",
+                       "artKey":  "dark-primal-watch-post"
+                   },
+        "rulesText":  "A cheap Support with a combat action. Combat: Your opponent discards one card.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-clash-spark",
+        "name":  "Void Clash Spark",
+        "type":  "Spell",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "discard_opponent_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "dark-primal",
+                       "rarity":  "common",
+                       "artKey":  "dark-primal-clash-spark"
+                   },
+        "rulesText":  "Resolve a small attrition effect.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-formation-call",
+        "name":  "Void Formation Call",
+        "type":  "Spell",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  1,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "dark-primal",
+                       "rarity":  "common",
+                       "artKey":  "dark-primal-formation-call"
+                   },
+        "rulesText":  "Cantrip.",
+        "rarity":  "Common",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-duel-captain",
+        "name":  "Void Duel Captain",
+        "type":  "Unit",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  2,
+                     "Generic":  1
+                 },
+        "power":  7000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "draw_three_discard_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "dark-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "dark-primal-duel-captain"
+                   },
+        "rulesText":  "When played, create a attrition swing.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-reaction-mage",
+        "name":  "Void Reaction Mage",
+        "type":  "Unit",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  2,
+                     "Generic":  1
+                 },
+        "power":  6000,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-reaction-mage",
+                              "name":  "Reaction",
+                              "cost":  {
+                                           "Dark":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "dark-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "dark-primal-reaction-mage"
+                   },
+        "rulesText":  "A Unit with a combat action. Combat: Your opponent discards one card.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-veteran-guard",
+        "name":  "Void Veteran Guard",
+        "type":  "Unit",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  2,
+                     "Generic":  2
+                 },
+        "power":  8000,
+        "keywords":  [
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Blocker"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "dark-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "dark-primal-veteran-guard"
+                   },
+        "rulesText":  "Refresh.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-war-room",
+        "name":  "Void War Room",
+        "type":  "Support",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support"
+                 ],
+        "hooks":  [
+                      "discard_opponent_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-war-room",
+                              "name":  "Tactical Order",
+                              "cost":  {
+                                           "Dark":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "dark-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "dark-primal-war-room"
+                   },
+        "rulesText":  "When played, resolve a small attrition effect. Combat: Your opponent discards one card.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-turnabout",
+        "name":  "Void Turnabout",
+        "type":  "Spell",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  2
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "draw_three_discard_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "dark-primal",
+                       "rarity":  "uncommon",
+                       "artKey":  "dark-primal-turnabout"
+                   },
+        "rulesText":  "Create a tempo swing during setup.",
+        "rarity":  "Uncommon",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-clash-champion",
+        "name":  "Void Clash Champion",
+        "type":  "Unit",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  3,
+                     "Generic":  1
+                 },
+        "power":  9000,
+        "keywords":  [
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "deal_one_draw_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-clash-champion",
+                              "name":  "Clash Art",
+                              "cost":  {
+                                           "Dark":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "dark-primal",
+                       "rarity":  "rare",
+                       "artKey":  "dark-primal-clash-champion"
+                   },
+        "rulesText":  "Strike. When played, resolve a major attrition effect. Combat: Your opponent discards one card.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-command-table",
+        "name":  "Void Command Table",
+        "type":  "Support",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  3
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Combat"
+                 ],
+        "hooks":  [
+
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-command-table",
+                              "name":  "Command",
+                              "cost":  {
+                                           "Dark":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "dark-primal",
+                       "rarity":  "rare",
+                       "artKey":  "dark-primal-command-table"
+                   },
+        "rulesText":  "A repeatable combat Support. Combat: Your opponent discards one card.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-decisive-line",
+        "name":  "Void Decisive Line",
+        "type":  "Spell",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  2,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Spell"
+                 ],
+        "hooks":  [
+                      "deal_one_draw_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "dark-primal",
+                       "rarity":  "rare",
+                       "artKey":  "dark-primal-decisive-line"
+                   },
+        "rulesText":  "Resolve a decisive attrition effect.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-momentum-break",
+        "name":  "Void Momentum Break",
+        "type":  "Spell",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  3
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Tempo"
+                 ],
+        "hooks":  [
+                      "draw_three_discard_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "dark-primal",
+                       "rarity":  "rare",
+                       "artKey":  "dark-primal-momentum-break"
+                   },
+        "rulesText":  "Cantrip. Create a attrition interruption.",
+        "rarity":  "Rare",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-twin-banner-hero",
+        "name":  "Void Twin-Banner Hero",
+        "type":  "Unit",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  4,
+                     "Generic":  1
+                 },
+        "power":  10000,
+        "keywords":  [
+                         "Refresh",
+                         "Strike"
+                     ],
+        "tags":  [
+                     "Finisher",
+                     "Combat"
+                 ],
+        "hooks":  [
+                      "deal_one_draw_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-twin-banner-hero",
+                              "name":  "Heroic Response",
+                              "cost":  {
+                                           "Dark":  1
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "unit",
+                       "effect":  "dark-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "dark-primal-twin-banner-hero"
+                   },
+        "rulesText":  "Refresh. Strike. When played, resolve a major attrition effect. Combat: Your opponent discards one card.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-primal-command",
+        "name":  "Void Primal Command",
+        "type":  "Support",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  4
+                 },
+        "power":  0,
+        "keywords":  [
+
+                     ],
+        "tags":  [
+                     "Support",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "deal_one_draw_one"
+                  ],
+        "abilities":  [
+                          {
+                              "id":  "combat-primal-command",
+                              "name":  "Primal Order",
+                              "cost":  {
+                                           "Dark":  2
+                                       },
+                              "timings":  [
+                                              "Combat"
+                                          ],
+                              "hook":  "discard_opponent_one",
+                              "rulesText":  "Combat: Your opponent discards one card."
+                          }
+                      ],
+        "visual":  {
+                       "frame":  "support",
+                       "effect":  "dark-primal",
+                       "rarity":  "legendary",
+                       "artKey":  "dark-primal-primal-command"
+                   },
+        "rulesText":  "When played, resolve a major attrition effect. Combat: Your opponent discards one card.",
+        "rarity":  "Legendary",
+        "setId":  "primal-clash"
+    },
+    {
+        "id":  "dark-primal-avatar-stratagem",
+        "name":  "Void Avatar Stratagem",
+        "type":  "Spell",
+        "elements":  [
+                         "Dark"
+                     ],
+        "cost":  {
+                     "Dark":  5,
+                     "Generic":  1
+                 },
+        "power":  0,
+        "keywords":  [
+                         "Cantrip",
+                         "Refresh"
+                     ],
+        "tags":  [
+                     "Spell",
+                     "Finisher"
+                 ],
+        "hooks":  [
+                      "deal_one_draw_one",
+                      "draw_three_discard_one"
+                  ],
+        "abilities":  [
+
+                      ],
+        "visual":  {
+                       "frame":  "spell",
+                       "effect":  "dark-primal",
+                       "rarity":  "mythic",
+                       "artKey":  "dark-primal-avatar-stratagem"
+                   },
+        "rulesText":  "Cantrip. Refresh. Resolve two powerful attrition effects.",
+        "rarity":  "Mythic",
+        "setId":  "primal-clash"
+    }
+]

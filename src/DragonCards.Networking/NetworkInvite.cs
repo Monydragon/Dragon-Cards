@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using DragonCards.Core;
 
 namespace DragonCards.Networking;
 
@@ -13,20 +14,41 @@ public sealed record NetworkInvite
     public string ModeId { get; init; } = "dragon-duel";
     public string ProtocolVersion { get; init; } = InviteCode.ProtocolVersion;
     public string DeckHash { get; init; } = "";
+    public string RulesHash { get; init; } = "";
 }
 
 public sealed record NetworkCommand
 {
     public string Kind { get; init; } = "";
     public int PlayerIndex { get; init; }
+    public int Sequence { get; init; }
     public string PayloadJson { get; init; } = "";
 }
 
-public sealed record NetworkMatchHello
+public sealed record NetworkPlayerHandshake
 {
     public string ProtocolVersion { get; init; } = InviteCode.ProtocolVersion;
     public string ModeId { get; init; } = "dragon-duel";
+    public string PlayerName { get; init; } = "Player";
+    public DeckDefinition Deck { get; init; } = new();
+    public GameRulesConfig Rules { get; init; } = GameRulesConfig.ForPreset(GameRulesPreset.Standard);
     public string DeckHash { get; init; } = "";
+    public string RulesHash { get; init; } = "";
+}
+
+public sealed record NetworkMatchStart
+{
+    public string ProtocolVersion { get; init; } = InviteCode.ProtocolVersion;
+    public string ModeId { get; init; } = "dragon-duel";
+    public int Seed { get; init; }
+    public NetworkPlayerHandshake Host { get; init; } = new();
+    public NetworkPlayerHandshake Joiner { get; init; } = new();
+}
+
+public sealed record NetworkWireMessage
+{
+    public string Type { get; init; } = "";
+    public string PayloadJson { get; init; } = "";
 }
 
 public static class InviteCode
@@ -101,6 +123,24 @@ public static class InviteCode
         return Convert.ToHexString(hash)[..16].ToLowerInvariant();
     }
 
+    public static string RulesHash(GameRulesConfig rules)
+    {
+        var normalized = (rules ?? GameRulesConfig.ForPreset(GameRulesPreset.Standard)).Normalize();
+        var canonical = string.Join("|",
+            normalized.Preset,
+            normalized.Playstyle,
+            normalized.ProgressionEnabled,
+            normalized.AllUnlocks,
+            normalized.UnlimitedDeckBuilder,
+            normalized.StarterUnlockOverride,
+            normalized.RewardMultiplier,
+            normalized.AiDifficultyModifier,
+            normalized.EnforceDeckOwnership,
+            normalized.UsesDefaultDeckRules);
+        var hash = SHA256.HashData(Encoding.UTF8.GetBytes(canonical));
+        return Convert.ToHexString(hash)[..16].ToLowerInvariant();
+    }
+
     private static void Validate(NetworkInvite invite)
     {
         if (string.IsNullOrWhiteSpace(invite.Host))
@@ -127,5 +167,10 @@ public static class InviteCode
 
 [JsonSerializable(typeof(NetworkInvite))]
 [JsonSerializable(typeof(NetworkCommand))]
-[JsonSerializable(typeof(NetworkMatchHello))]
+[JsonSerializable(typeof(NetworkPlayerHandshake))]
+[JsonSerializable(typeof(NetworkMatchStart))]
+[JsonSerializable(typeof(NetworkWireMessage))]
+[JsonSerializable(typeof(DeckDefinition))]
+[JsonSerializable(typeof(GameRulesConfig))]
+[JsonSerializable(typeof(Dictionary<string, int>))]
 internal sealed partial class DragonCardsNetworkingJsonContext : JsonSerializerContext;
