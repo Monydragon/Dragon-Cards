@@ -105,7 +105,7 @@ public sealed partial class DragonCardsGame : Game
     private NetworkInvite _hostInvite = new();
     private string _hostInviteCode = "";
     private string _joinInviteCode = "";
-    private string _multiplayerNotice = "Direct online match sync is ready for LAN host/join play.";
+    private string _multiplayerNotice = "Choose Local, Host Lobby, or Join Lobby to start multiplayer.";
     private int _logScrollOffset;
     private TutorialRuntimeState? _tutorial;
     private bool _modalInputActive;
@@ -439,6 +439,9 @@ public sealed partial class DragonCardsGame : Game
         {
             EnsureHostInvite();
             _screen = Screen.Multiplayer;
+            _multiplayerSection = MultiplayerSection.Local;
+            _directLobbyState = DirectLobbyState.Idle;
+            _joinInviteEditing = false;
             _status = "Multiplayer opened.";
         }
 
@@ -664,7 +667,9 @@ public sealed partial class DragonCardsGame : Game
         {
             EnsureHostInvite();
             _screen = Screen.Multiplayer;
-            _status = "Paste or type a LAN invite to join the host's mode.";
+            _multiplayerSection = MultiplayerSection.JoinLobby;
+            _joinInviteEditing = true;
+            _status = "Type a host invite to join a direct lobby.";
         }
     }
 
@@ -791,60 +796,7 @@ public sealed partial class DragonCardsGame : Game
 
     private void DrawMultiplayerMenu()
     {
-        EnsureHostInvite();
-        var selectedMode = PlayableModeCatalog.All[Math.Clamp(_modeFocus, 0, PlayableModeCatalog.All.Count - 1)];
-        var canStart = selectedMode.StartsMatch &&
-            selectedMode.Id != DragonCardsModeIds.TutorialTrials &&
-            CanStartSelectedMode(selectedMode) &&
-            _dataIssues.Count == 0;
-
-        DrawText("Multiplayer", new Vector2(54, 108), Color.White, 1.2f);
-        DrawText("Local hotseat and direct LAN host/join use the selected prototype mode. Join mode is determined by the invite.", new Rectangle(56, 146, 980, 36), new Color(196, 207, 220), 0.68f);
-
-        DrawPanel(new Rectangle(54, 198, 560, 456), new Color(31, 37, 46), border: new Color(81, 96, 116));
-        DrawText("Play", new Vector2(84, 232), Color.White, 0.96f);
-        DrawText($"Mode: {selectedMode.Name}", new Rectangle(84, 278, 320, 30), selectedMode.ProgressionEligible ? new Color(148, 224, 164) : new Color(255, 190, 120), 0.58f);
-        if (Button(new Rectangle(414, 270, 70, 34), "Prev"))
-        {
-            _modeFocus = (_modeFocus - 1 + PlayableModeCatalog.All.Count) % PlayableModeCatalog.All.Count;
-            GenerateHostInviteForSelectedMode();
-        }
-
-        if (Button(new Rectangle(494, 270, 70, 34), "Next"))
-        {
-            _modeFocus = (_modeFocus + 1) % PlayableModeCatalog.All.Count;
-            GenerateHostInviteForSelectedMode();
-        }
-
-        DrawText(selectedMode.Description, new Rectangle(84, 318, 440, 54), new Color(205, 214, 225), 0.46f);
-        if (Button(new Rectangle(84, 388, 280, 52), "Local Hotseat", canStart, _usingController && _multiplayerFocus == 0))
-        {
-            StartSelectedMode(selectedMode, MatchKind.Hotseat);
-        }
-
-        if (Button(new Rectangle(84, 456, 280, 52), "Host Direct Match", canStart, _usingController && _multiplayerFocus == 1))
-        {
-            HostSelectedMode(selectedMode);
-        }
-
-        if (Button(new Rectangle(84, 524, 280, 52), "Join Direct Match", focused: _usingController && _multiplayerFocus == 2))
-        {
-            BeginJoinDirectMatch();
-        }
-
-        if (Button(new Rectangle(84, 592, 280, 42), "Back", focused: _usingController && _multiplayerFocus == 3))
-        {
-            _screen = UxBackDestination(Screen.MainMenu);
-            _status = "Returned.";
-        }
-
-        DrawPanel(new Rectangle(656, 198, 850, 386), new Color(31, 37, 46), border: new Color(81, 96, 116));
-        DrawText("Direct Invite", new Vector2(690, 232), Color.White, 0.96f);
-        DrawText("Host code", new Vector2(690, 282), new Color(205, 214, 225), 0.6f);
-        DrawText(ChunkInviteCode(_hostInviteCode), new Rectangle(690, 312, 760, 76), new Color(232, 238, 248), 0.46f);
-        DrawText("Join code", new Vector2(690, 414), new Color(205, 214, 225), 0.6f);
-        DrawText(string.IsNullOrWhiteSpace(_joinInviteCode) ? "Type a DC1 invite code here, then choose Join Direct Match." : ChunkInviteCode(_joinInviteCode), new Rectangle(690, 444, 760, 46), new Color(196, 207, 220), 0.46f);
-        DrawText(_multiplayerNotice, new Rectangle(690, 512, 760, 42), new Color(148, 224, 164), 0.56f);
+        DrawMultiplayerLobbyUi();
     }
 
     private void DrawTutorials()
@@ -4245,6 +4197,9 @@ public sealed partial class DragonCardsGame : Game
                 {
                     EnsureHostInvite();
                     _screen = Screen.Multiplayer;
+                    _multiplayerSection = MultiplayerSection.Local;
+                    _directLobbyState = DirectLobbyState.Idle;
+                    _joinInviteEditing = false;
                     _status = "Multiplayer opened.";
                 }
                 else if (_menuFocus == 2)
@@ -4322,7 +4277,7 @@ public sealed partial class DragonCardsGame : Game
 
     private bool IsTypingTextInput()
     {
-        if (_screen is not Screen.PlayerCreation and not Screen.Multiplayer)
+        if (_screen != Screen.PlayerCreation && !IsJoinInviteTextActive)
         {
             return false;
         }
@@ -4517,7 +4472,9 @@ public sealed partial class DragonCardsGame : Game
             case 3:
                 EnsureHostInvite();
                 _screen = Screen.Multiplayer;
-                _status = "Paste or type a LAN invite to join the host's mode.";
+                _multiplayerSection = MultiplayerSection.JoinLobby;
+                _joinInviteEditing = true;
+                _status = "Type a host invite to join a direct lobby.";
                 break;
         }
     }
@@ -4560,48 +4517,7 @@ public sealed partial class DragonCardsGame : Game
 
     private void HandleMultiplayerController()
     {
-        if (FocusPressed(out var focusDelta))
-        {
-            _multiplayerFocus = (_multiplayerFocus + focusDelta + 4) % 4;
-        }
-        if (_uiActions.Triggered(UiAction.MoveToStart)) _multiplayerFocus = 0;
-        else if (_uiActions.Triggered(UiAction.MoveToEnd)) _multiplayerFocus = 3;
-        if (DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out var vertical))
-        {
-            _multiplayerFocus = Math.Clamp(_multiplayerFocus + vertical, 0, 3);
-        }
-
-        if (DirectionPressed(Buttons.DPadLeft, Buttons.DPadRight, out var horizontal))
-        {
-            _modeFocus = (_modeFocus + horizontal + PlayableModeCatalog.All.Count) % PlayableModeCatalog.All.Count;
-            GenerateHostInviteForSelectedMode();
-        }
-
-        if (!Pressed(Buttons.A))
-        {
-            return;
-        }
-
-        _usingController = true;
-        var selectedMode = PlayableModeCatalog.All[Math.Clamp(_modeFocus, 0, PlayableModeCatalog.All.Count - 1)];
-        var canStart = selectedMode.StartsMatch && selectedMode.Id != DragonCardsModeIds.TutorialTrials && CanStartSelectedMode(selectedMode);
-        if (_multiplayerFocus == 0 && canStart)
-        {
-            StartSelectedMode(selectedMode, MatchKind.Hotseat);
-        }
-        else if (_multiplayerFocus == 1)
-        {
-            HostSelectedMode(selectedMode);
-        }
-        else if (_multiplayerFocus == 2)
-        {
-            BeginJoinDirectMatch();
-        }
-        else if (_multiplayerFocus == 3)
-        {
-            _screen = UxBackDestination(Screen.MainMenu);
-            _status = "Returned.";
-        }
+        HandleMultiplayerLobbyInput();
     }
 
     private void HandleTutorialsController()
@@ -5057,6 +4973,10 @@ public sealed partial class DragonCardsGame : Game
 
         if (_screen is Screen.Match or Screen.MatchResult)
         {
+            if (_matchKind == MatchKind.Online)
+            {
+                CloseNetworkMatchConnection();
+            }
             ClearPresentation();
             _screen = Screen.MainMenu;
         }
@@ -5105,6 +5025,11 @@ public sealed partial class DragonCardsGame : Game
 
     private void GenerateHostInviteForSelectedMode()
     {
+        if (IsDirectLobbyActive)
+        {
+            return;
+        }
+
         var selectedMode = PlayableModeCatalog.All[Math.Clamp(_modeFocus, 0, PlayableModeCatalog.All.Count - 1)];
         if (!selectedMode.StartsMatch || !TryCreateDecksForMode(selectedMode.Id, out var deck, out _, out _))
         {
@@ -5120,30 +5045,38 @@ public sealed partial class DragonCardsGame : Game
         var rules = CurrentRules();
         _hostInvite = new NetworkInvite
         {
-            Host = "127.0.0.1",
-            Port = 47288,
+            Host = LocalNetworkAddress.PreferredIpv4Address(),
+            Port = _hostLobbyPort,
             ModeId = modeId,
             ProtocolVersion = InviteCode.ProtocolVersion,
             DeckHash = InviteCode.DeckHash(deck.Cards),
-            RulesHash = InviteCode.RulesHash(rules)
+            RulesHash = InviteCode.RulesHash(rules),
+            LobbyToken = Random.Shared.Next(1, ushort.MaxValue + 1)
         };
-        _hostInviteCode = InviteCode.Encode(_hostInvite);
-        _joinInviteCode = _hostInviteCode;
-        _multiplayerNotice = $"Invite code is valid for {ModeName(modeId)}.";
+        _hostInviteCode = InviteCode.EncodeLobbyCode(_hostInvite.LobbyToken);
+        _multiplayerNotice = $"Five-character LAN code ready for {ModeName(modeId)}.";
     }
 
     private void ValidateJoinInvite()
     {
         EnsureHostInvite();
-        if (InviteCode.TryDecode(_joinInviteCode, out var invite, out var error))
+        if (InviteCode.TryDecodeLobbyCode(_joinInviteCode, out var lobbyToken, out var lobbyError))
         {
-            _multiplayerNotice = $"Valid invite for {invite.ModeId} at {invite.Host}:{invite.Port}. Transport is not active yet.";
-            _status = "Direct invite validated.";
+            _multiplayerNotice = $"Valid LAN code {InviteCode.EncodeLobbyCode(lobbyToken)}. Connect searches for the host on this network.";
+            _status = "Lobby code is ready to connect.";
             return;
         }
 
-        _multiplayerNotice = error;
-        _status = "Direct invite is invalid.";
+        if (InviteCode.TryDecode(_joinInviteCode, out var invite, out var error))
+        {
+            _multiplayerNotice = $"Valid {InviteLabel(_joinInviteCode)} invite for {ModeName(invite.ModeId)} at {invite.Host}:{invite.Port}.";
+            _status = "Invite is ready to connect.";
+            return;
+        }
+
+        var normalizedLobbyCode = new string(_joinInviteCode.Where(character => !char.IsWhiteSpace(character) && character != '-').ToArray());
+        _multiplayerNotice = normalizedLobbyCode.Length == InviteCode.LobbyCodeLength ? lobbyError : error;
+        _status = "Invite is invalid.";
     }
 
     private void SaveDeck(DeckDefinition deck)
@@ -5424,6 +5357,8 @@ public sealed partial class DragonCardsGame : Game
         var previousOptionsFocusVisibilityPending = _optionsFocusVisibilityPending;
         var previousUsingController = _usingController;
         var previousModeActionFocus = _modeActionFocus;
+        var previousModeFocus = _modeFocus;
+        var previousMultiplayerFocus = _multiplayerFocus;
         var previousResultFocus = _resultFocus;
         var previousMatchKind = _matchKind;
         var previousVirtualMouse = _virtualMouse;
@@ -5471,6 +5406,14 @@ public sealed partial class DragonCardsGame : Game
         var previousScreenFade = _screenFadeRemaining;
         var previousMatchInspectorFocused = _matchInspectorFocused;
         var previousDrawOpacity = _drawOpacity;
+        var previousHostInvite = _hostInvite;
+        var previousHostInviteCode = _hostInviteCode;
+        var previousJoinInviteCode = _joinInviteCode;
+        var previousMultiplayerNotice = _multiplayerNotice;
+        var previousMultiplayerSection = _multiplayerSection;
+        var previousDirectLobbyState = _directLobbyState;
+        var previousJoinInviteEditing = _joinInviteEditing;
+        var previousHostLobbyPort = _hostLobbyPort;
         _settings.CardZoom = true;
         _usingController = false;
         _storeFocusArea = StoreFocusArea.Catalog;
@@ -5537,10 +5480,37 @@ public sealed partial class DragonCardsGame : Game
         CaptureScreen("tutorial-card-effects.png", () => PrepareCaptureTutorial("card-effects"));
         CaptureScreen("multiplayer.png", () =>
         {
+            PrepareCaptureProfile();
             _screen = Screen.Multiplayer;
-            EnsureHostInvite();
-            _multiplayerFocus = 1;
-            _status = "Capture: multiplayer.";
+            _multiplayerSection = MultiplayerSection.HostLobby;
+            _directLobbyState = DirectLobbyState.Idle;
+            PrepareCaptureMultiplayerInvite();
+            _multiplayerFocus = 0;
+            _status = "Capture: host lobby setup.";
+        });
+        CaptureScreen("multiplayer-host-waiting.png", () =>
+        {
+            PrepareCaptureProfile();
+            _screen = Screen.Multiplayer;
+            _multiplayerSection = MultiplayerSection.HostLobby;
+            _directLobbyState = DirectLobbyState.Idle;
+            PrepareCaptureMultiplayerInvite();
+            _directLobbyState = DirectLobbyState.Hosting;
+            _multiplayerFocus = 0;
+            _multiplayerNotice = "Hosting Dragon Duel. Waiting for one guest to enter the invite.";
+            _status = "Capture: waiting host lobby.";
+        });
+        CaptureScreen("multiplayer-join-lobby.png", () =>
+        {
+            PrepareCaptureProfile();
+            _screen = Screen.Multiplayer;
+            _multiplayerSection = MultiplayerSection.JoinLobby;
+            _directLobbyState = DirectLobbyState.Idle;
+            PrepareCaptureMultiplayerInvite();
+            _joinInviteCode = _hostInviteCode;
+            _joinInviteEditing = true;
+            _multiplayerFocus = 0;
+            _status = "Capture: join lobby entry.";
         });
         CaptureScreen("deck-builder.png", () =>
         {
@@ -5761,6 +5731,8 @@ public sealed partial class DragonCardsGame : Game
         _optionsFocusVisibilityPending = previousOptionsFocusVisibilityPending;
         _usingController = previousUsingController;
         _modeActionFocus = previousModeActionFocus;
+        _modeFocus = previousModeFocus;
+        _multiplayerFocus = previousMultiplayerFocus;
         _resultFocus = previousResultFocus;
         _matchKind = previousMatchKind;
         _virtualMouse = previousVirtualMouse;
@@ -5811,6 +5783,14 @@ public sealed partial class DragonCardsGame : Game
         _screenFadeRemaining = previousScreenFade;
         _matchInspectorFocused = previousMatchInspectorFocused;
         _drawOpacity = previousDrawOpacity;
+        _hostInvite = previousHostInvite;
+        _hostInviteCode = previousHostInviteCode;
+        _joinInviteCode = previousJoinInviteCode;
+        _multiplayerNotice = previousMultiplayerNotice;
+        _multiplayerSection = previousMultiplayerSection;
+        _directLobbyState = previousDirectLobbyState;
+        _joinInviteEditing = previousJoinInviteEditing;
+        _hostLobbyPort = previousHostLobbyPort;
         ClearPresentation();
         GraphicsDevice.SetRenderTarget(null);
         _status = $"Captured screens to {_captureDirectory}.";
@@ -5840,6 +5820,25 @@ public sealed partial class DragonCardsGame : Game
         var path = Path.Combine(_captureDirectory, fileName);
         using var stream = File.Create(path);
         target.SaveAsPng(stream, VirtualWidth, VirtualHeight);
+    }
+
+    private void PrepareCaptureMultiplayerInvite()
+    {
+        _modeFocus = PlayableModeCatalog.All.ToList().FindIndex(mode => mode.Id == DragonCardsModeIds.DragonDuel);
+        var deck = CurrentDeck();
+        var rules = CurrentRules();
+        _hostInvite = new NetworkInvite
+        {
+            Host = "192.168.1.42",
+            Port = 47288,
+            ModeId = DragonCardsModeIds.DragonDuel,
+            ProtocolVersion = InviteCode.ProtocolVersion,
+            DeckHash = InviteCode.DeckHash(deck.Cards),
+            RulesHash = InviteCode.RulesHash(rules),
+            LobbyToken = 0x2A7B
+        };
+        _hostInviteCode = InviteCode.EncodeLobbyCode(_hostInvite.LobbyToken);
+        _multiplayerNotice = "Five-character LAN code ready for Dragon Duel.";
     }
 
     private void PrepareCaptureMatch()

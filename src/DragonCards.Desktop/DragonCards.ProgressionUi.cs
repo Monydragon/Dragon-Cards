@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
 using DragonCards.Core;
@@ -55,6 +56,8 @@ public sealed partial class DragonCardsGame
     private string _rematchModeId = DragonCardsModeIds.DragonDuel;
     private DirectMatchConnection? _networkConnection;
     private Task<DirectMatchConnection>? _networkConnectTask;
+    private Task<NetworkInvite>? _networkDiscoveryTask;
+    private Task<NetworkMatchStart>? _networkStartTask;
     private Task<NetworkCommand>? _networkReadTask;
     private CancellationTokenSource? _networkCancellation;
     private int _networkLocalPlayerIndex;
@@ -759,11 +762,23 @@ public sealed partial class DragonCardsGame
 
     private void ActivateResultAction(int action)
     {
+        if (_rematchKind == MatchKind.Online)
+        {
+            CloseNetworkMatchConnection();
+        }
+
         switch (Math.Clamp(action, 0, 3))
         {
             case 0:
                 _screen = Screen.MainMenu;
                 _status = "Returned to main menu.";
+                break;
+            case 1 when _rematchKind == MatchKind.Online:
+                _multiplayerSection = MultiplayerSection.HostLobby;
+                _directLobbyState = DirectLobbyState.Idle;
+                _screen = Screen.Multiplayer;
+                _multiplayerNotice = "Create a new direct lobby to rematch.";
+                _status = "Direct matches rematch through a new lobby.";
                 break;
             case 1 when _rematchFirstDeck is not null && _rematchSecondDeck is not null:
                 StartMatch(_rematchFirstDeck, _rematchSecondDeck, _rematchKind, _rematchModeId);
@@ -826,7 +841,7 @@ public sealed partial class DragonCardsGame
 
     private void HandleJoinInviteTextInput()
     {
-        if (_screen != Screen.Multiplayer)
+        if (!IsJoinInviteTextActive)
         {
             return;
         }
@@ -840,6 +855,12 @@ public sealed partial class DragonCardsGame
         if (Pressed(Keys.Delete))
         {
             _joinInviteCode = "";
+            return;
+        }
+
+        if ((_keyboard.IsKeyDown(Keys.LeftControl) || _keyboard.IsKeyDown(Keys.RightControl)) && Pressed(Keys.V))
+        {
+            PasteJoinInviteCode();
             return;
         }
 
@@ -1112,23 +1133,65 @@ public sealed partial class DragonCardsGame
 
     private void BeginHostDirectMatch(string modeId, DeckDefinition hostDeck)
     {
-        if (_networkConnectTask is not null && !_networkConnectTask.IsCompleted)
+        if (IsDirectLobbyActive || _networkConnection is not null)
         {
-            _status = "Already waiting for a direct match.";
+            _status = "A direct lobby is already active.";
             return;
         }
 
         GenerateHostInvite(modeId, hostDeck);
-        var handshake = DirectMatchConnection.CreateHandshake(_profile?.PlayerName ?? "Player", modeId, hostDeck, CurrentRules());
+        var handshake = DirectMatchConnection.CreateHandshake(
+            _profile?.PlayerName ?? "Player",
+            modeId,
+            hostDeck,
+            CurrentRules(),
+            _hostInvite.LobbyToken);
         _networkCancellation?.Cancel();
+        _networkCancellation?.Dispose();
         _networkCancellation = new CancellationTokenSource();
-        _networkConnectTask = DirectMatchConnection.HostAsync(_hostInvite, handshake, Environment.TickCount, _networkCancellation.Token);
-        _multiplayerNotice = $"Hosting {ModeName(modeId)}. Share the invite code with another player on your LAN.";
-        _status = $"Waiting for direct join: {ModeName(modeId)}.";
+        _networkConnectTask = DirectMatchConnection.HostLobbyAsync(_hostInvite, handshake, _networkCancellation.Token);
+        _networkStartTask = null;
+        _networkReadTask = null;
+        _multiplayerSection = MultiplayerSection.HostLobby;
+        _directLobbyState = DirectLobbyState.Hosting;
+        _screen = Screen.Multiplayer;
+        _multiplayerNotice = $"Hosting {ModeName(modeId)}. Share the five-character LAN code with one guest.";
+        _status = $"Lobby open: waiting for a guest in {ModeName(modeId)}.";
     }
 
     private void BeginJoinDirectMatch()
     {
+        if (IsDirectLobbyActive || _networkConnection is not null)
+        {
+            _status = "A direct lobby is already active.";
+            return;
+        }
+
+        if (InviteCode.TryDecodeLobbyCode(_joinInviteCode, out var lobbyToken, out var lobbyCodeError))
+        {
+            _networkCancellation?.Cancel();
+            _networkCancellation?.Dispose();
+            _networkCancellation = new CancellationTokenSource();
+            _networkDiscoveryTask = LanLobbyDiscovery.ResolveAsync(lobbyToken, cancellationToken: _networkCancellation.Token);
+            _networkConnectTask = null;
+            _networkStartTask = null;
+            _networkReadTask = null;
+            _multiplayerSection = MultiplayerSection.JoinLobby;
+            _directLobbyState = DirectLobbyState.Joining;
+            _joinInviteEditing = false;
+            _multiplayerNotice = $"Looking for LAN lobby {InviteCode.EncodeLobbyCode(lobbyToken)}.";
+            _status = "Finding the host on the local network.";
+            return;
+        }
+
+        var normalizedLobbyCode = new string(_joinInviteCode.Where(character => !char.IsWhiteSpace(character) && character != '-').ToArray());
+        if (normalizedLobbyCode.Length == InviteCode.LobbyCodeLength)
+        {
+            _multiplayerNotice = lobbyCodeError;
+            _status = "Lobby code is invalid.";
+            return;
+        }
+
         if (!InviteCode.TryDecode(_joinInviteCode, out var invite, out var error))
         {
             _multiplayerNotice = error;
@@ -1136,6 +1199,11 @@ public sealed partial class DragonCardsGame
             return;
         }
 
+        BeginJoinResolvedDirectMatch(invite);
+    }
+
+    private void BeginJoinResolvedDirectMatch(NetworkInvite invite)
+    {
         if (!TryCreateLocalDeckForMode(invite.ModeId, out var joinDeck, out var deckError))
         {
             _multiplayerNotice = deckError;
@@ -1143,28 +1211,82 @@ public sealed partial class DragonCardsGame
             return;
         }
 
-        var handshake = DirectMatchConnection.CreateHandshake(_profile?.PlayerName ?? "Player", invite.ModeId, joinDeck, CurrentRules());
+        var handshake = DirectMatchConnection.CreateHandshake(
+            _profile?.PlayerName ?? "Player",
+            invite.ModeId,
+            joinDeck,
+            CurrentRules(),
+            invite.LobbyToken);
         _networkCancellation?.Cancel();
+        _networkCancellation?.Dispose();
         _networkCancellation = new CancellationTokenSource();
-        _networkConnectTask = DirectMatchConnection.JoinAsync(invite, handshake, _networkCancellation.Token);
-        _multiplayerNotice = $"Joining {ModeName(invite.ModeId)}.";
-        _status = "Connecting to host.";
+        _networkDiscoveryTask = null;
+        _networkConnectTask = DirectMatchConnection.JoinLobbyAsync(invite, handshake, _networkCancellation.Token);
+        _networkStartTask = null;
+        _networkReadTask = null;
+        _multiplayerSection = MultiplayerSection.JoinLobby;
+        _directLobbyState = DirectLobbyState.Joining;
+        _joinInviteEditing = false;
+        _multiplayerNotice = $"Connecting to the {ModeName(invite.ModeId)} lobby at {invite.Host}:{invite.Port}.";
+        _status = "Connecting to host lobby.";
     }
 
     private void UpdateNetworkTasks()
     {
+        if (_networkDiscoveryTask is { IsCompleted: true })
+        {
+            var task = _networkDiscoveryTask;
+            _networkDiscoveryTask = null;
+            if (task.IsFaulted || task.IsCanceled)
+            {
+                FailDirectLobby(task.Exception?.GetBaseException().Message ?? "The LAN lobby could not be found.");
+            }
+            else
+            {
+                _multiplayerNotice = $"Found {ModeName(task.Result.ModeId)} lobby at {task.Result.Host}:{task.Result.Port}. Connecting.";
+                BeginJoinResolvedDirectMatch(task.Result);
+            }
+        }
+
         if (_networkConnectTask is { IsCompleted: true })
         {
             var task = _networkConnectTask;
             _networkConnectTask = null;
             if (task.IsFaulted)
             {
-                _multiplayerNotice = task.Exception?.GetBaseException().Message ?? "Direct match connection failed.";
-                _status = "Direct match connection failed.";
+                FailDirectLobby(task.Exception?.GetBaseException().Message ?? "Direct match connection failed.");
             }
             else if (!task.IsCanceled)
             {
-                StartNetworkMatch(task.Result);
+                _networkConnection = task.Result;
+                _networkLocalPlayerIndex = _networkConnection.LocalPlayerIndex;
+                _networkReadTask = null;
+                _directLobbyState = DirectLobbyState.Connected;
+                if (_networkConnection.IsHost)
+                {
+                    _multiplayerNotice = $"{_networkConnection.Lobby.Joiner.PlayerName} joined. Review the roster, then start when ready.";
+                    _status = "Guest connected to your lobby.";
+                }
+                else
+                {
+                    _multiplayerNotice = $"Joined {_networkConnection.Lobby.Host.PlayerName}'s lobby. Waiting for the host to start.";
+                    _status = "Lobby joined. Waiting for host start.";
+                    _networkStartTask = _networkConnection.WaitForMatchStartAsync(_networkCancellation?.Token ?? CancellationToken.None);
+                }
+            }
+        }
+
+        if (_networkStartTask is { IsCompleted: true })
+        {
+            var task = _networkStartTask;
+            _networkStartTask = null;
+            if (task.IsFaulted || task.IsCanceled || _networkConnection is null)
+            {
+                FailDirectLobby(task.Exception?.GetBaseException().Message ?? "The lobby did not start.");
+            }
+            else
+            {
+                StartNetworkMatch(_networkConnection);
             }
         }
 
@@ -1197,6 +1319,7 @@ public sealed partial class DragonCardsGame
         _networkConnection = connection;
         _networkLocalPlayerIndex = connection.LocalPlayerIndex;
         _networkReadTask = null;
+        _networkStartTask = null;
         _matchKind = MatchKind.Online;
         _engine = DragonDuelEngine.Create(
             _data,
@@ -1211,7 +1334,73 @@ public sealed partial class DragonCardsGame
         _screen = Screen.Match;
         ClearSelections();
         QueuePresentation(flowResult.Events);
-        _status = connection.IsHost ? "Direct match hosted." : "Direct match joined.";
+        _directLobbyState = DirectLobbyState.Idle;
+        _multiplayerNotice = connection.IsHost ? "Direct lobby started." : "Host started the direct lobby.";
+        _status = connection.IsHost ? "Direct match started." : "Direct match joined.";
+    }
+
+    private void StartHostedLobbyMatch()
+    {
+        if (_networkConnection is null || !_networkConnection.IsHost || _directLobbyState != DirectLobbyState.Connected)
+        {
+            _status = "Wait for a guest before starting the lobby.";
+            return;
+        }
+
+        _directLobbyState = DirectLobbyState.Starting;
+        _networkStartTask = _networkConnection.StartMatchAsync(Environment.TickCount, _networkCancellation?.Token ?? CancellationToken.None);
+        _multiplayerNotice = "Starting the match for both players.";
+        _status = "Starting direct match.";
+    }
+
+    private void CancelDirectLobby(string notice = "Direct lobby canceled.")
+    {
+        _networkCancellation?.Cancel();
+        _networkCancellation?.Dispose();
+        _networkCancellation = null;
+        _networkDiscoveryTask = null;
+        _networkConnectTask = null;
+        _networkStartTask = null;
+        _networkReadTask = null;
+        var connection = _networkConnection;
+        _networkConnection = null;
+        if (connection is not null)
+        {
+            _ = connection.DisposeAsync().AsTask();
+        }
+
+        _directLobbyState = DirectLobbyState.Idle;
+        _joinInviteEditing = false;
+        _multiplayerNotice = notice;
+        _status = notice;
+    }
+
+    private void FailDirectLobby(string notice)
+    {
+        CancelDirectLobby(notice);
+        _directLobbyState = DirectLobbyState.Failed;
+    }
+
+    private void CloseNetworkMatchConnection()
+    {
+        if (_matchKind != MatchKind.Online && _networkConnection is null)
+        {
+            return;
+        }
+
+        _networkCancellation?.Cancel();
+        _networkCancellation?.Dispose();
+        _networkCancellation = null;
+        _networkDiscoveryTask = null;
+        _networkConnectTask = null;
+        _networkStartTask = null;
+        _networkReadTask = null;
+        var connection = _networkConnection;
+        _networkConnection = null;
+        if (connection is not null)
+        {
+            _ = connection.DisposeAsync().AsTask();
+        }
     }
 
     private void SendOnlineCommand(string kind, string payload, GameActionResult result)

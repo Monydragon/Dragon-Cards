@@ -34,6 +34,8 @@
     <Compile Include="DragonCards.ProgressionUi.cs" />
     <Compile Include="DragonCards.UxPass.cs" />
     <Compile Include="DragonCards.UxScreens.cs" />
+    <Compile Include="DragonCards.MultiplayerUi.cs" />
+    <Compile Include="DesktopClipboard.cs" />
     <Compile Include="AudioService.cs" />
     <Compile Include="PresentationDirector.cs" />
     <Compile Include="UiInput.cs" />

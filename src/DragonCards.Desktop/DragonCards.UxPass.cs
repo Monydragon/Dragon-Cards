@@ -164,6 +164,20 @@ public sealed partial class DragonCardsGame
             return true;
         }
 
+        if (_screen == Screen.Multiplayer && IsDirectLobbyActive)
+        {
+            CancelDirectLobby();
+            _audio.Play(SoundKeys.UiBack);
+            return true;
+        }
+
+        if (_screen == Screen.Multiplayer && _joinInviteEditing)
+        {
+            _joinInviteEditing = false;
+            _audio.Play(SoundKeys.UiBack);
+            return true;
+        }
+
         if (_screen == Screen.Match && _chooseFreeEnergy && _engine?.State.PendingEnergyChoice is null)
         {
             _chooseFreeEnergy = false;

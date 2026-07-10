@@ -1349,6 +1349,26 @@ public sealed class DragonCardsCoreTests
         Assert.Equal(invite.ModeId, decoded.ModeId);
         Assert.Equal(invite.DeckHash, decoded.DeckHash);
         Assert.Equal(invite.RulesHash, decoded.RulesHash);
+        var compact = invite with { LobbyToken = 0x2A7B };
+        var compactCode = InviteCode.EncodeCompact(compact);
+        var compactDecoded = InviteCode.Decode(compactCode);
+        Assert.StartsWith(InviteCode.CompactPrefix, compactCode);
+        Assert.True(compactCode.Length <= 24);
+        Assert.Equal(compact.Host, compactDecoded.Host);
+        Assert.Equal(compact.Port, compactDecoded.Port);
+        Assert.Equal(compact.ModeId, compactDecoded.ModeId);
+        Assert.Equal(compact.LobbyToken, compactDecoded.LobbyToken);
+        var lobbyCode = InviteCode.EncodeLobbyCode(compact.LobbyToken);
+        Assert.Equal(InviteCode.LobbyCodeLength, lobbyCode.Length);
+        Assert.DoesNotContain('0', lobbyCode);
+        Assert.DoesNotContain('1', lobbyCode);
+        Assert.DoesNotContain('I', lobbyCode);
+        Assert.DoesNotContain('O', lobbyCode);
+        Assert.True(InviteCode.TryDecodeLobbyCode(lobbyCode.ToLowerInvariant(), out var decodedLobbyToken, out _));
+        Assert.Equal(compact.LobbyToken, decodedLobbyToken);
+        Assert.False(InviteCode.TryDecodeLobbyCode($"{lobbyCode[..^1]}{(lobbyCode[^1] == '2' ? '3' : '2')}", out _, out _));
+        var tamperedCompactCode = $"{compactCode[..^1]}{(compactCode[^1] == '2' ? '3' : '2')}";
+        Assert.False(InviteCode.TryDecode(tamperedCompactCode, out _, out _));
         Assert.False(InviteCode.TryDecode("bad-code", out _, out var error));
         Assert.Contains(InviteCode.Prefix, error);
     }
@@ -1411,6 +1431,99 @@ public sealed class DragonCardsCoreTests
 
         Assert.Equal("advance", command.Kind);
         Assert.Equal(1, command.Sequence);
+    }
+
+    [Fact]
+    public async Task DirectLobbyWaitsForHostStartAndPreservesCompactInviteToken()
+    {
+        var data = LoadData();
+        var rules = GameRulesConfig.ForPreset(GameRulesPreset.Standard);
+        var port = GetFreeTcpPort();
+        var invite = new NetworkInvite
+        {
+            Host = "127.0.0.1",
+            Port = port,
+            ModeId = DragonCardsModeIds.DragonDuel,
+            ProtocolVersion = InviteCode.ProtocolVersion,
+            LobbyToken = 0x73A1
+        };
+        var hostHandshake = DirectMatchConnection.CreateHandshake("Host", invite.ModeId, data.DecksById["starter-fire"], rules, invite.LobbyToken);
+        var joinHandshake = DirectMatchConnection.CreateHandshake("Joiner", invite.ModeId, data.DecksById["starter-ice"], rules, invite.LobbyToken);
+
+        var hostTask = DirectMatchConnection.HostLobbyAsync(invite, hostHandshake);
+        await using var joiner = await DirectMatchConnection.JoinLobbyAsync(invite, joinHandshake);
+        await using var host = await hostTask;
+
+        Assert.True(host.IsHost);
+        Assert.Equal("Joiner", host.Lobby.Joiner.PlayerName);
+        Assert.Equal(invite.LobbyToken, joiner.Lobby.Host.LobbyToken);
+        Assert.Equal(0, host.MatchStart.Seed);
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        var waitForStart = joiner.WaitForMatchStartAsync(timeout.Token);
+        var hostStart = await host.StartMatchAsync(seed: 717, timeout.Token);
+        var joinStart = await waitForStart;
+
+        Assert.Equal(717, hostStart.Seed);
+        Assert.Equal(hostStart.Seed, joinStart.Seed);
+        Assert.Equal(hostStart.ModeId, joinStart.ModeId);
+        Assert.Equal(hostStart.Host.PlayerName, joinStart.Host.PlayerName);
+        Assert.Equal(hostStart.Joiner.PlayerName, joinStart.Joiner.PlayerName);
+    }
+
+    [Fact]
+    public async Task LanDiscoveryResolvesTheFiveCharacterLobbyCode()
+    {
+        var invite = new NetworkInvite
+        {
+            Host = "203.0.113.42",
+            Port = GetFreeTcpPort(),
+            ModeId = DragonCardsModeIds.DragonDuel,
+            ProtocolVersion = InviteCode.ProtocolVersion,
+            LobbyToken = 0x2A7B
+        };
+
+        var code = InviteCode.EncodeLobbyCode(invite.LobbyToken);
+        Assert.True(InviteCode.TryDecodeLobbyCode(code.ToLowerInvariant(), out var token, out _));
+        await using var host = LanLobbyDiscoveryHost.Start(invite);
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        var resolved = await LanLobbyDiscovery.ResolveAsync(token, TimeSpan.FromSeconds(2), timeout.Token);
+
+        Assert.NotEqual(invite.Host, resolved.Host);
+        Assert.True(System.Net.IPAddress.TryParse(resolved.Host, out _));
+        Assert.Equal(invite.Port, resolved.Port);
+        Assert.Equal(invite.ModeId, resolved.ModeId);
+        Assert.Equal(invite.LobbyToken, resolved.LobbyToken);
+    }
+
+    [Fact]
+    public async Task FiveCharacterCodeDiscoversAndJoinsAHostedLobby()
+    {
+        var data = LoadData();
+        var rules = GameRulesConfig.ForPreset(GameRulesPreset.Standard);
+        var invite = new NetworkInvite
+        {
+            Host = "203.0.113.42",
+            Port = GetFreeTcpPort(),
+            ModeId = DragonCardsModeIds.DragonDuel,
+            ProtocolVersion = InviteCode.ProtocolVersion,
+            LobbyToken = 0x4D2E
+        };
+        var hostHandshake = DirectMatchConnection.CreateHandshake("Host", invite.ModeId, data.DecksById["starter-fire"], rules, invite.LobbyToken);
+        var joinHandshake = DirectMatchConnection.CreateHandshake("Joiner", invite.ModeId, data.DecksById["starter-ice"], rules, invite.LobbyToken);
+
+        var hostTask = DirectMatchConnection.HostLobbyAsync(invite, hostHandshake);
+        var lobbyCode = InviteCode.EncodeLobbyCode(invite.LobbyToken);
+        Assert.True(InviteCode.TryDecodeLobbyCode(lobbyCode, out var token, out _));
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        var discoveredInvite = await LanLobbyDiscovery.ResolveAsync(token, TimeSpan.FromSeconds(2), timeout.Token);
+        await using var joiner = await DirectMatchConnection.JoinLobbyAsync(discoveredInvite, joinHandshake, timeout.Token);
+        await using var host = await hostTask;
+
+        Assert.True(host.IsHost);
+        Assert.False(joiner.IsHost);
+        Assert.Equal("Joiner", host.Lobby.Joiner.PlayerName);
+        Assert.Equal(invite.LobbyToken, joiner.Lobby.Host.LobbyToken);
     }
 
     [Fact]
