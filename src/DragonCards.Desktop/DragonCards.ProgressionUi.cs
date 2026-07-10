@@ -317,7 +317,7 @@ public sealed partial class DragonCardsGame
     {
         DrawText("Pack Opening", new Vector2(54, 108), Color.White, 1.2f);
         DrawText(_lastBoosterOpening is null ? "No pack opened." : $"{_lastBoosterOpening.PackName} x{_lastBoosterOpening.PackCount}   Duplicate coins: {_lastBoosterOpening.CoinsFromDuplicates}", new Vector2(56, 146), new Color(196, 207, 220), 0.72f);
-        var panel = new Rectangle(54, 198, 1490, 520);
+        var panel = new Rectangle(54, 198, 1490, 560);
         DrawPanel(panel, new Color(31, 37, 46), border: new Color(81, 96, 116));
 
         if (_lastBoosterOpening is not null)
@@ -373,7 +373,7 @@ public sealed partial class DragonCardsGame
             DrawText($"+{reward.CoinsGained} Coins", new Vector2(panel.X + 36, panel.Y + 144), new Color(244, 230, 158), 0.9f);
             DrawText(reward.LevelsGained > 0 ? $"Level {reward.StartingLevel} -> {reward.EndingLevel}" : $"Level {_profile?.Level ?? 1}", new Vector2(panel.X + 36, panel.Y + 192), Color.White, 0.76f);
             DrawText(reward.BoostersGained > 0 ? $"+{reward.BoostersGained} booster reward" : "No level booster this match.", new Vector2(panel.X + 36, panel.Y + 238), new Color(205, 214, 225), 0.68f);
-            DrawBattleSpoils(new Rectangle(panel.X + 36, panel.Y + 282, 990, 214));
+            DrawBattleSpoils(new Rectangle(panel.X + 36, panel.Y + 270, 990, 260));
         }
         else
         {
@@ -384,6 +384,8 @@ public sealed partial class DragonCardsGame
         {
             DrawProfileSummary(new Rectangle(panel.Right - 430, panel.Y + 36, 360, 214));
         }
+
+        DrawText(ResultNextStepText(), new Rectangle(panel.Right - 430, panel.Y + 286, 360, 96), new Color(205, 214, 225), 0.6f);
 
         var y = 786;
         if (Button(new Rectangle(54, y, 150, 42), "Continue"))
@@ -408,6 +410,33 @@ public sealed partial class DragonCardsGame
             _screen = Screen.Store;
             _status = "Store opened.";
         }
+    }
+
+    private string ResultNextStepText()
+    {
+        if (_profile is null)
+        {
+            return "Next: create a profile to save progression rewards.";
+        }
+
+        if (_profile.TotalUnopenedPacks > 0)
+        {
+            return "Next: open your packs, then use the Deck Assistant to upgrade your list.";
+        }
+
+        if (_profile.Coins >= ProgressionService.BoosterCost)
+        {
+            return "Next: buy a booster in Store / Packs or tune your deck with the Deck Assistant.";
+        }
+
+        if (_profile.CompletedTutorialIds.Count < TutorialDefinitions.Count)
+        {
+            return "Next: finish Tutorial Trials for one-time Coins and smoother play.";
+        }
+
+        return _lastMatchWon
+            ? "Next: rematch on a harder preset or improve your deck with new pulls."
+            : "Next: open Deck Builder and ask the Assistant for cuts and adds.";
     }
 
     private void DrawStoreDetail(Rectangle panel, ShopCatalogItem? item, GameRulesConfig rules)
@@ -472,7 +501,7 @@ public sealed partial class DragonCardsGame
         {
             DrawCardFrame(new Rectangle(panel.X + 28, panel.Y + 154, 178, 250), card, selected: true, exhausted: false, count: _profile is null ? 0 : PlayerCollection.CountOwned(_profile, card.Id), compact: false);
             var detailRect = new Rectangle(panel.X + 232, panel.Y + 154, panel.Width - 266, 286);
-            DrawScrollableText(CardDetailText(card), detailRect, ref _cardDetailScrollOffset, new Color(211, 220, 231), 0.48f);
+            DrawScrollableText(CardDetailText(card), detailRect, ref _cardDetailScrollOffset, new Color(211, 220, 231), CardDetailTextScale);
             var owned = _profile is null ? 0 : PlayerCollection.CountOwned(_profile, card.Id);
             DrawText($"Owned {owned}/{PlayerCollection.MaxOwnedCopies}   {item.Cost} Coins", new Vector2(panel.X + 232, panel.Y + 462), owned >= PlayerCollection.MaxOwnedCopies ? new Color(255, 190, 120) : new Color(244, 230, 158), 0.58f);
             if (Button(new Rectangle(panel.X + 232, panel.Y + 502, 176, 38), "Buy Single", _profile is not null && rules.IsProgressionSafe && owned < PlayerCollection.MaxOwnedCopies && _profile.Coins >= item.Cost))
@@ -507,14 +536,14 @@ public sealed partial class DragonCardsGame
 
         DrawPanel(rect, new Color(26, 32, 41), border: new Color(91, 107, 128));
         DrawText("Victory Spoils", new Vector2(rect.X + 18, rect.Y + 12), Color.White, 0.64f);
-        var cardRect = new Rectangle(rect.X + 18, rect.Y + 42, 118, 166);
+        var cardRect = new Rectangle(rect.X + 18, rect.Y + 42, 142, 200);
         DrawCardFrame(cardRect, card, selected: true, exhausted: false, count: grant.CopiesAdded, compact: false);
         var titleX = cardRect.Right + 22;
         DrawRarityBadge(new Rectangle(titleX, rect.Y + 46, 92, 22), grant.Rarity, compact: false);
         DrawFittedText(grant.CardName, new Vector2(titleX + 104, rect.Y + 48), rect.Right - titleX - 124, new Color(244, 230, 158), 0.62f, 0.34f);
         var note = grant.CopiesAdded > 0 ? $"+{grant.CopiesAdded} copy from opponent deck" : $"+{grant.DuplicateCoins} duplicate Coins";
         DrawText(note, new Rectangle(titleX, rect.Y + 78, rect.Right - titleX - 18, 28), grant.CopiesAdded > 0 ? new Color(148, 224, 164) : new Color(244, 230, 158), 0.5f);
-        DrawScrollableText(CardDetailText(card), new Rectangle(titleX, rect.Y + 112, rect.Right - titleX - 18, 86), ref _cardDetailScrollOffset, new Color(211, 220, 231), 0.36f);
+        DrawScrollableText(CardDetailText(card), new Rectangle(titleX, rect.Y + 112, rect.Right - titleX - 18, rect.Bottom - rect.Y - 130), ref _cardDetailScrollOffset, new Color(211, 220, 231), SmallCardDetailTextScale);
     }
 
     private string StoreKindLabel(ShopCatalogItem item) => item.Kind switch
@@ -893,6 +922,7 @@ public sealed partial class DragonCardsGame
         _lastMatchReward = null;
         _lastBattleSpoils = null;
         _networkSequence = 0;
+        _matchTimelineEntries.Clear();
         if (matchKind == MatchKind.Online)
         {
             return;

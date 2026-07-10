@@ -17,6 +17,9 @@ public sealed partial class DragonCardsGame : Game
     private const int VirtualHeight = 900;
     private const int WindowedWidth = 1440;
     private const int WindowedHeight = 900;
+    private const float CardDetailTextScale = 0.74f;
+    private const float SmallCardDetailTextScale = 0.64f;
+    private const float PromptDetailTextScale = 0.72f;
     private static readonly string[] ElementOrder = ["Fire", "Ice", "Wind", "Earth", "Lightning", "Water", "Light", "Dark"];
     private static readonly (int Width, int Height)[] WindowSizeOptions = [(1280, 720), (1440, 900), (1600, 900), (1920, 1080)];
     private static readonly IReadOnlyList<TutorialDefinition> TutorialDefinitions = CreateTutorialDefinitions();
@@ -31,6 +34,7 @@ public sealed partial class DragonCardsGame : Game
     private Texture2D? _logoTexture;
     private readonly AudioService _audio = new();
     private readonly Dictionary<string, Texture2D> _rarityIcons = new(StringComparer.OrdinalIgnoreCase);
+    private readonly List<MatchTimelineEntry> _matchTimelineEntries = [];
     private MouseState _mouse;
     private MouseState _previousMouse;
     private KeyboardState _keyboard;
@@ -66,6 +70,8 @@ public sealed partial class DragonCardsGame : Game
     private int _modeFocus;
     private int _avatarFocus;
     private int _starterClashOpponentIndex = 1;
+    private DeckAssistantGoal _deckAssistantGoal = DeckAssistantGoal.Balanced;
+    private IReadOnlyList<DeckSuggestion> _deckAssistantSuggestions = [];
     private SealedPool? _sealedPool;
     private MatchFocus _matchFocus = MatchFocus.Hand;
     private string _status = "Ready.";
@@ -337,13 +343,14 @@ public sealed partial class DragonCardsGame : Game
         Fill(new Rectangle(0, 72, VirtualWidth, 2), new Color(112, 126, 144));
         if (_logoTexture is not null)
         {
-            _spriteBatch!.Draw(_logoTexture, new Rectangle(28, 8, 206, 58), Color.White);
-            DrawText(CurrentModeHeader(), new Vector2(260, 26), new Color(207, 217, 229), 0.78f);
+            DrawImageContain(_logoTexture, new Rectangle(28, 3, 76, 68), Color.White);
+            DrawText("Dragon Cards", new Vector2(116, 18), Color.White, 0.96f);
+            DrawText(CurrentModeHeader(), new Vector2(278, 25), new Color(207, 217, 229), 0.78f);
         }
         else
         {
             DrawText("Dragon Cards", new Vector2(34, 18), Color.White, 1.35f);
-            DrawText(CurrentModeHeader(), new Vector2(260, 26), new Color(207, 217, 229), 0.78f);
+            DrawText(CurrentModeHeader(), new Vector2(278, 25), new Color(207, 217, 229), 0.78f);
         }
     }
 
@@ -1162,17 +1169,17 @@ public sealed partial class DragonCardsGame : Game
         DrawText("Selected Card", new Vector2(panel.X + 28, panel.Y + 24), Color.White, 0.94f);
         if (selectedCard is not null)
         {
-            DrawCardFrame(new Rectangle(panel.X + 30, panel.Y + 70, 218, 306), selectedCard, selected: true, exhausted: false, count: _deckBuilder.CardCount(selectedCard.Id), compact: false);
-            DrawScrollableText(CardDetailText(selectedCard), new Rectangle(panel.X + 278, panel.Y + 82, 220, 218), ref _cardDetailScrollOffset, new Color(211, 220, 231), 0.46f);
-            DrawText(OwnedSummary(selectedCard), new Rectangle(panel.X + 278, panel.Y + 306, 220, 24), new Color(148, 224, 164), 0.54f);
+            DrawCardFrame(new Rectangle(panel.X + 30, panel.Y + 70, 194, 272), selectedCard, selected: true, exhausted: false, count: _deckBuilder.CardCount(selectedCard.Id), compact: false);
+            DrawScrollableText(CardDetailText(selectedCard), new Rectangle(panel.X + 248, panel.Y + 70, 260, 246), ref _cardDetailScrollOffset, new Color(211, 220, 231), CardDetailTextScale);
+            DrawText(OwnedSummary(selectedCard), new Rectangle(panel.X + 248, panel.Y + 324, 260, 24), new Color(148, 224, 164), 0.58f);
 
-            if (Button(new Rectangle(panel.X + 278, panel.Y + 336, 104, 40), "Add", CanAddCardToDeck(selectedCard, deck)))
+            if (Button(new Rectangle(panel.X + 248, panel.Y + 358, 104, 40), "Add", CanAddCardToDeck(selectedCard, deck)))
             {
                 _deckBuilder.Add(selectedCard.Id);
                 _status = $"Added {selectedCard.Name}.";
             }
 
-            if (Button(new Rectangle(panel.X + 394, panel.Y + 336, 104, 40), "Remove", _deckBuilder.CardCount(selectedCard.Id) > 0))
+            if (Button(new Rectangle(panel.X + 364, panel.Y + 358, 104, 40), "Remove", _deckBuilder.CardCount(selectedCard.Id) > 0))
             {
                 _deckBuilder.Remove(selectedCard.Id);
                 _status = $"Removed {selectedCard.Name}.";
@@ -1180,10 +1187,7 @@ public sealed partial class DragonCardsGame : Game
         }
 
         Fill(new Rectangle(panel.X + 28, panel.Y + 414, panel.Width - 56, 1), new Color(86, 100, 120));
-        DrawText("Deck Status", new Vector2(panel.X + 28, panel.Y + 444), Color.White, 0.94f);
-        var allIssues = issues.Concat(ownershipIssues).ToArray();
-        DrawText($"{deck.Count}/50 cards", new Vector2(panel.X + 28, panel.Y + 482), allIssues.Length == 0 ? new Color(148, 224, 164) : new Color(255, 162, 128), 0.82f);
-        DrawText(allIssues.Length == 0 ? "Valid for Dragon Duel." : allIssues[0].Message, new Rectangle(panel.X + 28, panel.Y + 518, 440, 72), new Color(201, 212, 225), 0.7f);
+        DrawDeckAssistantPanel(new Rectangle(panel.X + 28, panel.Y + 434, panel.Width - 56, 204), deck, issues, ownershipIssues);
 
         if (Button(new Rectangle(panel.X + 28, panel.Bottom - 76, 132, 42), "Save Deck"))
         {
@@ -1195,6 +1199,106 @@ public sealed partial class DragonCardsGame : Game
             _screen = Screen.MainMenu;
             _status = "Returned to main menu.";
         }
+    }
+
+    private void DrawDeckAssistantPanel(Rectangle rect, DeckDefinition deck, IReadOnlyList<ValidationIssue> deckIssues, IReadOnlyList<ValidationIssue> ownershipIssues)
+    {
+        var rules = CurrentRules();
+        var analysis = DeckBuilderAssistantService.AnalyzeDeck(_data, deck, _profile, rules, _deckAssistantGoal);
+        DrawText("Deck Assistant", new Vector2(rect.X, rect.Y), Color.White, 0.72f);
+        DrawText(rules.UnlimitedDeckBuilder || rules.AllUnlocks ? "Sandbox suggestions" : "Owned-card suggestions", new Vector2(rect.Right - 170, rect.Y + 3), rules.IsSandbox ? new Color(255, 190, 120) : new Color(148, 224, 164), 0.42f);
+
+        var goals = Enum.GetValues<DeckAssistantGoal>();
+        var goalWidth = 82;
+        for (var i = 0; i < goals.Length; i++)
+        {
+            var goal = goals[i];
+            if (Button(new Rectangle(rect.X + i * (goalWidth + 8), rect.Y + 30, goalWidth, 28), goal.ToString(), selected: _deckAssistantGoal == goal))
+            {
+                _deckAssistantGoal = goal;
+                _deckAssistantSuggestions = [];
+                _status = $"Assistant goal set to {goal}.";
+            }
+        }
+
+        var healthY = rect.Y + 72;
+        var valid = deckIssues.Count == 0 && ownershipIssues.Count == 0;
+        DrawText($"{analysis.DeckCount}/{analysis.RequiredDeckCount}", new Vector2(rect.X, healthY), valid ? new Color(148, 224, 164) : new Color(255, 162, 128), 0.68f);
+        DrawText($"Units {analysis.Roles.Units}  Support {analysis.Roles.Supports}  Spells {analysis.Roles.Spells}", new Vector2(rect.X + 96, healthY), new Color(205, 214, 225), 0.5f);
+        DrawText($"Draw {analysis.Roles.Draw}  Interact {analysis.Roles.Removal}  Ramp {analysis.Roles.Ramp}  Avg {analysis.Roles.AverageCost:0.0}", new Vector2(rect.X + 96, healthY + 24), new Color(205, 214, 225), 0.46f);
+
+        var note = analysis.Notes.FirstOrDefault() ?? "Deck looks ready.";
+        DrawText(note, new Rectangle(rect.X, healthY + 48, rect.Width, 24), valid ? new Color(196, 207, 220) : new Color(255, 190, 120), 0.5f);
+
+        var buttonY = rect.Y + 132;
+        if (Button(new Rectangle(rect.X, buttonY, 92, 30), "Suggest Adds"))
+        {
+            _deckAssistantSuggestions = DeckBuilderAssistantService.SuggestAdds(_data, deck, _profile, rules, _deckAssistantGoal, 4);
+            _status = _deckAssistantSuggestions.Count == 0 ? "No legal add suggestions found." : "Assistant add suggestions ready.";
+        }
+
+        if (Button(new Rectangle(rect.X + 100, buttonY, 92, 30), "Suggest Cuts"))
+        {
+            _deckAssistantSuggestions = DeckBuilderAssistantService.SuggestCuts(_data, deck, _profile, rules, _deckAssistantGoal, 4);
+            _status = _deckAssistantSuggestions.Count == 0 ? "No cut suggestions found." : "Assistant cut suggestions ready.";
+        }
+
+        if (Button(new Rectangle(rect.X + 200, buttonY, 92, 30), "Auto-Fill"))
+        {
+            ApplyAssistantDeck(DeckBuilderAssistantService.AutoFill(_data, deck, _profile, rules, _deckAssistantGoal), "Assistant auto-filled the deck.");
+        }
+
+        if (Button(new Rectangle(rect.X + 300, buttonY, 92, 30), "Complete"))
+        {
+            ApplyAssistantDeck(DeckBuilderAssistantService.AutoFill(_data, deck, _profile, rules, _deckAssistantGoal), "Assistant completed the deck as far as possible.");
+        }
+
+        if (Button(new Rectangle(rect.X + 400, buttonY, 66, 30), "Clear", _deckAssistantSuggestions.Count > 0))
+        {
+            _deckAssistantSuggestions = [];
+            _status = "Assistant suggestions cleared.";
+        }
+
+        DrawAssistantSuggestions(new Rectangle(rect.X, rect.Y + 168, rect.Width, 34));
+    }
+
+    private void DrawAssistantSuggestions(Rectangle rect)
+    {
+        if (_deckAssistantSuggestions.Count == 0)
+        {
+            DrawText("Tip: choose a goal, then ask for adds or cuts.", rect, new Color(165, 176, 190), 0.42f);
+            return;
+        }
+
+        var x = rect.X;
+        foreach (var suggestion in _deckAssistantSuggestions.Take(3))
+        {
+            var label = suggestion.Kind == DeckSuggestionKind.Add ? "+" : "-";
+            var width = Math.Min(154, Math.Max(112, rect.Right - x));
+            var itemRect = new Rectangle(x, rect.Y, width, rect.Height);
+            Fill(itemRect, suggestion.Kind == DeckSuggestionKind.Add ? new Color(35, 58, 48) : new Color(63, 45, 43));
+            Border(itemRect, suggestion.Kind == DeckSuggestionKind.Add ? new Color(148, 224, 164) : new Color(255, 162, 128), 1);
+            DrawFittedText($"{label} {suggestion.CardName}", new Vector2(itemRect.X + 8, itemRect.Y + 7), itemRect.Width - 16, Color.White, 0.38f, 0.24f);
+            if (Button(new Rectangle(itemRect.Right - 30, itemRect.Y + 4, 24, 24), "?", focused: false))
+            {
+                _deckBuilder.SelectedCardId = suggestion.CardId;
+                _cardDetailScrollOffset = 0;
+                _status = suggestion.Reason;
+            }
+
+            x += width + 8;
+            if (x >= rect.Right)
+            {
+                break;
+            }
+        }
+    }
+
+    private void ApplyAssistantDeck(DeckDefinition deck, string status)
+    {
+        _deckBuilder.ReplaceWith(deck);
+        _deckAssistantSuggestions = [];
+        _status = status;
     }
 
     private void DrawMatch()
@@ -1233,6 +1337,7 @@ public sealed partial class DragonCardsGame : Game
         DrawText(state.ActivePlayer.Name, new Vector2(172, 116), new Color(211, 220, 231), 0.8f);
         DrawPhaseTrack(new Rectangle(344, 108, 574, 34), state);
         DrawText(MatchPrompt(), new Rectangle(940, 112, 286, 34), new Color(244, 230, 158), 0.58f);
+        DrawMatchTimeline(new Rectangle(940, 134, 286, 22));
         if (!string.IsNullOrWhiteSpace(winnerText))
         {
             DrawText(winnerText, new Vector2(980, 116), new Color(148, 224, 164), 0.76f);
@@ -1273,7 +1378,7 @@ public sealed partial class DragonCardsGame : Game
 
         if (state.PendingCombatAction is not null)
         {
-            return $"{state.Players[state.PendingCombatAction.PriorityPlayerIndex].Name}: combat action";
+            return $"{state.Players[state.PendingCombatAction.PriorityPlayerIndex].Name}: use ability or pass";
         }
 
         if (state.PendingAttack is not null)
@@ -1282,8 +1387,8 @@ public sealed partial class DragonCardsGame : Game
                 .FirstOrDefault(card => card.Id == state.PendingAttack.AttackerInstanceId);
             var attackerName = attacker is null ? "a unit" : state.CardName(attacker);
             return state.PendingAttack.AttackerPlayerIndex != LocalPlayerIndexForMatch() && _matchKind != MatchKind.Hotseat
-                ? $"AI attacked with {attackerName}"
-                : "Choose blocker";
+                ? $"Incoming: {attackerName}"
+                : $"Attack with {attackerName}: choose blocker";
         }
 
         if (_matchKind != MatchKind.Hotseat && state.ActivePlayerIndex != LocalPlayerIndexForMatch())
@@ -1292,8 +1397,8 @@ public sealed partial class DragonCardsGame : Game
         }
 
         return state.CurrentPhase.Equals("Main", StringComparison.OrdinalIgnoreCase)
-            ? "Your Main Phase"
-            : $"{state.ActivePlayer.Name}'s {state.CurrentPhase}";
+            ? $"{state.ActivePlayer.Name}: play, energy, or sacrifice"
+            : $"{state.ActivePlayer.Name}: {state.CurrentPhase}";
     }
 
     private void DrawMatchLog(Rectangle rect)
@@ -1695,8 +1800,8 @@ public sealed partial class DragonCardsGame : Game
 
         if (inspectionCard is not null)
         {
-            DrawCardFrame(new Rectangle(area.X + 72, area.Y + 48, 158, 222), inspectionCard, selected: true, exhausted: false, count: _zoomCount, compact: false);
-            DrawScrollableText(CardDetailText(inspectionCard), new Rectangle(area.X + 18, area.Y + 284, area.Width - 36, 104), ref _cardDetailScrollOffset, new Color(205, 214, 225), 0.36f);
+            DrawCardFrame(new Rectangle(area.X + 78, area.Y + 48, 146, 206), inspectionCard, selected: true, exhausted: false, count: _zoomCount, compact: false);
+            DrawScrollableText(CardDetailText(inspectionCard), new Rectangle(area.X + 18, area.Y + 266, area.Width - 36, 132), ref _cardDetailScrollOffset, new Color(205, 214, 225), SmallCardDetailTextScale);
         }
         else
         {
@@ -1704,7 +1809,7 @@ public sealed partial class DragonCardsGame : Game
             DrawFittedCenteredText("Select or hover a card", new Rectangle(area.X + 84, area.Y + 144, 134, 28), new Color(165, 176, 190), 0.48f, 0.3f);
         }
 
-        DrawText(SelectedPlayHint(selectedHandCard), new Rectangle(area.X + 18, area.Y + 394, area.Width - 36, 30), new Color(196, 207, 220), 0.38f);
+        DrawText(SelectedPlayHint(selectedHandCard), new Rectangle(area.X + 18, area.Y + 404, area.Width - 36, 30), new Color(196, 207, 220), 0.42f);
         DrawSacrificeTooltip(new Rectangle(area.X + 18, area.Y + 428, area.Width - 36, 72), selectedHandCard, selectedField);
         var castDrop = CastDropRect();
         var castHot = _draggedHandCard is not null && castDrop.Contains(_virtualMouse);
@@ -1784,6 +1889,45 @@ public sealed partial class DragonCardsGame : Game
         }
 
         DrawMatchLog(MatchLogRect());
+    }
+
+    private void DrawMatchTimeline(Rectangle rect)
+    {
+        DrawPanel(rect, new Color(26, 32, 41, 220), border: new Color(75, 90, 110));
+        if (rect.Height < 44)
+        {
+            var latest = _matchTimelineEntries.LastOrDefault();
+            if (latest is null)
+            {
+                DrawFittedCenteredText("Timeline: ready", Inset(rect, 4), new Color(165, 176, 190), 0.34f, 0.22f);
+                return;
+            }
+
+            var icon = new Rectangle(rect.X + 6, rect.Y + 3, 20, rect.Height - 6);
+            Fill(icon, Color.Lerp(latest.Color, Color.Black, 0.28f));
+            DrawFittedCenteredText(latest.Icon, Inset(icon, 2), Color.White, 0.28f, 0.18f);
+            DrawFittedText(latest.Text, new Vector2(icon.Right + 8, rect.Y + 5), rect.Right - icon.Right - 16, new Color(205, 214, 225), 0.32f, 0.2f);
+            return;
+        }
+
+        DrawText("Timeline", new Vector2(rect.X + 12, rect.Y + 8), Color.White, 0.42f);
+        var entries = _matchTimelineEntries.TakeLast(3).ToArray();
+        if (entries.Length == 0)
+        {
+            DrawText("Actions will appear here.", new Rectangle(rect.X + 12, rect.Y + 30, rect.Width - 24, 24), new Color(165, 176, 190), 0.34f);
+            return;
+        }
+
+        var y = rect.Y + 30;
+        foreach (var entry in entries)
+        {
+            var icon = new Rectangle(rect.X + 12, y, 22, 18);
+            Fill(icon, Color.Lerp(entry.Color, Color.Black, 0.28f));
+            Border(icon, Color.Lerp(entry.Color, Color.White, 0.22f), 1);
+            DrawFittedCenteredText(entry.Icon, Inset(icon, 2), Color.White, 0.3f, 0.18f);
+            DrawFittedText(entry.Text, new Vector2(icon.Right + 8, y + 1), rect.Right - icon.Right - 18, new Color(205, 214, 225), 0.34f, 0.22f);
+            y += 20;
+        }
     }
 
     private (CardInstance Instance, CardDefinition Definition)? SelectedHumanFieldCard(MatchState state)
@@ -2170,17 +2314,17 @@ public sealed partial class DragonCardsGame : Game
         var inner = Inset(rect, 8);
         Fill(inner, Color.Lerp(new Color(239, 232, 214), Color.Black, dim * 0.4f));
 
-        var title = new Rectangle(inner.X + 3, inner.Y + 3, inner.Width - 6, 12);
-        var costs = new Rectangle(inner.X + 3, title.Bottom + 1, inner.Width - 6, 11);
-        var footer = new Rectangle(inner.X + 3, inner.Bottom - 16, inner.Width - 6, 14);
-        var type = new Rectangle(inner.X + 3, footer.Y - 17, inner.Width - 6, 13);
+        var title = new Rectangle(inner.X + 3, inner.Y + 3, inner.Width - 6, Math.Clamp(rect.Height / 7, 16, 24));
+        var costs = new Rectangle(inner.X + 3, title.Bottom + 2, inner.Width - 6, Math.Clamp(rect.Height / 10, 12, 16));
+        var footer = new Rectangle(inner.X + 3, inner.Bottom - Math.Clamp(rect.Height / 7, 16, 22), inner.Width - 6, Math.Clamp(rect.Height / 7, 16, 22));
+        var type = new Rectangle(inner.X + 3, footer.Y - Math.Clamp(rect.Height / 7, 16, 22) - 3, inner.Width - 6, Math.Clamp(rect.Height / 7, 16, 22));
         var art = new Rectangle(inner.X + 5, costs.Bottom + 3, inner.Width - 10, Math.Max(22, type.Y - costs.Bottom - 6));
 
         Fill(title, Color.Lerp(color, Color.Black, 0.2f + dim * 0.5f));
         Fill(new Rectangle(title.X, title.Bottom - 2, title.Width, 2), Color.Lerp(color, Color.White, 0.34f));
         var rarity = new Rectangle(title.Right - 13, title.Y + 1, 11, 10);
         DrawRarityBadge(rarity, card.Rarity, compact: true);
-        DrawFittedText(card.Name, new Vector2(title.X + 3, title.Y + 1), title.Width - rarity.Width - 10, Color.White, 0.22f, 0.12f);
+        DrawFittedText(card.Name, new Vector2(title.X + 3, title.Y + 2), title.Width - rarity.Width - 10, Color.White, 0.34f, 0.2f);
         DrawCostBadges(card, costs, compact: true);
 
         Fill(art, Color.Lerp(color, Color.Black, 0.12f + dim * 0.4f));
@@ -2193,7 +2337,7 @@ public sealed partial class DragonCardsGame : Game
         Fill(type, Color.Lerp(TypeColor(card.Type), Color.White, 0.66f));
         Border(type, Color.Lerp(TypeColor(card.Type), Color.Black, 0.38f), 1);
         var typeLine = $"{card.Type} / {string.Join(" ", card.Elements)}";
-        DrawFittedText(typeLine, new Vector2(type.X + 3, type.Y + 1), type.Width - 6, new Color(33, 31, 29), 0.24f, 0.14f);
+        DrawFittedText(typeLine, new Vector2(type.X + 3, type.Y + 2), type.Width - 6, new Color(33, 31, 29), 0.32f, 0.18f);
 
         Fill(footer, new Color(250, 246, 233));
         Border(footer, new Color(84, 73, 58), 1);
@@ -2217,39 +2361,42 @@ public sealed partial class DragonCardsGame : Game
         var inner = Inset(rect, 10);
         Fill(inner, Color.Lerp(new Color(239, 232, 214), Color.Black, dim * 0.4f));
 
-        var tight = rect.Height < 220;
-        var titleHeight = tight ? 34 : 40;
-        var typeHeight = tight ? 18 : 22;
-        var footerHeight = tight ? 22 : 26;
+        var tight = rect.Height < 240;
+        var titleHeight = tight ? 30 : 48;
+        var typeHeight = tight ? 20 : 30;
+        var footerHeight = tight ? 24 : 32;
         var title = new Rectangle(inner.X + 4, inner.Y + 4, inner.Width - 8, titleHeight);
         var footer = new Rectangle(inner.X + 4, inner.Bottom - footerHeight - 4, inner.Width - 8, footerHeight);
-        var artHeight = Math.Clamp(rect.Height * 34 / 100, tight ? 48 : 64, tight ? 58 : 110);
+        var artHeight = Math.Clamp(rect.Height * 26 / 100, tight ? 34 : 56, tight ? 52 : 98);
         var art = new Rectangle(inner.X + 8, title.Bottom + 5, inner.Width - 16, artHeight);
         var type = new Rectangle(inner.X + 6, art.Bottom + 5, inner.Width - 12, typeHeight);
         var rules = new Rectangle(inner.X + 6, type.Bottom + 5, inner.Width - 12, Math.Max(18, footer.Y - type.Bottom - 10));
 
         Fill(title, Color.Lerp(color, Color.Black, 0.2f + dim * 0.5f));
         Fill(new Rectangle(title.X, title.Bottom - 3, title.Width, 3), Color.Lerp(color, Color.White, 0.34f));
-        var rarity = new Rectangle(title.Right - (tight ? 18 : 22), title.Y + 4, tight ? 15 : 18, tight ? 15 : 18);
+        var rarity = new Rectangle(title.Right - (tight ? 17 : 22), title.Y + 4, tight ? 14 : 18, tight ? 14 : 18);
         DrawRarityBadge(rarity, card.Rarity, compact: true);
-        DrawFittedText(card.Name, new Vector2(title.X + 6, title.Y + 3), title.Width - rarity.Width - 18, Color.White, tight ? 0.38f : 0.46f, 0.18f);
-        DrawCostBadges(card, new Rectangle(title.X + 6, title.Bottom - (tight ? 16 : 19), title.Width - 12, tight ? 13 : 16), compact: false);
+        DrawFittedText(card.Name, new Vector2(title.X + 6, title.Y + 3), title.Width - rarity.Width - 18, Color.White, tight ? 0.44f : 0.64f, tight ? 0.24f : 0.34f);
+        DrawCostBadges(card, new Rectangle(title.X + 6, title.Bottom - (tight ? 16 : 22), title.Width - 12, tight ? 13 : 18), compact: false);
 
         Fill(art, Color.Lerp(color, Color.Black, 0.12f + dim * 0.4f));
         Fill(new Rectangle(art.X + 5, art.Y + 5, art.Width - 10, art.Height - 10), Color.Lerp(color, Color.White, 0.2f));
         Fill(new Rectangle(art.X + 10, art.Y + 10, art.Width - 20, Math.Max(5, art.Height / 7)), new Color(255, 255, 255, exhausted ? 22 : 58));
         Fill(new Rectangle(art.X + 10, art.Bottom - Math.Max(11, art.Height / 5), art.Width - 20, Math.Max(5, art.Height / 8)), new Color(0, 0, 0, exhausted ? 42 : 64));
-        DrawFittedCenteredText(ElementDisplay(card), Inset(art, 10), new Color(255, 255, 255, exhausted ? 86 : 176), tight ? 0.72f : 0.94f, 0.36f);
+        DrawFittedCenteredText(ElementDisplay(card), Inset(art, 10), new Color(255, 255, 255, exhausted ? 86 : 176), tight ? 0.72f : 0.98f, 0.38f);
         Border(art, Color.Lerp(Color.Black, color, 0.28f), 2);
 
         Fill(type, Color.Lerp(TypeColor(card.Type), Color.White, 0.66f));
         Border(type, Color.Lerp(TypeColor(card.Type), Color.Black, 0.38f), 1);
         var typeLine = $"{card.Type} / {string.Join(" ", card.Elements)}";
-        DrawFittedText(typeLine, new Vector2(type.X + 5, type.Y + 2), type.Width - 10, new Color(33, 31, 29), tight ? 0.34f : 0.46f, 0.18f);
+        DrawFittedText(typeLine, new Vector2(type.X + 5, type.Y + 3), type.Width - 10, new Color(33, 31, 29), tight ? 0.38f : 0.58f, tight ? 0.2f : 0.3f);
 
         Fill(rules, new Color(250, 246, 233));
         Border(rules, new Color(84, 73, 58), 1);
-        DrawText(CardFrameRulesText(card), new Rectangle(rules.X + 6, rules.Y + 5, rules.Width - 12, rules.Height - 10), new Color(38, 35, 31), tight ? 0.26f : 0.34f);
+        if (rules.Height >= 26)
+        {
+            DrawCardFrameRulesText(card, new Rectangle(rules.X + 6, rules.Y + 5, rules.Width - 12, rules.Height - 10), new Color(38, 35, 31), tight ? 0.48f : 0.66f);
+        }
 
         Fill(footer, new Color(250, 246, 233));
         Border(footer, new Color(84, 73, 58), 1);
@@ -2267,7 +2414,7 @@ public sealed partial class DragonCardsGame : Game
             powerRect = new Rectangle(footer.Right - width - 2, footer.Y + 2, width, footer.Height - 4);
             Fill(powerRect, new Color(31, 34, 39));
             Border(powerRect, new Color(216, 199, 139), 1);
-            DrawFittedCenteredText(card.Power.ToString(), Inset(powerRect, 2), Color.White, compact ? 0.24f : 0.38f, compact ? 0.16f : 0.22f);
+            DrawFittedCenteredText(card.Power.ToString(), Inset(powerRect, 2), Color.White, compact ? 0.32f : 0.48f, compact ? 0.18f : 0.28f);
         }
 
         if (card.Abilities.Count > 0)
@@ -2276,7 +2423,7 @@ public sealed partial class DragonCardsGame : Game
             abilityRect = new Rectangle(footer.X + 2, footer.Y + 2, width, footer.Height - 4);
             Fill(abilityRect, new Color(44, 48, 58));
             Border(abilityRect, new Color(183, 204, 232), 1);
-            DrawFittedCenteredText("ACT", Inset(abilityRect, 2), Color.White, compact ? 0.22f : 0.34f, compact ? 0.14f : 0.22f);
+            DrawFittedCenteredText("ACT", Inset(abilityRect, 2), Color.White, compact ? 0.28f : 0.42f, compact ? 0.16f : 0.26f);
         }
 
         if (count > 0)
@@ -2291,7 +2438,7 @@ public sealed partial class DragonCardsGame : Game
 
             Fill(badge, new Color(18, 22, 28));
             Border(badge, new Color(221, 206, 150), 1);
-            DrawFittedCenteredText($"x{count}", Inset(badge, 2), Color.White, compact ? 0.22f : 0.34f, compact ? 0.14f : 0.2f);
+            DrawFittedCenteredText($"x{count}", Inset(badge, 2), Color.White, compact ? 0.28f : 0.42f, compact ? 0.16f : 0.26f);
         }
     }
 
@@ -2347,7 +2494,7 @@ public sealed partial class DragonCardsGame : Game
             var free = new Rectangle(rect.Right - (compact ? 18 : 26), rect.Y + (rect.Height - (compact ? 10 : 16)) / 2, compact ? 18 : 26, compact ? 10 : 16);
             Fill(free, new Color(43, 48, 58));
             Border(free, new Color(210, 218, 228), 1);
-            DrawFittedCenteredText("0", Inset(free, 1), Color.White, compact ? 0.22f : 0.34f, compact ? 0.14f : 0.2f);
+            DrawFittedCenteredText("0", Inset(free, 1), Color.White, compact ? 0.28f : 0.44f, compact ? 0.16f : 0.26f);
             return;
         }
 
@@ -2370,7 +2517,7 @@ public sealed partial class DragonCardsGame : Game
             Fill(badge, isGeneric ? new Color(58, 63, 74) : Color.Lerp(ElementColor(element), Color.Black, 0.08f));
             Border(badge, isGeneric ? new Color(216, 221, 230) : new Color(255, 248, 214), 1);
             var label = compact ? CompactCostText(element, amount) : isGeneric ? $"Generic {amount}" : $"{element} {amount}";
-            DrawFittedCenteredText(label, Inset(badge, compact ? 1 : 2), Color.White, compact ? 0.18f : 0.3f, compact ? 0.1f : 0.18f);
+            DrawFittedCenteredText(label, Inset(badge, compact ? 1 : 2), Color.White, compact ? 0.24f : 0.4f, compact ? 0.14f : 0.24f);
             x += badgeWidth + gap;
         }
     }
@@ -2386,8 +2533,8 @@ public sealed partial class DragonCardsGame : Game
             return;
         }
 
-        const int width = 300;
-        const int height = 420;
+        const int width = 760;
+        const int height = 560;
         const int margin = 18;
         var x = _zoomSource.Center.X < VirtualWidth / 2
             ? _zoomSource.Right + 24
@@ -2402,7 +2549,16 @@ public sealed partial class DragonCardsGame : Game
         y = Math.Clamp(y, 86, VirtualHeight - height - 58);
         var rect = new Rectangle(x, y, width, height);
         Fill(new Rectangle(rect.X + 12, rect.Y + 14, rect.Width, rect.Height), new Color(0, 0, 0, 150));
-        DrawCardFrame(rect, _zoomCard, selected: true, exhausted: false, count: _zoomCount, compact: false);
+        DrawPanel(rect, new Color(24, 30, 39, 238), border: new Color(124, 143, 166));
+
+        var cardRect = new Rectangle(rect.X + 24, rect.Y + 28, 318, 446);
+        DrawCardFrame(cardRect, _zoomCard, selected: true, exhausted: false, count: _zoomCount, compact: false);
+
+        var detailX = cardRect.Right + 28;
+        DrawRarityBadge(new Rectangle(detailX, rect.Y + 30, 110, 26), _zoomCard.Rarity, compact: false);
+        DrawFittedText(_zoomCard.Name, new Vector2(detailX + 126, rect.Y + 30), rect.Right - detailX - 150, Color.White, 0.84f, 0.48f);
+        DrawText($"{_zoomCard.Type} / {string.Join(" ", _zoomCard.Elements)}", new Rectangle(detailX, rect.Y + 64, rect.Right - detailX - 24, 32), new Color(244, 230, 158), 0.64f);
+        DrawScrollableText(CardDetailText(_zoomCard), new Rectangle(detailX, rect.Y + 108, rect.Right - detailX - 24, rect.Height - 134), ref _cardDetailScrollOffset, new Color(221, 229, 239), CardDetailTextScale);
     }
 
     private void DrawDraggedCard()
@@ -2449,14 +2605,32 @@ public sealed partial class DragonCardsGame : Game
             return;
         }
 
-        if (beat.Event.Kind is MatchEventKind.AttackDeclared or MatchEventKind.BlockDeclared or MatchEventKind.CombatActionQueued or MatchEventKind.CombatActionPassed or MatchEventKind.CombatResolved or MatchEventKind.TargetResolved or MatchEventKind.CardReadied)
+        if (beat.Event.Kind is MatchEventKind.AttackDeclared or MatchEventKind.BlockDeclared or MatchEventKind.DamageTaken)
         {
-            var center = beat.Event.Kind == MatchEventKind.AttackDeclared
-                ? LerpPoint(from, new Point(800, 410), progress)
-                : to;
+            var start = ZoneCenter(beat.Event.From, beat.Event.PlayerIndex);
+            var end = beat.Event.Kind == MatchEventKind.DamageTaken
+                ? ZoneCenter(beat.Event.To ?? new ZoneRef(1 - beat.Event.PlayerIndex, "DamageZone"), 1 - beat.Event.PlayerIndex)
+                : beat.Event.Kind == MatchEventKind.AttackDeclared
+                    ? BoardRectForPlayer(1 - beat.Event.PlayerIndex).Center
+                    : BoardRectForPlayer(beat.Event.PlayerIndex).Center;
+            var moving = LerpPoint(start, end, progress);
+            DrawArrow(start, moving, color, 5);
+            var label = beat.Event.Kind switch
+            {
+                MatchEventKind.AttackDeclared => "Attack",
+                MatchEventKind.BlockDeclared => "Block",
+                _ => "Damage"
+            };
+            DrawBeatLabel(label, beat.Event.Message, color);
+            return;
+        }
+
+        if (beat.Event.Kind is MatchEventKind.CombatActionQueued or MatchEventKind.CombatActionPassed or MatchEventKind.CombatResolved or MatchEventKind.TargetResolved or MatchEventKind.CardReadied)
+        {
+            var center = to;
             var radius = 34 + (int)(pulse * 24);
             Border(new Rectangle(center.X - radius, center.Y - radius, radius * 2, radius * 2), color, 3);
-            DrawFittedCenteredText(beat.Event.Message, new Rectangle(430, 390, 740, 34), Color.White, 0.58f, 0.34f);
+            DrawBeatLabel(beat.Event.Kind == MatchEventKind.CombatResolved ? "Resolve" : "Action", beat.Event.Message, color);
             return;
         }
 
@@ -2477,8 +2651,62 @@ public sealed partial class DragonCardsGame : Game
         Border(new Rectangle(cardRect.X - 8, cardRect.Y - 8, cardRect.Width + 16, cardRect.Height + 16), color, 3);
         if (!string.IsNullOrWhiteSpace(beat.Event.Message))
         {
-            DrawFittedCenteredText(beat.Event.Message, new Rectangle(430, 390, 740, 34), Color.White, 0.56f, 0.32f);
+            DrawBeatLabel("Event", beat.Event.Message, color);
         }
+    }
+
+    private void DrawBeatLabel(string title, string message, Color color)
+    {
+        var banner = new Rectangle(430, 376, 740, 58);
+        Fill(banner, new Color(18, 22, 29, 218));
+        Border(banner, Color.Lerp(color, Color.White, 0.25f), 2);
+        DrawFittedText(title, new Vector2(banner.X + 18, banner.Y + 10), 116, Color.Lerp(color, Color.White, 0.35f), 0.62f, 0.36f);
+        DrawFittedText(message, new Vector2(banner.X + 132, banner.Y + 14), banner.Width - 150, Color.White, 0.52f, 0.3f);
+    }
+
+    private void DrawArrow(Point from, Point to, Color color, int thickness)
+    {
+        DrawLine(from, to, color, thickness);
+        var dx = to.X - from.X;
+        var dy = to.Y - from.Y;
+        var length = MathF.Sqrt(dx * dx + dy * dy);
+        if (length < 1f)
+        {
+            return;
+        }
+
+        var angle = MathF.Atan2(dy, dx);
+        const float arrowLength = 22f;
+        var left = new Point(
+            to.X - (int)MathF.Round(MathF.Cos(angle - 0.52f) * arrowLength),
+            to.Y - (int)MathF.Round(MathF.Sin(angle - 0.52f) * arrowLength));
+        var right = new Point(
+            to.X - (int)MathF.Round(MathF.Cos(angle + 0.52f) * arrowLength),
+            to.Y - (int)MathF.Round(MathF.Sin(angle + 0.52f) * arrowLength));
+        DrawLine(to, left, color, thickness);
+        DrawLine(to, right, color, thickness);
+    }
+
+    private void DrawLine(Point from, Point to, Color color, int thickness)
+    {
+        var dx = to.X - from.X;
+        var dy = to.Y - from.Y;
+        var length = MathF.Sqrt(dx * dx + dy * dy);
+        if (length <= 0.5f)
+        {
+            return;
+        }
+
+        var angle = MathF.Atan2(dy, dx);
+        _spriteBatch!.Draw(
+            _pixel!,
+            new Rectangle(from.X, from.Y, (int)MathF.Round(length), Math.Max(1, thickness)),
+            null,
+            color,
+            angle,
+            new Vector2(0f, thickness / 2f),
+            SpriteEffects.None,
+            0f);
     }
 
     private bool IsDecisionPromptActive()
@@ -2542,7 +2770,7 @@ public sealed partial class DragonCardsGame : Game
         DrawText("Resolve Card Effect", new Vector2(panel.X + 30, panel.Y + 24), Color.White, 0.94f);
         DrawPromptSourceCard(choice.CardId, choice.SourceInstanceId, new Rectangle(panel.X + 34, panel.Y + 82, 190, 266));
         DrawText(choice.Message, new Rectangle(panel.X + 252, panel.Y + 82, panel.Width - 286, 50), new Color(244, 230, 158), 0.66f);
-        DrawScrollableText(PromptEffectText(choice.EffectText, choice.CardId), new Rectangle(panel.X + 252, panel.Y + 142, panel.Width - 286, 116), ref _cardDetailScrollOffset, new Color(211, 220, 231), 0.42f);
+        DrawScrollableText(PromptEffectText(choice.EffectText, choice.CardId), new Rectangle(panel.X + 252, panel.Y + 142, panel.Width - 286, 116), ref _cardDetailScrollOffset, new Color(211, 220, 231), PromptDetailTextScale);
         DrawText("Choose an element", new Vector2(panel.X + 252, panel.Y + 286), Color.White, 0.62f);
 
         var elements = _engine.State.Mode.Elements;
@@ -2571,7 +2799,7 @@ public sealed partial class DragonCardsGame : Game
         DrawText("Choose Effect Target", new Vector2(panel.X + 30, panel.Y + 24), Color.White, 0.94f);
         DrawPromptSourceCard(choice.CardId, choice.SourceInstanceId, new Rectangle(panel.X + 34, panel.Y + 82, 190, 266));
         DrawText(choice.Message, new Rectangle(panel.X + 252, panel.Y + 82, panel.Width - 286, 50), new Color(244, 230, 158), 0.66f);
-        DrawScrollableText(PromptEffectText(choice.EffectText, choice.CardId), new Rectangle(panel.X + 252, panel.Y + 142, panel.Width - 286, 96), ref _cardDetailScrollOffset, new Color(211, 220, 231), 0.42f);
+        DrawScrollableText(PromptEffectText(choice.EffectText, choice.CardId), new Rectangle(panel.X + 252, panel.Y + 142, panel.Width - 286, 96), ref _cardDetailScrollOffset, new Color(211, 220, 231), PromptDetailTextScale);
         DrawText("Legal choices", new Vector2(panel.X + 252, panel.Y + 262), Color.White, 0.62f);
 
         var choices = LegalTargetChoices().Take(8).ToArray();
@@ -2692,7 +2920,7 @@ public sealed partial class DragonCardsGame : Game
             DrawRarityBadge(new Rectangle(rect.X + 10, rect.Y + 10, 18, 18), option.Card.Rarity, compact: true);
             DrawFittedText(option.Card.Name, new Vector2(rect.X + 36, rect.Y + 10), rect.Width - 48, Color.White, 0.42f, 0.22f);
             DrawFittedText(option.Ability.Name, new Vector2(rect.X + 12, rect.Y + 38), rect.Width - 24, new Color(244, 230, 158), 0.38f, 0.2f);
-            DrawText(option.Ability.RulesText, new Rectangle(rect.X + 12, rect.Y + 62, rect.Width - 92, 38), new Color(205, 214, 225), 0.28f);
+            DrawText(option.Ability.RulesText, new Rectangle(rect.X + 12, rect.Y + 60, rect.Width - 92, 42), new Color(205, 214, 225), 0.44f);
             if (Button(new Rectangle(rect.Right - 74, rect.Bottom - 36, 62, 26), "Use"))
             {
                 var payload = $"{option.PlayerIndex}|{option.SourceInstanceId}|{option.Ability.Id}";
@@ -3055,6 +3283,15 @@ public sealed partial class DragonCardsGame : Game
 
     private void Fill(Rectangle rect, Color color) => _spriteBatch!.Draw(_pixel!, rect, color);
 
+    private void DrawImageContain(Texture2D texture, Rectangle bounds, Color color)
+    {
+        var scale = Math.Min(bounds.Width / (float)texture.Width, bounds.Height / (float)texture.Height);
+        var width = Math.Max(1, (int)MathF.Round(texture.Width * scale));
+        var height = Math.Max(1, (int)MathF.Round(texture.Height * scale));
+        var rect = new Rectangle(bounds.Center.X - width / 2, bounds.Center.Y - height / 2, width, height);
+        _spriteBatch!.Draw(texture, rect, color);
+    }
+
     private void Border(Rectangle rect, Color color, int thickness)
     {
         Fill(new Rectangle(rect.X, rect.Y, rect.Width, thickness), color);
@@ -3133,6 +3370,41 @@ public sealed partial class DragonCardsGame : Game
         }
     }
 
+    private void DrawCardFrameRulesText(CardDefinition card, Rectangle bounds, Color color, float scale)
+    {
+        if (bounds.Width <= 0 || bounds.Height <= 0)
+        {
+            return;
+        }
+
+        var lineHeight = Math.Max(8, (int)MathF.Ceiling(_font!.LineSpacing * scale * 1.12f));
+        var maxLines = Math.Max(1, bounds.Height / lineHeight);
+        var summary = CardFrameRulesText(card, maxLines);
+        var lines = WrappedLines(summary.Replace("\r", "", StringComparison.Ordinal).Split('\n', StringSplitOptions.RemoveEmptyEntries), bounds.Width, scale).ToArray();
+        if (lines.Length == 0)
+        {
+            return;
+        }
+
+        var visible = lines.Take(maxLines).ToArray();
+        if (lines.Length > visible.Length)
+        {
+            visible[^1] = FittedEllipsis(visible[^1], bounds.Width, scale);
+        }
+
+        var y = bounds.Y;
+        foreach (var line in visible)
+        {
+            if (y + lineHeight > bounds.Bottom)
+            {
+                break;
+            }
+
+            DrawText(line, new Vector2(bounds.X, y), color, scale);
+            y += lineHeight;
+        }
+    }
+
     private void DrawScrollableText(string text, Rectangle bounds, ref int scrollOffset, Color color, float scale)
     {
         Fill(bounds, new Color(22, 27, 35, 150));
@@ -3160,6 +3432,18 @@ public sealed partial class DragonCardsGame : Game
             var thumbY = content.Y + (int)MathF.Round(scrollOffset / (float)maxOffset * thumbTravel);
             Fill(new Rectangle(track.X, thumbY, track.Width, thumbHeight), new Color(142, 158, 178));
         }
+    }
+
+    private string FittedEllipsis(string text, int maxWidth, float scale)
+    {
+        const string ellipsis = "...";
+        var candidate = text.EndsWith(ellipsis, StringComparison.Ordinal) ? text : $"{text}{ellipsis}";
+        while (candidate.Length > ellipsis.Length && _font!.MeasureString(candidate).X * scale > maxWidth)
+        {
+            candidate = $"{candidate[..^4].TrimEnd()}{ellipsis}";
+        }
+
+        return candidate;
     }
 
     private IEnumerable<string> WrappedLines(IEnumerable<string> entries, int maxWidth, float scale)
@@ -4103,6 +4387,7 @@ public sealed partial class DragonCardsGame : Game
             : secondDeck;
         _engine = DragonDuelEngine.Create(_data, modeId, firstDeck, opponentDeck, seed: Environment.TickCount);
         ConfigureMatchStart(firstDeck, opponentDeck, matchKind);
+        _matchTimelineEntries.Clear();
 
         var flowResult = _engine.AdvanceToNextDecisionPhase();
         _screen = Screen.Match;
@@ -4213,7 +4498,73 @@ public sealed partial class DragonCardsGame : Game
         }
 
         _audio.PlayForEvents(events);
+        AddTimelineEntries(events);
         _presentation.Enqueue(events);
+    }
+
+    private void AddTimelineEntries(IEnumerable<MatchEvent> events)
+    {
+        foreach (var matchEvent in events)
+        {
+            if (!ShouldAddTimelineEntry(matchEvent))
+            {
+                continue;
+            }
+
+            _matchTimelineEntries.Add(new MatchTimelineEntry(
+                TimelineIcon(matchEvent),
+                TimelineText(matchEvent),
+                PresentationColor(matchEvent)));
+        }
+
+        if (_matchTimelineEntries.Count > 8)
+        {
+            _matchTimelineEntries.RemoveRange(0, _matchTimelineEntries.Count - 8);
+        }
+    }
+
+    private static bool ShouldAddTimelineEntry(MatchEvent matchEvent) => matchEvent.Kind is
+        MatchEventKind.CardDrawn or
+        MatchEventKind.CardPlayed or
+        MatchEventKind.CardSacrificed or
+        MatchEventKind.TargetResolved or
+        MatchEventKind.AttackDeclared or
+        MatchEventKind.BlockDeclared or
+        MatchEventKind.CombatActionPassed or
+        MatchEventKind.CombatResolved or
+        MatchEventKind.DamageTaken or
+        MatchEventKind.CardReturnedToHand;
+
+    private static string TimelineIcon(MatchEvent matchEvent) => matchEvent.Kind switch
+    {
+        MatchEventKind.CardDrawn => "D",
+        MatchEventKind.CardPlayed => "P",
+        MatchEventKind.CardSacrificed => "S",
+        MatchEventKind.AttackDeclared => "A",
+        MatchEventKind.BlockDeclared => "B",
+        MatchEventKind.CombatActionPassed => "...",
+        MatchEventKind.CombatResolved => "!",
+        MatchEventKind.DamageTaken => "-1",
+        MatchEventKind.CardReturnedToHand => "<",
+        _ => "*"
+    };
+
+    private static string TimelineText(MatchEvent matchEvent)
+    {
+        if (!string.IsNullOrWhiteSpace(matchEvent.Message))
+        {
+            return matchEvent.Message;
+        }
+
+        return matchEvent.Kind switch
+        {
+            MatchEventKind.CardDrawn => "Card drawn.",
+            MatchEventKind.CardPlayed => "Card played.",
+            MatchEventKind.AttackDeclared => "Attack declared.",
+            MatchEventKind.BlockDeclared => "Block declared.",
+            MatchEventKind.DamageTaken => "Damage taken.",
+            _ => matchEvent.Kind.ToString()
+        };
     }
 
     private void TryAdvanceAiTurn()
@@ -4777,8 +5128,8 @@ public sealed partial class DragonCardsGame : Game
     private string CardDetailText(CardDefinition card) =>
         CardDetailFormatter.Format(card, ElementAdvantageSummary(card));
 
-    private static string CardFrameRulesText(CardDefinition card) =>
-        CardDetailFormatter.RulesText(card);
+    private static string CardFrameRulesText(CardDefinition card, int maxLines = 3) =>
+        CardDetailFormatter.FrameRulesSummary(card, maxLines, maxCharactersPerLine: 48);
 
     private static string InspectionRulesText(CardDefinition card) =>
         CardDetailFormatter.RulesText(card);
@@ -5077,19 +5428,24 @@ public sealed partial class DragonCardsGame : Game
                 MatchEventKind.AttackDeclared or
                 MatchEventKind.BlockDeclared or
                 MatchEventKind.CombatActionQueued or
+                MatchEventKind.CombatActionPassed or
+                MatchEventKind.CombatResolved or
                 MatchEventKind.DamageTaken or
-                MatchEventKind.PhaseChanged;
+                MatchEventKind.PhaseChanged or
+                MatchEventKind.CardReturnedToHand;
 
         private static float DurationFor(MatchEvent matchEvent) => matchEvent.Kind switch
         {
-            MatchEventKind.PhaseChanged => 0.55f,
-            MatchEventKind.CardDrawn => 0.38f,
-            MatchEventKind.CardPlayed => 0.58f,
-            MatchEventKind.CardSacrificed => 0.48f,
-            MatchEventKind.TargetChoiceQueued => 0.42f,
-            MatchEventKind.AttackDeclared or MatchEventKind.BlockDeclared or MatchEventKind.CombatActionQueued or MatchEventKind.CombatActionPassed or MatchEventKind.CombatResolved => 0.44f,
-            MatchEventKind.DamageTaken => 0.5f,
-            _ => 0.32f
+            MatchEventKind.PhaseChanged => 0.7f,
+            MatchEventKind.CardDrawn => 0.48f,
+            MatchEventKind.CardPlayed => 0.72f,
+            MatchEventKind.CardSacrificed => 0.58f,
+            MatchEventKind.TargetChoiceQueued => 0.58f,
+            MatchEventKind.AttackDeclared or MatchEventKind.BlockDeclared => 0.82f,
+            MatchEventKind.CombatActionQueued or MatchEventKind.CombatActionPassed => 0.58f,
+            MatchEventKind.CombatResolved => 0.78f,
+            MatchEventKind.DamageTaken => 0.68f,
+            _ => 0.42f
         };
     }
 
@@ -5109,6 +5465,8 @@ public sealed partial class DragonCardsGame : Game
         public float Progress => Duration <= 0f ? 1f : Math.Clamp(Elapsed / Duration, 0f, 1f);
         public bool IsComplete => Progress >= 1f;
     }
+
+    private sealed record MatchTimelineEntry(string Icon, string Text, Color Color);
 
     private sealed class GameSettings
     {
@@ -5254,6 +5612,18 @@ public sealed partial class DragonCardsGame : Game
             }
 
             _cards[cardId] = count - 1;
+        }
+
+        public void ReplaceWith(DeckDefinition deck)
+        {
+            _cards.Clear();
+            foreach (var (cardId, count) in deck.Cards)
+            {
+                if (count > 0)
+                {
+                    _cards[cardId] = count;
+                }
+            }
         }
 
         public DeckDefinition CreateDeck() => new()

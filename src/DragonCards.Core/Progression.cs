@@ -891,6 +891,49 @@ public static class CardDetailFormatter
         return lines.Count == 0 ? "No rules text." : string.Join(Environment.NewLine, lines);
     }
 
+    public static string FrameRulesSummary(CardDefinition card, int maxLines = 3, int maxCharactersPerLine = 48)
+    {
+        ArgumentNullException.ThrowIfNull(card);
+        maxLines = Math.Max(1, maxLines);
+        maxCharactersPerLine = Math.Max(12, maxCharactersPerLine);
+        var wrapped = new List<string>();
+        foreach (var entry in RulesText(card)
+            .Replace("\r", "", StringComparison.Ordinal)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            foreach (var line in WrapByCharacters(entry, maxCharactersPerLine))
+            {
+                wrapped.Add(line);
+                if (wrapped.Count == maxLines)
+                {
+                    break;
+                }
+            }
+
+            if (wrapped.Count == maxLines)
+            {
+                break;
+            }
+        }
+
+        if (wrapped.Count == 0)
+        {
+            return "No rules text.";
+        }
+
+        var fullLineCount = RulesText(card)
+            .Replace("\r", "", StringComparison.Ordinal)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .SelectMany(line => WrapByCharacters(line, maxCharactersPerLine))
+            .Count();
+        if (fullLineCount > wrapped.Count)
+        {
+            wrapped[^1] = WithEllipsis(wrapped[^1], maxCharactersPerLine);
+        }
+
+        return string.Join(Environment.NewLine, wrapped);
+    }
+
     public static string CostText(CardDefinition card) => CostText(card.Cost);
 
     public static string CostText(IReadOnlyDictionary<string, int> cost) =>
@@ -924,6 +967,41 @@ public static class CardDetailFormatter
         {
             yield return new KeyValuePair<string, int>(DragonCardConstants.GenericCost, generic);
         }
+    }
+
+    private static IEnumerable<string> WrapByCharacters(string text, int maxCharactersPerLine)
+    {
+        var words = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var line = "";
+        foreach (var word in words)
+        {
+            var candidate = string.IsNullOrEmpty(line) ? word : $"{line} {word}";
+            if (candidate.Length > maxCharactersPerLine && !string.IsNullOrEmpty(line))
+            {
+                yield return line;
+                line = word.Length > maxCharactersPerLine ? WithEllipsis(word, maxCharactersPerLine) : word;
+            }
+            else
+            {
+                line = candidate;
+            }
+        }
+
+        if (!string.IsNullOrEmpty(line))
+        {
+            yield return line;
+        }
+    }
+
+    private static string WithEllipsis(string text, int maxCharacters)
+    {
+        const string ellipsis = "...";
+        if (text.EndsWith(ellipsis, StringComparison.Ordinal) || text.Length <= maxCharacters - ellipsis.Length)
+        {
+            return text.EndsWith(ellipsis, StringComparison.Ordinal) ? text : $"{text}{ellipsis}";
+        }
+
+        return $"{text[..Math.Max(0, maxCharacters - ellipsis.Length)].TrimEnd()}{ellipsis}";
     }
 }
 

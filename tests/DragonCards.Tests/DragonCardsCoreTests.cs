@@ -1592,6 +1592,121 @@ public sealed class DragonCardsCoreTests
         Assert.True(result.Decisions.Count(decision => decision.Kind == "sacrifice") <= 1);
     }
 
+    [Fact]
+    public void CardFrameRulesSummaryCapsLinesWithEllipsis()
+    {
+        var card = new CardDefinition
+        {
+            Name = "Long Rules Test",
+            Type = "Support",
+            RulesText = "When played, draw 1 card and gain 1 Fire energy. Then return an enemy support to its owner's hand.",
+            Abilities =
+            [
+                new ActivatedAbilityDefinition
+                {
+                    Name = "Flare Drive",
+                    Cost = new Dictionary<string, int> { ["Fire"] = 2 },
+                    RulesText = "Your next card costs 2 less."
+                }
+            ]
+        };
+
+        var summary = CardDetailFormatter.FrameRulesSummary(card, maxLines: 2, maxCharactersPerLine: 36);
+        var lines = summary.Split(Environment.NewLine);
+
+        Assert.True(lines.Length <= 2);
+        Assert.EndsWith("...", summary, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DeckAssistantRespectsOwnedCopiesForProgressionSuggestions()
+    {
+        var data = LoadData();
+        var profile = new PlayerProfile();
+        PlayerCollection.GrantDeck(profile, data.DecksById["starter-fire"], data, addStarterOwnership: true);
+        var partial = data.DecksById["starter-fire"] with
+        {
+            Cards = data.DecksById["starter-fire"].Cards.Take(4).ToDictionary(entry => entry.Key, entry => 1, StringComparer.OrdinalIgnoreCase)
+        };
+
+        var suggestions = DeckBuilderAssistantService.SuggestAdds(data, partial, profile, GameRulesConfig.ForPreset(GameRulesPreset.Standard), DeckAssistantGoal.Balanced, 20);
+
+        Assert.NotEmpty(suggestions);
+        Assert.All(suggestions, suggestion =>
+        {
+            var owned = PlayerCollection.CountOwned(profile, suggestion.CardId);
+            Assert.True(owned > partial.Cards.GetValueOrDefault(suggestion.CardId));
+        });
+    }
+
+    [Fact]
+    public void DeckAssistantSandboxSuggestionsCanUseAllCards()
+    {
+        var data = LoadData();
+        var partial = data.DecksById["starter-fire"] with
+        {
+            Cards = data.DecksById["starter-fire"].Cards.Take(2).ToDictionary(entry => entry.Key, entry => 1, StringComparer.OrdinalIgnoreCase)
+        };
+
+        var suggestions = DeckBuilderAssistantService.SuggestAdds(data, partial, profile: null, GameRulesConfig.ForPreset(GameRulesPreset.Casual), DeckAssistantGoal.Control, 20);
+
+        Assert.NotEmpty(suggestions);
+        Assert.Contains(suggestions, suggestion => !partial.Cards.ContainsKey(suggestion.CardId));
+    }
+
+    [Fact]
+    public void DeckAssistantSuggestionsDifferByPlaystyle()
+    {
+        var data = LoadData();
+        var empty = new DeckDefinition
+        {
+            Id = "empty",
+            Name = "Empty",
+            ModeId = DragonCardsModeIds.DragonDuel,
+            Cards = []
+        };
+        var sandbox = GameRulesConfig.ForPreset(GameRulesPreset.Casual);
+
+        var aggro = DeckBuilderAssistantService.SuggestAdds(data, empty, null, sandbox, DeckAssistantGoal.Aggro, 5).Select(item => item.CardId).ToArray();
+        var ramp = DeckBuilderAssistantService.SuggestAdds(data, empty, null, sandbox, DeckAssistantGoal.Ramp, 5).Select(item => item.CardId).ToArray();
+
+        Assert.NotEqual(aggro, ramp);
+    }
+
+    [Fact]
+    public void DeckAssistantAutoFillCompletesLegalOwnedDeck()
+    {
+        var data = LoadData();
+        var profile = new PlayerProfile();
+        PlayerCollection.GrantDeck(profile, data.DecksById["starter-fire"], data, addStarterOwnership: true);
+        var partial = data.DecksById["starter-fire"] with
+        {
+            Id = "partial-fire",
+            Name = "Partial Fire",
+            Cards = data.DecksById["starter-fire"].Cards.Take(5).ToDictionary(entry => entry.Key, entry => 1, StringComparer.OrdinalIgnoreCase)
+        };
+
+        var filled = DeckBuilderAssistantService.AutoFill(data, partial, profile, GameRulesConfig.ForPreset(GameRulesPreset.Standard), DeckAssistantGoal.Aggro);
+
+        Assert.Equal(data.GameModesById[DragonCardsModeIds.DragonDuel].DeckRules.DeckSize, filled.Count);
+        Assert.Empty(GameDataValidator.ValidateDeck(filled, data));
+        Assert.Empty(DeckOwnershipValidator.ValidateDeckOwnership(filled, profile, GameRulesConfig.ForPreset(GameRulesPreset.Standard)));
+    }
+
+    [Fact]
+    public void DeckAssistantAnalysisReportsOwnershipAndMissingRoles()
+    {
+        var data = LoadData();
+        var profile = new PlayerProfile();
+        var starter = data.DecksById["starter-fire"];
+
+        var analysis = DeckBuilderAssistantService.AnalyzeDeck(data, starter, profile, GameRulesConfig.ForPreset(GameRulesPreset.Standard), DeckAssistantGoal.Balanced);
+
+        Assert.False(analysis.IsLegal);
+        Assert.NotEmpty(analysis.OwnershipIssues);
+        Assert.Contains(analysis.Notes, note => note.Contains("owned-copy", StringComparison.OrdinalIgnoreCase));
+    }
+
     private static GameData LoadData() => GameData.LoadDefault();
 
     private static int GetFreeTcpPort()

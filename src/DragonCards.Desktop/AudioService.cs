@@ -9,6 +9,7 @@ internal sealed class AudioService
 {
     private readonly Dictionary<string, SoundEffect> _sounds = new(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, double> _lastPlayedAt = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Queue<QueuedSound> _queuedSounds = new();
     private Func<int> _soundVolume = () => 80;
     private Func<int> _musicVolume = () => 70;
     private Func<bool> _muted = () => false;
@@ -69,6 +70,12 @@ internal sealed class AudioService
         {
             StartMusic();
         }
+
+        while (_queuedSounds.TryPeek(out var queued) && queued.PlayAt <= _clock)
+        {
+            _queuedSounds.Dequeue();
+            Play(queued.Key, throttleSeconds: 0.01);
+        }
     }
 
     public void Play(string key, double throttleSeconds = 0.03)
@@ -100,9 +107,14 @@ internal sealed class AudioService
 
     public void PlayForEvents(IEnumerable<MatchEvent> events)
     {
+        var delay = 0.0;
         foreach (var matchEvent in events)
         {
-            Play(SoundForEvent(matchEvent), throttleSeconds: 0.08);
+            foreach (var key in SoundsForEvent(matchEvent))
+            {
+                QueueOrPlay(key, delay);
+                delay += SoundSpacing(matchEvent.Kind);
+            }
         }
     }
 
@@ -167,11 +179,42 @@ internal sealed class AudioService
         }
     }
 
+    private void QueueOrPlay(string key, double delaySeconds)
+    {
+        if (delaySeconds <= 0.001)
+        {
+            Play(key, throttleSeconds: 0.01);
+            return;
+        }
+
+        _queuedSounds.Enqueue(new QueuedSound(key, _clock + delaySeconds));
+    }
+
+    private IEnumerable<string> SoundsForEvent(MatchEvent matchEvent)
+    {
+        if (matchEvent.Kind == MatchEventKind.CardPlayed)
+        {
+            yield return SoundKeys.CardPlay;
+            yield return CardPlayedSound(matchEvent.CardId);
+            yield break;
+        }
+
+        yield return SoundForEvent(matchEvent);
+    }
+
+    private static double SoundSpacing(MatchEventKind kind) => kind switch
+    {
+        MatchEventKind.CardPlayed => 0.11,
+        MatchEventKind.AttackDeclared or MatchEventKind.BlockDeclared or MatchEventKind.CombatResolved => 0.13,
+        MatchEventKind.CardDrawn => 0.07,
+        _ => 0.085
+    };
+
     private string SoundForEvent(MatchEvent matchEvent) => matchEvent.Kind switch
     {
         MatchEventKind.PhaseChanged => SoundKeys.Phase,
         MatchEventKind.CardDrawn => SoundKeys.CardDraw,
-        MatchEventKind.CardPlayed => CardPlayedSound(matchEvent.CardId),
+        MatchEventKind.CardPlayed => SoundKeys.CardPlay,
         MatchEventKind.CardDiscarded => SoundKeys.CardDiscard,
         MatchEventKind.CardSacrificed => SoundKeys.Sacrifice,
         MatchEventKind.EnergyGained or MatchEventKind.EnergyConverted or MatchEventKind.EnergyRefunded => SoundKeys.EnergyGain,
@@ -183,7 +226,7 @@ internal sealed class AudioService
         MatchEventKind.TargetChoiceQueued => SoundKeys.TargetPrompt,
         MatchEventKind.TargetResolved => SoundKeys.TargetResolve,
         MatchEventKind.AbilityActivated => SoundKeys.Ability,
-        MatchEventKind.CombatActionQueued => SoundKeys.CombatWindow,
+        MatchEventKind.CombatActionQueued or MatchEventKind.CombatActionPassed => SoundKeys.CombatWindow,
         MatchEventKind.CombatResolved => SoundKeys.CombatResolve,
         MatchEventKind.CardReadied => SoundKeys.CardReady,
         MatchEventKind.CardReturnedToHand => SoundKeys.CardReturn,
@@ -197,6 +240,8 @@ internal sealed class AudioService
         "Spell" => SoundKeys.Spell,
         _ => SoundKeys.CardPlay
     };
+
+    private readonly record struct QueuedSound(string Key, double PlayAt);
 }
 
 internal static class SoundKeys
