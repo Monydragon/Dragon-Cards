@@ -924,6 +924,8 @@ public sealed class DragonCardsCoreTests
         var activated = Assert.Single(result.Events, item => item.Kind == MatchEventKind.AbilityActivated);
         Assert.Equal("Kindle", activated.AbilityName);
         Assert.Contains("Gain 1 energy", activated.EffectText);
+        Assert.Equal(new ZoneRef(0, "SupportField", 0), activated.From);
+        Assert.Equal(new ZoneRef(0, "SupportField", 0), activated.To);
         var queued = Assert.Single(result.Events, item => item.Kind == MatchEventKind.TargetChoiceQueued);
         Assert.Equal(source.Id, queued.InstanceId);
         Assert.Equal(source.CardId, queued.CardId);
@@ -1203,6 +1205,29 @@ public sealed class DragonCardsCoreTests
 
         Assert.Single(defender.DamageZone);
         Assert.Null(engine.State.PendingAttack);
+    }
+
+    [Fact]
+    public void ActivatedUnitAbilityReportsItsFieldEndpoint()
+    {
+        var engine = CreateEngine();
+        var attacker = engine.State.Players[0];
+        attacker.UnitField.Add(new CardInstance("fire-ember-whelp"));
+        var source = new CardInstance("fire-primal-line-keeper");
+        attacker.UnitField.Add(source);
+        attacker.EnergyPool["Fire"] = 1;
+        AdvanceToCombat(engine);
+
+        Assert.True(engine.DeclareAttack(0).Success);
+        Assert.True(engine.PassBlock().Success);
+        Assert.True(engine.PassCombatAction(1).Success);
+
+        var result = engine.ActivateAbility(0, source.Id, "combat-line-keeper");
+
+        Assert.True(result.Success, result.Message);
+        var activated = Assert.Single(result.Events, item => item.Kind == MatchEventKind.AbilityActivated);
+        Assert.Equal(new ZoneRef(0, "UnitField", 1), activated.From);
+        Assert.Equal(new ZoneRef(0, "UnitField", 1), activated.To);
     }
 
     [Fact]

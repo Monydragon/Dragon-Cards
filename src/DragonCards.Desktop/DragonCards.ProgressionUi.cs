@@ -226,7 +226,8 @@ public sealed partial class DragonCardsGame
         for (var i = 0; i < RulesPresetOrder.Length; i++)
         {
             var rect = new Rectangle(panel.X + 32 + i * 140, panel.Y + 190, 128, 42);
-            if (Button(rect, RulesPresetOrder[i].ToString(), selected: _creationPresetIndex == i))
+            if (Button(rect, RulesPresetOrder[i].ToString(), selected: _creationPresetIndex == i,
+                focused: _usingController && _creationControlFocus == 0 && _creationPresetIndex == i))
             {
                 _creationPresetIndex = i;
             }
@@ -236,7 +237,8 @@ public sealed partial class DragonCardsGame
         for (var i = 0; i < PlaystyleOrder.Length; i++)
         {
             var rect = new Rectangle(panel.X + 32 + i * 150, panel.Y + 308, 138, 42);
-            if (Button(rect, PlaystyleOrder[i].ToString(), selected: _creationPlaystyleIndex == i))
+            if (Button(rect, PlaystyleOrder[i].ToString(), selected: _creationPlaystyleIndex == i,
+                focused: _usingController && _creationControlFocus == 1 && _creationPlaystyleIndex == i))
             {
                 _creationPlaystyleIndex = i;
             }
@@ -249,7 +251,8 @@ public sealed partial class DragonCardsGame
             var column = i % 4;
             var row = i / 4;
             var rect = new Rectangle(panel.X + 32 + column * 236, panel.Y + 426 + row * 58, 216, 44);
-            if (Button(rect, StarterElement(starters[i]), selected: _creationStarterIndex == i))
+            if (Button(rect, StarterElement(starters[i]), selected: _creationStarterIndex == i,
+                focused: _usingController && _creationControlFocus == 2 && _creationStarterIndex == i))
             {
                 _creationStarterIndex = i;
             }
@@ -258,7 +261,8 @@ public sealed partial class DragonCardsGame
         var rules = GameRulesConfig.ForPreset(RulesPresetOrder[_creationPresetIndex], PlaystyleOrder[_creationPlaystyleIndex]).Normalize();
         DrawText(rules.IsProgressionSafe ? "Progression mode: inventory, XP, coins, packs, and locked starters." : "Sandbox mode: all unlocks and unlimited deck building; progression rewards disabled.", new Rectangle(panel.X + 1000, panel.Y + 190, 390, 86), rules.IsProgressionSafe ? new Color(148, 224, 164) : new Color(255, 190, 120), 0.64f);
 
-        if (Button(new Rectangle(panel.Right - 248, panel.Bottom - 72, 196, 46), "Create Player"))
+        if (Button(new Rectangle(panel.Right - 248, panel.Bottom - 72, 196, 46), "Create Player",
+            focused: _usingController && _creationControlFocus == 3))
         {
             CreateProfileFromSelection();
         }
@@ -362,22 +366,31 @@ public sealed partial class DragonCardsGame
     private void DrawMatchResult()
     {
         var title = _lastMatchWon ? "Victory" : "Defeat";
-        DrawText(title, new Vector2(54, 108), _lastMatchWon ? new Color(148, 224, 164) : new Color(255, 162, 128), 1.3f);
+        DrawWithOpacity(ResultRevealOpacity(0f), () =>
+            DrawText(title, new Vector2(54, 108), _lastMatchWon ? new Color(148, 224, 164) : new Color(255, 162, 128), 1.3f));
         var panel = new Rectangle(54, 198, 1490, 520);
         DrawPanel(panel, new Color(31, 37, 46), border: new Color(81, 96, 116));
         DrawText($"Rules: {CurrentRules().Preset} / {CurrentRules().Playstyle}", new Vector2(panel.X + 36, panel.Y + 36), Color.White, 0.8f);
 
         if (_lastMatchReward is { ProgressionApplied: true } reward)
         {
-            DrawText($"+{reward.ExperienceGained} XP", new Vector2(panel.X + 36, panel.Y + 96), new Color(148, 224, 164), 0.9f);
-            DrawText($"+{reward.CoinsGained} Coins", new Vector2(panel.X + 36, panel.Y + 144), new Color(244, 230, 158), 0.9f);
-            DrawText(reward.LevelsGained > 0 ? $"Level {reward.StartingLevel} -> {reward.EndingLevel}" : $"Level {_profile?.Level ?? 1}", new Vector2(panel.X + 36, panel.Y + 192), Color.White, 0.76f);
-            DrawText(reward.BoostersGained > 0 ? $"+{reward.BoostersGained} booster reward" : "No level booster this match.", new Vector2(panel.X + 36, panel.Y + 238), new Color(205, 214, 225), 0.68f);
-            DrawBattleSpoils(new Rectangle(panel.X + 36, panel.Y + 270, 990, 260));
+            DrawWithOpacity(ResultRevealOpacity(0.08f), () =>
+                DrawText($"+{reward.ExperienceGained} XP", new Vector2(panel.X + 36, panel.Y + 96), new Color(148, 224, 164), 0.9f));
+            DrawWithOpacity(ResultRevealOpacity(0.14f), () =>
+                DrawText($"+{reward.CoinsGained} Coins", new Vector2(panel.X + 36, panel.Y + 144), new Color(244, 230, 158), 0.9f));
+            DrawWithOpacity(ResultRevealOpacity(0.20f), () =>
+                DrawText(reward.LevelsGained > 0 ? $"Level {reward.StartingLevel} -> {reward.EndingLevel}" : $"Level {_profile?.Level ?? 1}", new Vector2(panel.X + 36, panel.Y + 192), Color.White, 0.76f));
+            DrawWithOpacity(ResultRevealOpacity(0.26f), () =>
+                DrawText(reward.BoostersGained > 0 ? $"+{reward.BoostersGained} booster reward" : "No level booster this match.", new Vector2(panel.X + 36, panel.Y + 238), new Color(205, 214, 225), 0.68f));
+            var spoilsOpacity = ResultRevealOpacity(0.32f);
+            var spoilsLift = _settings.ReducedMotion ? 0 : (int)MathF.Round((1f - spoilsOpacity) * 8f);
+            DrawWithOpacity(spoilsOpacity, () =>
+                DrawBattleSpoils(new Rectangle(panel.X + 36, panel.Y + 270 + spoilsLift, 990, 260)));
         }
         else
         {
-            DrawText("Progression rewards disabled for this rules configuration.", new Rectangle(panel.X + 36, panel.Y + 96, 650, 72), new Color(255, 190, 120), 0.76f);
+            DrawWithOpacity(ResultRevealOpacity(0.10f), () =>
+                DrawText("Progression rewards disabled for this rules configuration.", new Rectangle(panel.X + 36, panel.Y + 96, 650, 72), new Color(255, 190, 120), 0.76f));
         }
 
         if (_profile is not null)
@@ -388,28 +401,40 @@ public sealed partial class DragonCardsGame
         DrawText(ResultNextStepText(), new Rectangle(panel.Right - 430, panel.Y + 286, 360, 96), new Color(205, 214, 225), 0.6f);
 
         var y = 786;
-        if (Button(new Rectangle(54, y, 150, 42), "Continue"))
+        if (Button(new Rectangle(54, y, 150, 42), "Continue",
+            focused: _usingController && _resultFocus == 0))
         {
-            _screen = Screen.MainMenu;
-            _status = "Returned to main menu.";
+            ActivateResultAction(0);
         }
 
-        if (Button(new Rectangle(224, y, 150, 42), "Rematch", _rematchFirstDeck is not null && _rematchSecondDeck is not null))
+        if (Button(new Rectangle(224, y, 150, 42), "Rematch", _rematchFirstDeck is not null && _rematchSecondDeck is not null,
+            focused: _usingController && _resultFocus == 1))
         {
-            StartMatch(_rematchFirstDeck!, _rematchSecondDeck!, _rematchKind, _rematchModeId);
+            ActivateResultAction(1);
         }
 
-        if (Button(new Rectangle(394, y, 150, 42), "Deck Builder"))
+        if (Button(new Rectangle(394, y, 150, 42), "Deck Builder",
+            focused: _usingController && _resultFocus == 2))
         {
-            _screen = Screen.DeckBuilder;
-            _status = "Deck builder opened.";
+            ActivateResultAction(2);
         }
 
-        if (Button(new Rectangle(564, y, 150, 42), "Store / Packs"))
+        if (Button(new Rectangle(564, y, 150, 42), "Store / Packs",
+            focused: _usingController && _resultFocus == 3))
         {
-            _screen = Screen.Store;
-            _status = "Store opened.";
+            ActivateResultAction(3);
         }
+    }
+
+    private float ResultRevealOpacity(float delaySeconds)
+    {
+        if (_settings.ReducedMotion)
+        {
+            return 1f;
+        }
+
+        var progress = Math.Clamp((_screenElapsed - delaySeconds) / 0.18f, 0f, 1f);
+        return progress * progress * (3f - 2f * progress);
     }
 
     private string ResultNextStepText()
@@ -461,7 +486,8 @@ public sealed partial class DragonCardsGame
             _storeQuantityIndex = Math.Clamp(_storeQuantityIndex, 0, labels.Length - 1);
             for (var i = 0; i < labels.Length; i++)
             {
-                if (Button(new Rectangle(panel.X + 28 + i * 88, panel.Y + 254, 76, 36), labels[i], selected: _storeQuantityIndex == i))
+                if (Button(new Rectangle(panel.X + 28 + i * 88, panel.Y + 254, 76, 36), labels[i], selected: _storeQuantityIndex == i,
+                    focused: _usingController && _storeFocusArea == StoreFocusArea.Detail && _storeDetailFocus == 0 && _storeQuantityIndex == i))
                 {
                     _storeQuantityIndex = i;
                 }
@@ -469,12 +495,14 @@ public sealed partial class DragonCardsGame
 
             var buyQuantity = StoreBuyQuantity(item);
             var openQuantity = StoreOpenQuantity(item);
-            if (Button(new Rectangle(panel.X + 28, panel.Y + 322, 180, 42), $"Buy x{buyQuantity}", _profile is not null && rules.IsProgressionSafe && buyQuantity > 0 && _profile.Coins >= item.Cost * buyQuantity))
+            if (Button(new Rectangle(panel.X + 28, panel.Y + 322, 180, 42), $"Buy x{buyQuantity}", _profile is not null && rules.IsProgressionSafe && buyQuantity > 0 && _profile.Coins >= item.Cost * buyQuantity,
+                focused: _usingController && _storeFocusArea == StoreFocusArea.Detail && _storeDetailFocus == 1))
             {
                 BuyCatalogBooster(item, buyQuantity);
             }
 
-            if (Button(new Rectangle(panel.X + 228, panel.Y + 322, 180, 42), $"Open x{openQuantity}", _profile is not null && openQuantity > 0))
+            if (Button(new Rectangle(panel.X + 228, panel.Y + 322, 180, 42), $"Open x{openQuantity}", _profile is not null && openQuantity > 0,
+                focused: _usingController && _storeFocusArea == StoreFocusArea.Detail && _storeDetailFocus == 2))
             {
                 OpenCatalogBooster(item, openQuantity);
             }
@@ -489,7 +517,8 @@ public sealed partial class DragonCardsGame
             var owned = _profile is not null && (rules.AllUnlocks || PlayerCollection.HasStarterDeck(_profile, deck.Id));
             DrawText($"{deck.Count}/50 cards", new Vector2(panel.X + 28, panel.Y + 174), new Color(205, 214, 225), 0.68f);
             DrawText(owned ? "Owned / unlocked" : $"{item.Cost} Coins", new Vector2(panel.X + 28, panel.Y + 212), owned ? new Color(148, 224, 164) : new Color(244, 230, 158), 0.68f);
-            if (Button(new Rectangle(panel.X + 28, panel.Y + 272, 176, 42), owned || !rules.IsProgressionSafe ? "Open" : "Buy", _profile is not null && (owned || !rules.IsProgressionSafe || _profile.Coins >= item.Cost)))
+            if (Button(new Rectangle(panel.X + 28, panel.Y + 272, 176, 42), owned || !rules.IsProgressionSafe ? "Open" : "Buy", _profile is not null && (owned || !rules.IsProgressionSafe || _profile.Coins >= item.Cost),
+                focused: _usingController && _storeFocusArea == StoreFocusArea.Detail))
             {
                 BuyOrSelectStarter(deck);
             }
@@ -504,7 +533,8 @@ public sealed partial class DragonCardsGame
             DrawScrollableText(CardDetailText(card), detailRect, ref _cardDetailScrollOffset, new Color(211, 220, 231), CardDetailTextScale);
             var owned = _profile is null ? 0 : PlayerCollection.CountOwned(_profile, card.Id);
             DrawText($"Owned {owned}/{PlayerCollection.MaxOwnedCopies}   {item.Cost} Coins", new Vector2(panel.X + 232, panel.Y + 462), owned >= PlayerCollection.MaxOwnedCopies ? new Color(255, 190, 120) : new Color(244, 230, 158), 0.58f);
-            if (Button(new Rectangle(panel.X + 232, panel.Y + 502, 176, 38), "Buy Single", _profile is not null && rules.IsProgressionSafe && owned < PlayerCollection.MaxOwnedCopies && _profile.Coins >= item.Cost))
+            if (Button(new Rectangle(panel.X + 232, panel.Y + 502, 176, 38), "Buy Single", _profile is not null && rules.IsProgressionSafe && owned < PlayerCollection.MaxOwnedCopies && _profile.Coins >= item.Cost,
+                focused: _usingController && _storeFocusArea == StoreFocusArea.Detail))
             {
                 BuySingleCard(card);
             }
@@ -598,14 +628,44 @@ public sealed partial class DragonCardsGame
 
     private void HandlePlayerCreationController()
     {
+        if (FocusPressed(out var focusDelta))
+        {
+            _creationControlFocus = (_creationControlFocus + focusDelta + 4) % 4;
+        }
+        if (_uiActions.Triggered(UiAction.MoveToStart)) _creationControlFocus = 0;
+        else if (_uiActions.Triggered(UiAction.MoveToEnd)) _creationControlFocus = 3;
+        if (DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out var vertical))
+        {
+            _creationControlFocus = Math.Clamp(_creationControlFocus + vertical, 0, 3);
+        }
+
         if (DirectionPressed(Buttons.DPadLeft, Buttons.DPadRight, out var horizontal))
         {
-            _creationStarterIndex = Math.Clamp(_creationStarterIndex + horizontal, 0, StarterDecks().Count - 1);
+            if (_creationControlFocus == 0)
+            {
+                _creationPresetIndex = Math.Clamp(_creationPresetIndex + horizontal, 0, RulesPresetOrder.Length - 1);
+            }
+            else if (_creationControlFocus == 1)
+            {
+                _creationPlaystyleIndex = Math.Clamp(_creationPlaystyleIndex + horizontal, 0, PlaystyleOrder.Length - 1);
+            }
+            else if (_creationControlFocus == 2)
+            {
+                _creationStarterIndex = Math.Clamp(_creationStarterIndex + horizontal, 0, StarterDecks().Count - 1);
+            }
         }
 
         if (Pressed(Buttons.A))
         {
-            CreateProfileFromSelection();
+            _usingController = true;
+            if (_creationControlFocus == 3)
+            {
+                CreateProfileFromSelection();
+            }
+            else
+            {
+                _creationControlFocus++;
+            }
         }
     }
 
@@ -658,9 +718,64 @@ public sealed partial class DragonCardsGame
 
     private void HandleMatchResultController()
     {
+        if (FocusPressed(out var focusDelta))
+        {
+            _resultFocus = (_resultFocus + focusDelta + 4) % 4;
+        }
+        if (_uiActions.Triggered(UiAction.MoveToStart)) _resultFocus = 0;
+        else if (_uiActions.Triggered(UiAction.MoveToEnd)) _resultFocus = 3;
+        if (DirectionPressed(Buttons.DPadLeft, Buttons.DPadRight, out var horizontal))
+        {
+            _resultFocus = Math.Clamp(_resultFocus + horizontal, 0, 3);
+        }
+        else if (DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out var vertical))
+        {
+            _resultFocus = Math.Clamp(_resultFocus + vertical, 0, 3);
+        }
+
+        if (_uiActions.Triggered(UiAction.PagePrevious))
+        {
+            _cardDetailScrollOffset = Math.Max(0, _cardDetailScrollOffset - 8);
+        }
+        else if (_uiActions.Triggered(UiAction.PageNext))
+        {
+            _cardDetailScrollOffset += 8;
+        }
+        else if (_uiActions.Triggered(UiAction.MoveToStart))
+        {
+            _cardDetailScrollOffset = 0;
+        }
+        else if (_uiActions.Triggered(UiAction.MoveToEnd))
+        {
+            _cardDetailScrollOffset = int.MaxValue;
+        }
+
         if (Pressed(Buttons.A))
         {
-            _screen = Screen.MainMenu;
+            _usingController = true;
+            ActivateResultAction(_resultFocus);
+        }
+    }
+
+    private void ActivateResultAction(int action)
+    {
+        switch (Math.Clamp(action, 0, 3))
+        {
+            case 0:
+                _screen = Screen.MainMenu;
+                _status = "Returned to main menu.";
+                break;
+            case 1 when _rematchFirstDeck is not null && _rematchSecondDeck is not null:
+                StartMatch(_rematchFirstDeck, _rematchSecondDeck, _rematchKind, _rematchModeId);
+                break;
+            case 2:
+                _screen = Screen.DeckBuilder;
+                _status = "Deck builder opened.";
+                break;
+            case 3:
+                _screen = Screen.Store;
+                _status = "Store opened.";
+                break;
         }
     }
 
@@ -970,7 +1085,7 @@ public sealed partial class DragonCardsGame
 
         _screen = Screen.MatchResult;
         _audio.Play(_lastMatchWon ? SoundKeys.Victory : SoundKeys.Defeat);
-        _presentation.Clear();
+        ClearPresentation();
         ClearSelections();
         return true;
     }
@@ -1078,6 +1193,7 @@ public sealed partial class DragonCardsGame
 
     private void StartNetworkMatch(DirectMatchConnection connection)
     {
+        ClearPresentation();
         _networkConnection = connection;
         _networkLocalPlayerIndex = connection.LocalPlayerIndex;
         _networkReadTask = null;

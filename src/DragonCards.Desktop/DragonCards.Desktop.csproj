@@ -32,7 +32,17 @@
     <Compile Include="Program.cs" />
     <Compile Include="DragonCards.DesktopGame.cs" />
     <Compile Include="DragonCards.ProgressionUi.cs" />
+    <Compile Include="DragonCards.UxPass.cs" />
+    <Compile Include="DragonCards.UxScreens.cs" />
     <Compile Include="AudioService.cs" />
+    <Compile Include="PresentationDirector.cs" />
+    <Compile Include="UiInput.cs" />
+    <Compile Include="UiFocus.cs" />
+    <Compile Include="UiScrolling.cs" />
+    <Compile Include="UiTheme.cs" />
+    <Compile Include="UiNavigation.cs" />
+    <Compile Include="TextLayoutCache.cs" />
+    <Compile Include="StoreCatalogFilter.cs" />
   </ItemGroup>
 
   <ItemGroup>

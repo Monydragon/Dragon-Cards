@@ -621,11 +621,23 @@ public sealed class DragonDuelEngine
         }
 
         var owner = State.Players[ownerIndex];
-        var source = owner.UnitField.Concat(owner.SupportField).FirstOrDefault(card => card.Id == sourceInstanceId);
+        var unitFieldIndex = owner.UnitField.FindIndex(card => card.Id == sourceInstanceId);
+        var supportFieldIndex = unitFieldIndex < 0
+            ? owner.SupportField.FindIndex(card => card.Id == sourceInstanceId)
+            : -1;
+        var source = unitFieldIndex >= 0
+            ? owner.UnitField[unitFieldIndex]
+            : supportFieldIndex >= 0
+                ? owner.SupportField[supportFieldIndex]
+                : null;
         if (source is null)
         {
             return GameActionResult.Fail("That card is not on that player's field.");
         }
+
+        var sourceZone = unitFieldIndex >= 0
+            ? new ZoneRef(ownerIndex, "UnitField", unitFieldIndex)
+            : new ZoneRef(ownerIndex, "SupportField", supportFieldIndex);
 
         if (source.Exhausted)
         {
@@ -664,6 +676,8 @@ public sealed class DragonDuelEngine
             InstanceId = source.Id,
             AbilityName = ability.Name,
             EffectText = ability.RulesText,
+            From = sourceZone,
+            To = sourceZone,
             Message = $"{ability.Name} activated."
         });
         if (State.PendingCombatAction is not null)
@@ -1546,6 +1560,7 @@ public sealed class DragonDuelEngine
 
         if (attackerPower >= blockerPower)
         {
+            var blockerFieldIndex = defenderPlayer.UnitField.FindIndex(card => card.Id == blocker.Id);
             MoveFromFieldToDiscard(defenderPlayer.UnitField, defenderPlayer.DiscardPile, blocker);
             State.Log.Add($"{State.CardName(blocker)} was defeated.");
             combatEvents.Add(new MatchEvent
@@ -1554,6 +1569,7 @@ public sealed class DragonDuelEngine
                 PlayerIndex = 1 - pending.AttackerPlayerIndex,
                 CardId = blocker.CardId,
                 InstanceId = blocker.Id,
+                From = new ZoneRef(1 - pending.AttackerPlayerIndex, "UnitField", blockerFieldIndex),
                 To = new ZoneRef(1 - pending.AttackerPlayerIndex, "DiscardPile", defenderPlayer.DiscardPile.Count - 1),
                 Message = $"{State.CardName(blocker)} was defeated."
             });
@@ -1561,6 +1577,7 @@ public sealed class DragonDuelEngine
 
         if (blockerPower >= attackerPower)
         {
+            var attackerFieldIndex = attackerPlayer.UnitField.FindIndex(card => card.Id == attacker.Id);
             MoveFromFieldToDiscard(attackerPlayer.UnitField, attackerPlayer.DiscardPile, attacker);
             State.Log.Add($"{State.CardName(attacker)} was defeated.");
             combatEvents.Add(new MatchEvent
@@ -1569,6 +1586,7 @@ public sealed class DragonDuelEngine
                 PlayerIndex = pending.AttackerPlayerIndex,
                 CardId = attacker.CardId,
                 InstanceId = attacker.Id,
+                From = new ZoneRef(pending.AttackerPlayerIndex, "UnitField", attackerFieldIndex),
                 To = new ZoneRef(pending.AttackerPlayerIndex, "DiscardPile", attackerPlayer.DiscardPile.Count - 1),
                 Message = $"{State.CardName(attacker)} was defeated."
             });

@@ -21,6 +21,7 @@ internal sealed class AudioService
 
     public int LoadedSoundCount => _sounds.Count;
     public int ExpectedSoundCount => SoundKeys.All.Length;
+    internal int QueuedCueCount => _queuedSounds.Count;
     public bool MusicLoaded => _music is not null;
     public string MusicStatus => _music is null
         ? "BGM not loaded"
@@ -116,6 +117,40 @@ internal sealed class AudioService
                 delay += SoundSpacing(matchEvent.Kind);
             }
         }
+    }
+
+    public void PlayActivationCues(IEnumerable<PresentationActivation> activations)
+    {
+        ArgumentNullException.ThrowIfNull(activations);
+        foreach (var activation in activations)
+        {
+            PlayActivationCues(activation);
+        }
+    }
+
+    public void PlayActivationCues(PresentationActivation activation)
+    {
+        foreach (var key in ResolveActivationCueKeys(activation))
+        {
+            Play(key, throttleSeconds: 0.01);
+        }
+    }
+
+    public void CancelQueuedCues() => _queuedSounds.Clear();
+
+    internal IReadOnlyList<string> ResolveActivationCueKeys(PresentationActivation activation)
+    {
+        var keys = activation.Recipe.SoundCues.ToList();
+        if (activation.Event.Kind == MatchEventKind.CardPlayed)
+        {
+            var typedCue = CardPlayedSound(activation.Event.CardId);
+            if (!keys.Contains(typedCue, StringComparer.OrdinalIgnoreCase))
+            {
+                keys.Add(typedCue);
+            }
+        }
+
+        return keys;
     }
 
     private void TryLoad(ContentManager content, string key)
