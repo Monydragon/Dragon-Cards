@@ -43,7 +43,7 @@
     "gauntletWinsRequired": 3,
     "completionCoins": 500
   },
-  "progressionEligible": false,
+  "progressionEligible": true,
   "damageLimit": 7,
   "startingHand": 5
 }

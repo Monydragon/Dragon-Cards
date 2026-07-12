@@ -24,8 +24,8 @@ public static class PlayableModeCatalog
     [
         new(DragonCardsModeIds.DragonDuel, "Dragon Duel", "The standard 50-card Dragon Cards duel with progression-safe rewards.", "Start Duel", true, true),
         new(DragonCardsModeIds.StarterClash, "Starter Clash", "Quickly battle with mono-element starter decks. Owned starters apply in progression modes; sandbox can preview all.", "Choose Starters", true, true),
-        new(DragonCardsModeIds.DragonAvatar, "Dragon Avatar", "A 1v1 singleton identity mode inspired by commander-style deck expression. Progression is disabled for v1.", "Choose Avatar", true, false),
-        new(DragonCardsModeIds.SealedGauntlet, "Sealed Gauntlet", "Open a deterministic temporary six-booster pool, build a 40-card deck, and fight a three-win AI run.", "Generate Pool", true, false),
+        new(DragonCardsModeIds.DragonAvatar, "Dragon Avatar", "A progression-eligible 1v1 singleton identity mode inspired by commander-style deck expression.", "Choose Avatar", true, true),
+        new(DragonCardsModeIds.SealedGauntlet, "Sealed Gauntlet", "Open a deterministic temporary six-booster pool, build a 40-card deck, and earn progression through the AI challenge.", "Generate Pool", true, true),
         new(DragonCardsModeIds.SandboxLab, "Sandbox Lab", "All cards, all starters, unlimited deck building, and no progression pressure.", "Open Lab", true, false),
         new(DragonCardsModeIds.TutorialTrials, "Tutorial Trials", "Guided lessons with one-time 250 Coin rewards per tutorial.", "Open Tutorials", false, true)
     ];
@@ -53,12 +53,12 @@ public static class DragonAvatarService
 
     public static IReadOnlyList<CardDefinition> PlayableAvatarCandidates(GameData data) =>
         AvatarCandidates(data)
-            .Where(card => data.Cards.Count(candidate => IsWithinIdentity(card, candidate)) >= DeckSize)
+            .Where(card => LegalDeckCards(data, card).Count() >= DeckSize)
             .ToArray();
 
     public static IReadOnlyList<ValidationIssue> ValidateAvatarDeck(GameData data, string avatarCardId, DeckDefinition deck)
     {
-        var issues = new List<ValidationIssue>();
+        var issues = GameDataValidator.ValidateDeck(deck, data, DragonCardsModeIds.DragonAvatar).ToList();
         if (!data.CardsById.TryGetValue(avatarCardId, out var avatar))
         {
             issues.Add(new ValidationIssue("avatar.missing", $"Avatar card '{avatarCardId}' does not exist.", avatarCardId));
@@ -108,8 +108,7 @@ public static class DragonAvatarService
     public static DeckDefinition BuildSampleAvatarDeck(GameData data, string avatarCardId, string idSuffix = "")
     {
         var avatar = data.CardsById[avatarCardId];
-        var cards = data.Cards
-            .Where(card => IsWithinIdentity(avatar, card))
+        var cards = LegalDeckCards(data, avatar)
             .OrderByDescending(card => CardRarities.IsRarePlus(card.Rarity))
             .ThenBy(card => card.TotalCost)
             .ThenBy(card => card.Name, StringComparer.OrdinalIgnoreCase)
@@ -123,6 +122,15 @@ public static class DragonAvatarService
             ModeId = DragonCardsModeIds.DragonAvatar,
             Cards = cards
         };
+    }
+
+    private static IEnumerable<CardDefinition> LegalDeckCards(GameData data, CardDefinition avatar)
+    {
+        var mode = data.GameModesById[DragonCardsModeIds.DragonAvatar];
+        return data.Cards
+            .Where(card => mode.AllowedCardTypes.Contains(card.Type, StringComparer.OrdinalIgnoreCase))
+            .Where(card => !EnergySource.IsEnergySourceToken(card))
+            .Where(card => IsWithinIdentity(avatar, card));
     }
 
     private static bool IsWithinIdentity(CardDefinition avatar, CardDefinition card)

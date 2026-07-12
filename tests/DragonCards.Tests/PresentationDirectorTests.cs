@@ -201,6 +201,21 @@ public sealed class PresentationDirectorTests
     }
 
     [Fact]
+    public void SpeedMultiplierScalesPresentationCadence()
+    {
+        var director = new PresentationDirector { SpeedMultiplier = 0.5f };
+        director.Enqueue([Event(MatchEventKind.CardPlayed)]);
+        var active = Assert.IsType<PresentationBeat>(director.Active);
+
+        director.Update(active.Duration);
+
+        Assert.InRange(active.Progress, 0.49f, 0.51f);
+        Assert.True(director.IsBlocking);
+        director.Update(active.Duration);
+        Assert.Null(director.Active);
+    }
+
+    [Fact]
     public void ActivationAudioAddsCardTypeCueAndCanCancelLegacyQueue()
     {
         var director = new PresentationDirector();

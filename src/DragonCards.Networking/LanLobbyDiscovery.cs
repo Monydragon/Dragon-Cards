@@ -160,16 +160,39 @@ public sealed class LanLobbyDiscoveryHost : IAsyncDisposable
     {
         while (true)
         {
-            var result = await _client.ReceiveAsync(_cancellation.Token).ConfigureAwait(false);
-            var request = JsonSerializer.Deserialize<LanLobbyDiscoveryRequest>(result.Buffer, JsonOptions);
-            if (request is null || request.LobbyToken != _invite.LobbyToken ||
-                !request.ProtocolVersion.Equals(InviteCode.ProtocolVersion, StringComparison.OrdinalIgnoreCase))
+            try
             {
-                continue;
-            }
+                var result = await _client.ReceiveAsync(_cancellation.Token).ConfigureAwait(false);
+                var request = JsonSerializer.Deserialize<LanLobbyDiscoveryRequest>(result.Buffer, JsonOptions);
+                if (request is null || request.LobbyToken != _invite.LobbyToken ||
+                    !request.ProtocolVersion.Equals(InviteCode.ProtocolVersion, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
 
-            var response = JsonSerializer.SerializeToUtf8Bytes(new LanLobbyDiscoveryResponse { Invite = _invite }, JsonOptions);
-            await _client.SendAsync(response, result.RemoteEndPoint, _cancellation.Token).ConfigureAwait(false);
+                var response = JsonSerializer.SerializeToUtf8Bytes(new LanLobbyDiscoveryResponse { Invite = _invite }, JsonOptions);
+                await _client.SendAsync(response, result.RemoteEndPoint, _cancellation.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (_cancellation.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (SocketException) when (_cancellation.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (ObjectDisposedException) when (_cancellation.IsCancellationRequested)
+            {
+                return;
+            }
+            catch (JsonException)
+            {
+                // Ignore unrelated UDP traffic on this port and keep the lobby discoverable.
+            }
+            catch (SocketException) when (!_cancellation.IsCancellationRequested)
+            {
+                // A transient send/receive error should not make an otherwise open lobby disappear.
+            }
         }
     }
 }

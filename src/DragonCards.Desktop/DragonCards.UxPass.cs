@@ -91,7 +91,7 @@ public sealed partial class DragonCardsGame
         _suppressNextOriginCapture = false;
         if (rememberOrigin &&
             previous != Screen.PackOpening &&
-            _screen is not Screen.MainMenu and not Screen.Match and not Screen.MatchResult and not Screen.PlayerCreation and not Screen.PackOpening)
+            _screen is not Screen.MainMenu and not Screen.ProfilePicker and not Screen.Match and not Screen.MatchResult and not Screen.PlayerCreation and not Screen.PackOpening)
         {
             _screenOrigins[_screen] = previous;
         }
@@ -150,6 +150,7 @@ public sealed partial class DragonCardsGame
 
         var state = _engine.State;
         return CanHumanResolveEnergyChoice(state) ||
+            CanHumanResolveEnergySourceChoice(state) ||
             CanHumanResolveTarget(state) ||
             CanHumanResolveCombatAction(state) ||
             CanHumanResolveBlock(state);
@@ -211,7 +212,7 @@ public sealed partial class DragonCardsGame
                 return true;
             }
 
-            if (CanHumanResolveEnergyChoice(state) || CanHumanResolveTarget(state))
+            if (CanHumanResolveEnergyChoice(state) || CanHumanResolveEnergySourceChoice(state) || CanHumanResolveTarget(state))
             {
                 _status = "Resolve the pending choice before leaving the match.";
                 _audio.Play(SoundKeys.UiBack);

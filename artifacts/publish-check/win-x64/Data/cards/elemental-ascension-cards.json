@@ -1,0 +1,5468 @@
+[
+  {
+    "id": "fire-kindle-outrider",
+    "name": "Kindle Outrider",
+    "type": "Unit",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 1
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension"
+    ],
+    "rulesText": "A Fire combatant shaped by the Elemental Ascension.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "fire-kindle-outrider"
+    },
+    "power": 2000
+  },
+  {
+    "id": "fire-ash-reader",
+    "name": "Ash Reader",
+    "type": "Unit",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 1,
+      "Generic": 1
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Cantrip.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "fire-ash-reader"
+    },
+    "power": 4000
+  },
+  {
+    "id": "fire-cinder-duelist",
+    "name": "Cinder Duelist",
+    "type": "Unit",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "deal_one_damage"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Deal 1 damage to your opponent.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "deal-one-damage",
+      "rarity": "Common",
+      "artKey": "fire-cinder-duelist"
+    },
+    "power": 6000
+  },
+  {
+    "id": "fire-furnace-breaker",
+    "name": "Furnace Breaker",
+    "type": "Unit",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Strike"
+    ],
+    "hooks": [],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Strike.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "fire-furnace-breaker"
+    },
+    "power": 7000
+  },
+  {
+    "id": "fire-ember-ledger",
+    "name": "Ember Ledger",
+    "type": "Support",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_two_discard_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Engine",
+      "Draw"
+    ],
+    "rulesText": "Draw two cards, then discard one card.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "draw-two-discard-one",
+      "rarity": "Common",
+      "artKey": "fire-ember-ledger"
+    }
+  },
+  {
+    "id": "fire-forge-relay",
+    "name": "Forge Relay",
+    "type": "Support",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Engine",
+      "Ramp"
+    ],
+    "rulesText": "Activate: The next card you play this turn costs 1 less.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "support",
+      "rarity": "Common",
+      "artKey": "fire-forge-relay"
+    },
+    "abilities": [
+      {
+        "id": "relay-reduce-next-card-cost-1",
+        "name": "Relay",
+        "cost": {
+          "Fire": 1
+        },
+        "hook": "reduce_next_card_cost_1",
+        "rulesText": "Activate: The next card you play this turn costs 1 less."
+      }
+    ]
+  },
+  {
+    "id": "fire-spark-offering",
+    "name": "Spark Offering",
+    "type": "Spell",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "deal_one_damage"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Deal 1 damage to your opponent.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "deal-one-damage",
+      "rarity": "Common",
+      "artKey": "fire-spark-offering"
+    }
+  },
+  {
+    "id": "fire-blazing-reprisal",
+    "name": "Blazing Reprisal",
+    "type": "Spell",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_two_discard_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Draw"
+    ],
+    "rulesText": "Draw two cards, then discard one card.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "draw-two-discard-one",
+      "rarity": "Common",
+      "artKey": "fire-blazing-reprisal"
+    }
+  },
+  {
+    "id": "fire-coalbrand-courier",
+    "name": "Coalbrand Courier",
+    "type": "Unit",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "deal_one_draw_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Deal 1 damage to your opponent. Draw a card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "deal-one-draw-one",
+      "rarity": "Uncommon",
+      "artKey": "fire-coalbrand-courier"
+    },
+    "power": 5000
+  },
+  {
+    "id": "fire-pyre-tactician",
+    "name": "Pyre Tactician",
+    "type": "Unit",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Strike"
+    ],
+    "hooks": [
+      "deal_one_damage"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Strike. Deal 1 damage to your opponent.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "deal-one-damage",
+      "rarity": "Uncommon",
+      "artKey": "fire-pyre-tactician"
+    },
+    "power": 8000
+  },
+  {
+    "id": "fire-redline-crucible",
+    "name": "Redline Crucible",
+    "type": "Support",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "reduce_next_card_cost_2"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Engine",
+      "Ramp"
+    ],
+    "rulesText": "The next card you play this turn costs 2 less. Activate: The next card you play this turn costs 2 less.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "reduce-next-card-cost-2",
+      "rarity": "Uncommon",
+      "artKey": "fire-redline-crucible"
+    },
+    "abilities": [
+      {
+        "id": "engine-reduce-next-card-cost-2",
+        "name": "Engine",
+        "cost": {
+          "Fire": 1
+        },
+        "hook": "reduce_next_card_cost_2",
+        "rulesText": "Activate: The next card you play this turn costs 2 less."
+      }
+    ]
+  },
+  {
+    "id": "fire-flare-account",
+    "name": "Flare Account",
+    "type": "Spell",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_three_discard_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Draw"
+    ],
+    "rulesText": "Draw three cards, then discard one card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "draw-three-discard-one",
+      "rarity": "Uncommon",
+      "artKey": "fire-flare-account"
+    }
+  },
+  {
+    "id": "fire-molten-tempo",
+    "name": "Molten Tempo",
+    "type": "Spell",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "deal_one_draw_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Refresh. Deal 1 damage to your opponent. Draw a card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "deal-one-draw-one",
+      "rarity": "Uncommon",
+      "artKey": "fire-molten-tempo"
+    }
+  },
+  {
+    "id": "fire-sunstoke-captain",
+    "name": "Sunstoke Captain",
+    "type": "Unit",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "deal_one_draw_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Cantrip. Deal 1 damage to your opponent. Draw a card.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "deal-one-draw-one",
+      "rarity": "Rare",
+      "artKey": "fire-sunstoke-captain"
+    },
+    "power": 8000
+  },
+  {
+    "id": "fire-volcanic-signaler",
+    "name": "Volcanic Signaler",
+    "type": "Unit",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "discard_opponent_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Value",
+      "Removal"
+    ],
+    "rulesText": "Your opponent discards one card.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "discard-opponent-one",
+      "rarity": "Rare",
+      "artKey": "fire-volcanic-signaler"
+    },
+    "power": 9000
+  },
+  {
+    "id": "fire-phoenix-charter",
+    "name": "Phoenix Charter",
+    "type": "Support",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "refund_last_payment_1"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Engine",
+      "Value",
+      "Ramp"
+    ],
+    "rulesText": "Refund 1 energy from your last payment. Activate: Refund 1 energy from your last payment.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "refund-last-payment-1",
+      "rarity": "Rare",
+      "artKey": "fire-phoenix-charter"
+    },
+    "abilities": [
+      {
+        "id": "ascend-refund-last-payment-1",
+        "name": "Ascend",
+        "cost": {
+          "Fire": 1
+        },
+        "hook": "refund_last_payment_1",
+        "rulesText": "Activate: Refund 1 energy from your last payment."
+      }
+    ]
+  },
+  {
+    "id": "fire-scorchline-verdict",
+    "name": "Scorchline Verdict",
+    "type": "Spell",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "deal_one_draw_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Deal 1 damage to your opponent. Draw a card.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "deal-one-draw-one",
+      "rarity": "Rare",
+      "artKey": "fire-scorchline-verdict"
+    }
+  },
+  {
+    "id": "fire-inferno-regent",
+    "name": "Inferno Regent",
+    "type": "Unit",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 2,
+      "Generic": 3
+    },
+    "keywords": [
+      "Strike"
+    ],
+    "hooks": [
+      "draw_three_discard_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Finisher",
+      "Draw"
+    ],
+    "rulesText": "Strike. Draw three cards, then discard one card.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "draw-three-discard-one",
+      "rarity": "Legendary",
+      "artKey": "fire-inferno-regent"
+    },
+    "power": 10000
+  },
+  {
+    "id": "fire-heartflame-mandate",
+    "name": "Heartflame Mandate",
+    "type": "Spell",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "deal_one_damage",
+      "reduce_next_card_cost_2"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Ramp"
+    ],
+    "rulesText": "Deal 1 damage to your opponent. The next card you play this turn costs 2 less.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "deal-one-damage",
+      "rarity": "Legendary",
+      "artKey": "fire-heartflame-mandate"
+    }
+  },
+  {
+    "id": "fire-solar-apex-dragon",
+    "name": "Solar Apex Dragon",
+    "type": "Unit",
+    "elements": [
+      "Fire"
+    ],
+    "cost": {
+      "Fire": 2,
+      "Generic": 4
+    },
+    "keywords": [
+      "Cantrip",
+      "Strike"
+    ],
+    "hooks": [
+      "deal_one_draw_one",
+      "discard_opponent_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Fire",
+      "Elemental Ascension",
+      "Finisher",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Cantrip. Strike. Deal 1 damage to your opponent. Draw a card. Your opponent discards one card.",
+    "rarity": "Mythic",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "fire",
+      "effect": "deal-one-draw-one",
+      "rarity": "Mythic",
+      "artKey": "fire-solar-apex-dragon"
+    },
+    "power": 12000
+  },
+  {
+    "id": "ice-rime-lookout",
+    "name": "Rime Lookout",
+    "type": "Unit",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 1
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension"
+    ],
+    "rulesText": "A Ice combatant shaped by the Elemental Ascension.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "ice-rime-lookout"
+    },
+    "power": 2000
+  },
+  {
+    "id": "ice-frost-scribe",
+    "name": "Frost Scribe",
+    "type": "Unit",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 1,
+      "Generic": 1
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Cantrip.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "ice-frost-scribe"
+    },
+    "power": 4000
+  },
+  {
+    "id": "ice-glacier-interdictor",
+    "name": "Glacier Interdictor",
+    "type": "Unit",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_two"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Draw"
+    ],
+    "rulesText": "Draw two cards.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "draw-two",
+      "rarity": "Common",
+      "artKey": "ice-glacier-interdictor"
+    },
+    "power": 6000
+  },
+  {
+    "id": "ice-snowglass-sentinel",
+    "name": "Snowglass Sentinel",
+    "type": "Unit",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Cantrip.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "ice-snowglass-sentinel"
+    },
+    "power": 7000
+  },
+  {
+    "id": "ice-crystal-archive",
+    "name": "Crystal Archive",
+    "type": "Support",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_three_discard_one"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Engine",
+      "Draw"
+    ],
+    "rulesText": "Draw three cards, then discard one card.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "draw-three-discard-one",
+      "rarity": "Common",
+      "artKey": "ice-crystal-archive"
+    }
+  },
+  {
+    "id": "ice-stillwater-relay",
+    "name": "Stillwater Relay",
+    "type": "Support",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Engine",
+      "Removal"
+    ],
+    "rulesText": "Activate: Choose an enemy Unit. Exhaust it.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "support",
+      "rarity": "Common",
+      "artKey": "ice-stillwater-relay"
+    },
+    "abilities": [
+      {
+        "id": "relay-exhaust-enemy-unit-choice",
+        "name": "Relay",
+        "cost": {
+          "Ice": 1
+        },
+        "hook": "exhaust_enemy_unit_choice",
+        "rulesText": "Activate: Choose an enemy Unit. Exhaust it."
+      }
+    ]
+  },
+  {
+    "id": "ice-ascendant-cold-reading",
+    "name": "Ascendant Cold Reading",
+    "type": "Spell",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "exhaust_enemy_unit_choice"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Choose an enemy Unit. Exhaust it.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "exhaust-enemy-unit-choice",
+      "rarity": "Common",
+      "artKey": "ice-ascendant-cold-reading"
+    }
+  },
+  {
+    "id": "ice-mirrorbound-return",
+    "name": "Mirrorbound Return",
+    "type": "Spell",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "return_enemy_unit_to_hand_choice"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Choose an enemy Unit. Return it to its owner's hand.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "return-enemy-unit-to-hand-choice",
+      "rarity": "Common",
+      "artKey": "ice-mirrorbound-return"
+    }
+  },
+  {
+    "id": "ice-hailcourt-analyst",
+    "name": "Hailcourt Analyst",
+    "type": "Unit",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_two"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Draw"
+    ],
+    "rulesText": "Draw two cards.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "draw-two",
+      "rarity": "Uncommon",
+      "artKey": "ice-hailcourt-analyst"
+    },
+    "power": 5000
+  },
+  {
+    "id": "ice-boreal-warden",
+    "name": "Boreal Warden",
+    "type": "Unit",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "draw_two"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Draw"
+    ],
+    "rulesText": "Cantrip. Draw two cards.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "draw-two",
+      "rarity": "Uncommon",
+      "artKey": "ice-boreal-warden"
+    },
+    "power": 8000
+  },
+  {
+    "id": "ice-winter-index",
+    "name": "Winter Index",
+    "type": "Support",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_two"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Engine",
+      "Draw"
+    ],
+    "rulesText": "Draw two cards. Activate: Draw two cards.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "draw-two",
+      "rarity": "Uncommon",
+      "artKey": "ice-winter-index"
+    },
+    "abilities": [
+      {
+        "id": "engine-draw-two",
+        "name": "Engine",
+        "cost": {
+          "Ice": 1
+        },
+        "hook": "draw_two",
+        "rulesText": "Activate: Draw two cards."
+      }
+    ]
+  },
+  {
+    "id": "ice-hoarfrost-inquiry",
+    "name": "Hoarfrost Inquiry",
+    "type": "Spell",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "discard_opponent_one"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Your opponent discards one card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "discard-opponent-one",
+      "rarity": "Uncommon",
+      "artKey": "ice-hoarfrost-inquiry"
+    }
+  },
+  {
+    "id": "ice-deep-freeze-edict",
+    "name": "Deep Freeze Edict",
+    "type": "Spell",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "return_enemy_field_to_hand_choice"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Refresh. Choose an enemy Unit or Support. Return it to its owner's hand.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "return-enemy-field-to-hand-choice",
+      "rarity": "Uncommon",
+      "artKey": "ice-deep-freeze-edict"
+    }
+  },
+  {
+    "id": "ice-aurora-magistrate",
+    "name": "Aurora Magistrate",
+    "type": "Unit",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "exhaust_enemy_unit_choice"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Value",
+      "Removal"
+    ],
+    "rulesText": "Cantrip. Choose an enemy Unit. Exhaust it.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "exhaust-enemy-unit-choice",
+      "rarity": "Rare",
+      "artKey": "ice-aurora-magistrate"
+    },
+    "power": 8000
+  },
+  {
+    "id": "ice-icefall-arbiter",
+    "name": "Icefall Arbiter",
+    "type": "Unit",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "return_enemy_field_to_hand_choice"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Choose an enemy Unit or Support. Return it to its owner's hand.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "return-enemy-field-to-hand-choice",
+      "rarity": "Rare",
+      "artKey": "ice-icefall-arbiter"
+    },
+    "power": 9000
+  },
+  {
+    "id": "ice-diamond-observatory",
+    "name": "Diamond Observatory",
+    "type": "Support",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_three_discard_one"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Engine",
+      "Value",
+      "Draw"
+    ],
+    "rulesText": "Draw three cards, then discard one card. Activate: Draw three cards, then discard one card.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "draw-three-discard-one",
+      "rarity": "Rare",
+      "artKey": "ice-diamond-observatory"
+    },
+    "abilities": [
+      {
+        "id": "ascend-draw-three-discard-one",
+        "name": "Ascend",
+        "cost": {
+          "Ice": 1
+        },
+        "hook": "draw_three_discard_one",
+        "rulesText": "Activate: Draw three cards, then discard one card."
+      }
+    ]
+  },
+  {
+    "id": "ice-blue-silence",
+    "name": "Blue Silence",
+    "type": "Spell",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "return_enemy_field_to_hand_choice"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Choose an enemy Unit or Support. Return it to its owner's hand.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "return-enemy-field-to-hand-choice",
+      "rarity": "Rare",
+      "artKey": "ice-blue-silence"
+    }
+  },
+  {
+    "id": "ice-polar-regent",
+    "name": "Polar Regent",
+    "type": "Unit",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 2,
+      "Generic": 3
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "discard_opponent_one"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Finisher",
+      "Removal"
+    ],
+    "rulesText": "Cantrip. Your opponent discards one card.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "discard-opponent-one",
+      "rarity": "Legendary",
+      "artKey": "ice-polar-regent"
+    },
+    "power": 10000
+  },
+  {
+    "id": "ice-absolute-recall",
+    "name": "Absolute Recall",
+    "type": "Spell",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_three_discard_one",
+      "return_enemy_field_to_hand_choice"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Draw",
+      "Bounce"
+    ],
+    "rulesText": "Draw three cards, then discard one card. Choose an enemy Unit or Support. Return it to its owner's hand.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "draw-three-discard-one",
+      "rarity": "Legendary",
+      "artKey": "ice-absolute-recall"
+    }
+  },
+  {
+    "id": "ice-eon-frost-dragon",
+    "name": "Eon Frost Dragon",
+    "type": "Unit",
+    "elements": [
+      "Ice"
+    ],
+    "cost": {
+      "Ice": 2,
+      "Generic": 4
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "return_enemy_field_to_hand_choice",
+      "discard_opponent_one"
+    ],
+    "tags": [
+      "Control",
+      "Ice",
+      "Elemental Ascension",
+      "Finisher",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Cantrip. Choose an enemy Unit or Support. Return it to its owner's hand. Your opponent discards one card.",
+    "rarity": "Mythic",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "ice",
+      "effect": "return-enemy-field-to-hand-choice",
+      "rarity": "Mythic",
+      "artKey": "ice-eon-frost-dragon"
+    },
+    "power": 12000
+  },
+  {
+    "id": "wind-gale-errand",
+    "name": "Gale Errand",
+    "type": "Unit",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 1
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension"
+    ],
+    "rulesText": "A Wind combatant shaped by the Elemental Ascension.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "wind-gale-errand"
+    },
+    "power": 2000
+  },
+  {
+    "id": "wind-leafline-adept",
+    "name": "Leafline Adept",
+    "type": "Unit",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 1,
+      "Generic": 1
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Cantrip.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "wind-leafline-adept"
+    },
+    "power": 4000
+  },
+  {
+    "id": "wind-skyhook-runner",
+    "name": "Skyhook Runner",
+    "type": "Unit",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "reduce_next_card_cost_1"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Ramp"
+    ],
+    "rulesText": "The next card you play this turn costs 1 less.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "reduce-next-card-cost-1",
+      "rarity": "Common",
+      "artKey": "wind-skyhook-runner"
+    },
+    "power": 6000
+  },
+  {
+    "id": "wind-zephyr-vanguard",
+    "name": "Zephyr Vanguard",
+    "type": "Unit",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Refresh.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "wind-zephyr-vanguard"
+    },
+    "power": 7000
+  },
+  {
+    "id": "wind-canopy-ledger",
+    "name": "Canopy Ledger",
+    "type": "Support",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "ready_friendly_unit_choice"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Engine"
+    ],
+    "rulesText": "Choose a friendly Unit. Ready it.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "ready-friendly-unit-choice",
+      "rarity": "Common",
+      "artKey": "wind-canopy-ledger"
+    }
+  },
+  {
+    "id": "wind-airstep-relay",
+    "name": "Airstep Relay",
+    "type": "Support",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Engine",
+      "Bounce"
+    ],
+    "rulesText": "Activate: Choose a friendly Unit or Support. Return it to its owner's hand.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "support",
+      "rarity": "Common",
+      "artKey": "wind-airstep-relay"
+    },
+    "abilities": [
+      {
+        "id": "relay-return-friendly-field-to-hand-choice",
+        "name": "Relay",
+        "cost": {
+          "Wind": 1
+        },
+        "hook": "return_friendly_field_to_hand_choice",
+        "rulesText": "Activate: Choose a friendly Unit or Support. Return it to its owner's hand."
+      }
+    ]
+  },
+  {
+    "id": "wind-tailwind-note",
+    "name": "Tailwind Note",
+    "type": "Spell",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "return_friendly_unit_to_hand_choice"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Bounce"
+    ],
+    "rulesText": "Choose a friendly Unit. Return it to its owner's hand.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "return-friendly-unit-to-hand-choice",
+      "rarity": "Common",
+      "artKey": "wind-tailwind-note"
+    }
+  },
+  {
+    "id": "wind-homeward-gust",
+    "name": "Homeward Gust",
+    "type": "Spell",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "reduce_next_card_cost_2"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Ramp"
+    ],
+    "rulesText": "The next card you play this turn costs 2 less.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "reduce-next-card-cost-2",
+      "rarity": "Common",
+      "artKey": "wind-homeward-gust"
+    }
+  },
+  {
+    "id": "wind-updraft-savant",
+    "name": "Updraft Savant",
+    "type": "Unit",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "ready_friendly_unit_choice"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Choose a friendly Unit. Ready it.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "ready-friendly-unit-choice",
+      "rarity": "Uncommon",
+      "artKey": "wind-updraft-savant"
+    },
+    "power": 5000
+  },
+  {
+    "id": "wind-cloudpath-captain",
+    "name": "Cloudpath Captain",
+    "type": "Unit",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "reduce_next_card_cost_1"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Ramp"
+    ],
+    "rulesText": "Refresh. The next card you play this turn costs 1 less.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "reduce-next-card-cost-1",
+      "rarity": "Uncommon",
+      "artKey": "wind-cloudpath-captain"
+    },
+    "power": 8000
+  },
+  {
+    "id": "wind-whisper-mill",
+    "name": "Whisper Mill",
+    "type": "Support",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "refund_last_payment_1"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Engine",
+      "Ramp"
+    ],
+    "rulesText": "Refund 1 energy from your last payment. Activate: Refund 1 energy from your last payment.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "refund-last-payment-1",
+      "rarity": "Uncommon",
+      "artKey": "wind-whisper-mill"
+    },
+    "abilities": [
+      {
+        "id": "engine-refund-last-payment-1",
+        "name": "Engine",
+        "cost": {
+          "Wind": 1
+        },
+        "hook": "refund_last_payment_1",
+        "rulesText": "Activate: Refund 1 energy from your last payment."
+      }
+    ]
+  },
+  {
+    "id": "wind-pressure-draft",
+    "name": "Pressure Draft",
+    "type": "Spell",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "return_friendly_field_to_hand_choice"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Bounce"
+    ],
+    "rulesText": "Choose a friendly Unit or Support. Return it to its owner's hand.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "return-friendly-field-to-hand-choice",
+      "rarity": "Uncommon",
+      "artKey": "wind-pressure-draft"
+    }
+  },
+  {
+    "id": "wind-stormstep-revision",
+    "name": "Stormstep Revision",
+    "type": "Spell",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "draw_two"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Draw"
+    ],
+    "rulesText": "Refresh. Draw two cards.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "draw-two",
+      "rarity": "Uncommon",
+      "artKey": "wind-stormstep-revision"
+    }
+  },
+  {
+    "id": "wind-horizon-dancer",
+    "name": "Horizon Dancer",
+    "type": "Unit",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "ready_friendly_unit_choice"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Value"
+    ],
+    "rulesText": "Cantrip. Choose a friendly Unit. Ready it.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "ready-friendly-unit-choice",
+      "rarity": "Rare",
+      "artKey": "wind-horizon-dancer"
+    },
+    "power": 8000
+  },
+  {
+    "id": "wind-kitefield-marshal",
+    "name": "Kitefield Marshal",
+    "type": "Unit",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "reduce_next_card_cost_2"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Value",
+      "Ramp"
+    ],
+    "rulesText": "The next card you play this turn costs 2 less.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "reduce-next-card-cost-2",
+      "rarity": "Rare",
+      "artKey": "wind-kitefield-marshal"
+    },
+    "power": 9000
+  },
+  {
+    "id": "wind-cyclone-workshop",
+    "name": "Cyclone Workshop",
+    "type": "Support",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "refund_last_payment_2"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Engine",
+      "Value",
+      "Ramp"
+    ],
+    "rulesText": "Refund 2 energy from your last payment. Activate: Refund 2 energy from your last payment.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "refund-last-payment-2",
+      "rarity": "Rare",
+      "artKey": "wind-cyclone-workshop"
+    },
+    "abilities": [
+      {
+        "id": "ascend-refund-last-payment-2",
+        "name": "Ascend",
+        "cost": {
+          "Wind": 1
+        },
+        "hook": "refund_last_payment_2",
+        "rulesText": "Activate: Refund 2 energy from your last payment."
+      }
+    ]
+  },
+  {
+    "id": "wind-reversal-current",
+    "name": "Reversal Current",
+    "type": "Spell",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "return_any_field_to_hand_choice"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Value",
+      "Bounce"
+    ],
+    "rulesText": "Choose any Unit or Support. Return it to its owner's hand.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "return-any-field-to-hand-choice",
+      "rarity": "Rare",
+      "artKey": "wind-reversal-current"
+    }
+  },
+  {
+    "id": "wind-tempest-regent",
+    "name": "Tempest Regent",
+    "type": "Unit",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 2,
+      "Generic": 3
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "draw_two"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Finisher",
+      "Draw"
+    ],
+    "rulesText": "Refresh. Draw two cards.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "draw-two",
+      "rarity": "Legendary",
+      "artKey": "wind-tempest-regent"
+    },
+    "power": 10000
+  },
+  {
+    "id": "wind-freewind-design",
+    "name": "Freewind Design",
+    "type": "Spell",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "return_friendly_field_to_hand_choice",
+      "reduce_next_card_cost_3"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Value",
+      "Ramp",
+      "Bounce"
+    ],
+    "rulesText": "Choose a friendly Unit or Support. Return it to its owner's hand. The next card you play this turn costs 3 less.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "return-friendly-field-to-hand-choice",
+      "rarity": "Legendary",
+      "artKey": "wind-freewind-design"
+    }
+  },
+  {
+    "id": "wind-apex-gale-dragon",
+    "name": "Apex Gale Dragon",
+    "type": "Unit",
+    "elements": [
+      "Wind"
+    ],
+    "cost": {
+      "Wind": 2,
+      "Generic": 4
+    },
+    "keywords": [
+      "Cantrip",
+      "Refresh"
+    ],
+    "hooks": [
+      "ready_friendly_unit_choice",
+      "refund_last_payment_2"
+    ],
+    "tags": [
+      "Combo",
+      "Wind",
+      "Elemental Ascension",
+      "Finisher",
+      "Ramp"
+    ],
+    "rulesText": "Cantrip. Refresh. Choose a friendly Unit. Ready it. Refund 2 energy from your last payment.",
+    "rarity": "Mythic",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "wind",
+      "effect": "ready-friendly-unit-choice",
+      "rarity": "Mythic",
+      "artKey": "wind-apex-gale-dragon"
+    },
+    "power": 12000
+  },
+  {
+    "id": "earth-rootguard-recruit",
+    "name": "Rootguard Recruit",
+    "type": "Unit",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 1
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension"
+    ],
+    "rulesText": "A Earth combatant shaped by the Elemental Ascension.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "earth-rootguard-recruit"
+    },
+    "power": 2000
+  },
+  {
+    "id": "earth-stone-ledger",
+    "name": "Stone Ledger",
+    "type": "Unit",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 1,
+      "Generic": 1
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Cantrip.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "earth-stone-ledger"
+    },
+    "power": 4000
+  },
+  {
+    "id": "earth-grove-binder",
+    "name": "Grove Binder",
+    "type": "Unit",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "gain_energy_source_element_1"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Gain 1 Earth energy.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "gain-energy-source-element-1",
+      "rarity": "Common",
+      "artKey": "earth-grove-binder"
+    },
+    "power": 6000
+  },
+  {
+    "id": "earth-granite-escort",
+    "name": "Granite Escort",
+    "type": "Unit",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Refresh.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "earth-granite-escort"
+    },
+    "power": 7000
+  },
+  {
+    "id": "earth-loam-reservoir",
+    "name": "Loam Reservoir",
+    "type": "Support",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "recover_one_damage"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Engine",
+      "Recovery"
+    ],
+    "rulesText": "Recover 1 damage.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "recover-one-damage",
+      "rarity": "Common",
+      "artKey": "earth-loam-reservoir"
+    }
+  },
+  {
+    "id": "earth-terrace-relay",
+    "name": "Terrace Relay",
+    "type": "Support",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Engine"
+    ],
+    "rulesText": "Activate: Choose an element. Gain 1 energy of that element.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "support",
+      "rarity": "Common",
+      "artKey": "earth-terrace-relay"
+    },
+    "abilities": [
+      {
+        "id": "relay-gain-energy-choice",
+        "name": "Relay",
+        "cost": {
+          "Earth": 1
+        },
+        "hook": "gain_energy_choice",
+        "rulesText": "Activate: Choose an element. Gain 1 energy of that element."
+      }
+    ]
+  },
+  {
+    "id": "earth-seedbank-gift",
+    "name": "Seedbank Gift",
+    "type": "Spell",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "gain_energy_source_element_1"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Gain 1 Earth energy.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "gain-energy-source-element-1",
+      "rarity": "Common",
+      "artKey": "earth-seedbank-gift"
+    }
+  },
+  {
+    "id": "earth-grounding-rite",
+    "name": "Grounding Rite",
+    "type": "Spell",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "recover_one_gain_source_energy_1"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Recovery"
+    ],
+    "rulesText": "Recover 1 damage. Gain 1 Earth energy.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "recover-one-gain-source-energy-1",
+      "rarity": "Common",
+      "artKey": "earth-grounding-rite"
+    }
+  },
+  {
+    "id": "earth-bedrock-herald",
+    "name": "Bedrock Herald",
+    "type": "Unit",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_one_gain_source_energy_1"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Draw"
+    ],
+    "rulesText": "Draw a card. Gain 1 Earth energy.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "draw-one-gain-source-energy-1",
+      "rarity": "Uncommon",
+      "artKey": "earth-bedrock-herald"
+    },
+    "power": 5000
+  },
+  {
+    "id": "earth-briar-colossus",
+    "name": "Briar Colossus",
+    "type": "Unit",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "gain_energy_source_element_1"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Refresh. Gain 1 Earth energy.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "gain-energy-source-element-1",
+      "rarity": "Uncommon",
+      "artKey": "earth-briar-colossus"
+    },
+    "power": 8000
+  },
+  {
+    "id": "earth-verdant-engine",
+    "name": "Verdant Engine",
+    "type": "Support",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "gain_energy_choice_2"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Engine"
+    ],
+    "rulesText": "Choose an element. Gain 2 energy of that element. Activate: Choose an element. Gain 2 energy of that element.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "gain-energy-choice-2",
+      "rarity": "Uncommon",
+      "artKey": "earth-verdant-engine"
+    },
+    "abilities": [
+      {
+        "id": "engine-gain-energy-choice-2",
+        "name": "Engine",
+        "cost": {
+          "Earth": 1
+        },
+        "hook": "gain_energy_choice_2",
+        "rulesText": "Activate: Choose an element. Gain 2 energy of that element."
+      }
+    ]
+  },
+  {
+    "id": "earth-harvest-reading",
+    "name": "Harvest Reading",
+    "type": "Spell",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "recover_one_draw_one"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Draw",
+      "Recovery"
+    ],
+    "rulesText": "Recover 1 damage. Draw a card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "recover-one-draw-one",
+      "rarity": "Uncommon",
+      "artKey": "earth-harvest-reading"
+    }
+  },
+  {
+    "id": "earth-mountain-oath",
+    "name": "Mountain Oath",
+    "type": "Spell",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "gain_energy_choice_2"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Refresh. Choose an element. Gain 2 energy of that element.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "gain-energy-choice-2",
+      "rarity": "Uncommon",
+      "artKey": "earth-mountain-oath"
+    }
+  },
+  {
+    "id": "earth-ironbark-captain",
+    "name": "Ironbark Captain",
+    "type": "Unit",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "draw_one_gain_source_energy_1"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Value",
+      "Draw"
+    ],
+    "rulesText": "Cantrip. Draw a card. Gain 1 Earth energy.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "draw-one-gain-source-energy-1",
+      "rarity": "Rare",
+      "artKey": "earth-ironbark-captain"
+    },
+    "power": 8000
+  },
+  {
+    "id": "earth-worldroot-keeper",
+    "name": "Worldroot Keeper",
+    "type": "Unit",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "recover_one_gain_source_energy_1"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Value",
+      "Recovery"
+    ],
+    "rulesText": "Recover 1 damage. Gain 1 Earth energy.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "recover-one-gain-source-energy-1",
+      "rarity": "Rare",
+      "artKey": "earth-worldroot-keeper"
+    },
+    "power": 9000
+  },
+  {
+    "id": "earth-citadel-orchard",
+    "name": "Citadel Orchard",
+    "type": "Support",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "gain_energy_choice_3"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Engine",
+      "Value"
+    ],
+    "rulesText": "Choose an element. Gain 3 energy of that element. Activate: Choose an element. Gain 3 energy of that element.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "gain-energy-choice-3",
+      "rarity": "Rare",
+      "artKey": "earth-citadel-orchard"
+    },
+    "abilities": [
+      {
+        "id": "ascend-gain-energy-choice-3",
+        "name": "Ascend",
+        "cost": {
+          "Earth": 1
+        },
+        "hook": "gain_energy_choice_3",
+        "rulesText": "Activate: Choose an element. Gain 3 energy of that element."
+      }
+    ]
+  },
+  {
+    "id": "earth-faultline-renewal",
+    "name": "Faultline Renewal",
+    "type": "Spell",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "gain_energy_choice_3"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Value"
+    ],
+    "rulesText": "Choose an element. Gain 3 energy of that element.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "gain-energy-choice-3",
+      "rarity": "Rare",
+      "artKey": "earth-faultline-renewal"
+    }
+  },
+  {
+    "id": "earth-gaia-regent",
+    "name": "Gaia Regent",
+    "type": "Unit",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 2,
+      "Generic": 3
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "recover_one_draw_one"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Finisher",
+      "Draw",
+      "Recovery"
+    ],
+    "rulesText": "Refresh. Recover 1 damage. Draw a card.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "recover-one-draw-one",
+      "rarity": "Legendary",
+      "artKey": "earth-gaia-regent"
+    },
+    "power": 10000
+  },
+  {
+    "id": "earth-continental-accord",
+    "name": "Continental Accord",
+    "type": "Spell",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_two_gain_source_energy_1",
+      "recover_one_gain_source_energy_1"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Value",
+      "Draw",
+      "Recovery"
+    ],
+    "rulesText": "Draw two cards. Gain 1 Earth energy. Recover 1 damage. Gain 1 Earth energy.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "draw-two-gain-source-energy-1",
+      "rarity": "Legendary",
+      "artKey": "earth-continental-accord"
+    }
+  },
+  {
+    "id": "earth-primeval-earth-dragon",
+    "name": "Primeval Earth Dragon",
+    "type": "Unit",
+    "elements": [
+      "Earth"
+    ],
+    "cost": {
+      "Earth": 2,
+      "Generic": 4
+    },
+    "keywords": [
+      "Cantrip",
+      "Refresh"
+    ],
+    "hooks": [
+      "gain_energy_choice_3",
+      "recover_one_draw_one"
+    ],
+    "tags": [
+      "Ramp",
+      "Earth",
+      "Elemental Ascension",
+      "Finisher",
+      "Draw",
+      "Recovery"
+    ],
+    "rulesText": "Cantrip. Refresh. Choose an element. Gain 3 energy of that element. Recover 1 damage. Draw a card.",
+    "rarity": "Mythic",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "earth",
+      "effect": "gain-energy-choice-3",
+      "rarity": "Mythic",
+      "artKey": "earth-primeval-earth-dragon"
+    },
+    "power": 12000
+  },
+  {
+    "id": "lightning-arc-striker",
+    "name": "Arc Striker",
+    "type": "Unit",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 1
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension"
+    ],
+    "rulesText": "A Lightning combatant shaped by the Elemental Ascension.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "lightning-arc-striker"
+    },
+    "power": 2000
+  },
+  {
+    "id": "lightning-volt-courier",
+    "name": "Volt Courier",
+    "type": "Unit",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 1,
+      "Generic": 1
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Cantrip.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "lightning-volt-courier"
+    },
+    "power": 4000
+  },
+  {
+    "id": "lightning-bladeflash-runner",
+    "name": "Bladeflash Runner",
+    "type": "Unit",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "exhaust_enemy_unit_choice"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Choose an enemy Unit. Exhaust it.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "exhaust-enemy-unit-choice",
+      "rarity": "Common",
+      "artKey": "lightning-bladeflash-runner"
+    },
+    "power": 6000
+  },
+  {
+    "id": "lightning-thunderwake-duelist",
+    "name": "Thunderwake Duelist",
+    "type": "Unit",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Strike"
+    ],
+    "hooks": [],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Strike.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "lightning-thunderwake-duelist"
+    },
+    "power": 7000
+  },
+  {
+    "id": "lightning-stormcell-relay",
+    "name": "Stormcell Relay",
+    "type": "Support",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "deal_one_damage"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Engine",
+      "Removal"
+    ],
+    "rulesText": "Deal 1 damage to your opponent.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "deal-one-damage",
+      "rarity": "Common",
+      "artKey": "lightning-stormcell-relay"
+    }
+  },
+  {
+    "id": "lightning-charge-ledger",
+    "name": "Charge Ledger",
+    "type": "Support",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Engine",
+      "Removal"
+    ],
+    "rulesText": "Activate: Your opponent discards one card.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "support",
+      "rarity": "Common",
+      "artKey": "lightning-charge-ledger"
+    },
+    "abilities": [
+      {
+        "id": "relay-discard-opponent-one",
+        "name": "Relay",
+        "cost": {
+          "Lightning": 1
+        },
+        "hook": "discard_opponent_one",
+        "rulesText": "Activate: Your opponent discards one card."
+      }
+    ]
+  },
+  {
+    "id": "lightning-static-cut",
+    "name": "Static Cut",
+    "type": "Spell",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "deal_one_damage"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Deal 1 damage to your opponent.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "deal-one-damage",
+      "rarity": "Common",
+      "artKey": "lightning-static-cut"
+    }
+  },
+  {
+    "id": "lightning-snap-reversal",
+    "name": "Snap Reversal",
+    "type": "Spell",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "exhaust_enemy_unit_choice"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Choose an enemy Unit. Exhaust it.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "exhaust-enemy-unit-choice",
+      "rarity": "Common",
+      "artKey": "lightning-snap-reversal"
+    }
+  },
+  {
+    "id": "lightning-forked-herald",
+    "name": "Forked Herald",
+    "type": "Unit",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "deal_one_draw_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Deal 1 damage to your opponent. Draw a card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "deal-one-draw-one",
+      "rarity": "Uncommon",
+      "artKey": "lightning-forked-herald"
+    },
+    "power": 5000
+  },
+  {
+    "id": "lightning-ion-breaker",
+    "name": "Ion Breaker",
+    "type": "Unit",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Strike"
+    ],
+    "hooks": [
+      "exhaust_enemy_unit_choice"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Strike. Choose an enemy Unit. Exhaust it.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "exhaust-enemy-unit-choice",
+      "rarity": "Uncommon",
+      "artKey": "lightning-ion-breaker"
+    },
+    "power": 8000
+  },
+  {
+    "id": "lightning-voltage-grid",
+    "name": "Voltage Grid",
+    "type": "Support",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "reduce_next_card_cost_1"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Engine",
+      "Ramp"
+    ],
+    "rulesText": "The next card you play this turn costs 1 less. Activate: The next card you play this turn costs 1 less.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "reduce-next-card-cost-1",
+      "rarity": "Uncommon",
+      "artKey": "lightning-voltage-grid"
+    },
+    "abilities": [
+      {
+        "id": "engine-reduce-next-card-cost-1",
+        "name": "Engine",
+        "cost": {
+          "Lightning": 1
+        },
+        "hook": "reduce_next_card_cost_1",
+        "rulesText": "Activate: The next card you play this turn costs 1 less."
+      }
+    ]
+  },
+  {
+    "id": "lightning-blackout-demand",
+    "name": "Blackout Demand",
+    "type": "Spell",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "discard_opponent_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Your opponent discards one card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "discard-opponent-one",
+      "rarity": "Uncommon",
+      "artKey": "lightning-blackout-demand"
+    }
+  },
+  {
+    "id": "lightning-overload-verdict",
+    "name": "Overload Verdict",
+    "type": "Spell",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "return_enemy_unit_to_hand_choice"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Refresh. Choose an enemy Unit. Return it to its owner's hand.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "return-enemy-unit-to-hand-choice",
+      "rarity": "Uncommon",
+      "artKey": "lightning-overload-verdict"
+    }
+  },
+  {
+    "id": "lightning-flashpoint-captain",
+    "name": "Flashpoint Captain",
+    "type": "Unit",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "exhaust_enemy_unit_choice"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Value",
+      "Removal"
+    ],
+    "rulesText": "Cantrip. Choose an enemy Unit. Exhaust it.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "exhaust-enemy-unit-choice",
+      "rarity": "Rare",
+      "artKey": "lightning-flashpoint-captain"
+    },
+    "power": 8000
+  },
+  {
+    "id": "lightning-stormlash-enforcer",
+    "name": "Stormlash Enforcer",
+    "type": "Unit",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "deal_one_draw_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Deal 1 damage to your opponent. Draw a card.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "deal-one-draw-one",
+      "rarity": "Rare",
+      "artKey": "lightning-stormlash-enforcer"
+    },
+    "power": 9000
+  },
+  {
+    "id": "lightning-resonance-tower",
+    "name": "Resonance Tower",
+    "type": "Support",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "refund_last_payment_1"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Engine",
+      "Value",
+      "Ramp"
+    ],
+    "rulesText": "Refund 1 energy from your last payment. Activate: Refund 1 energy from your last payment.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "refund-last-payment-1",
+      "rarity": "Rare",
+      "artKey": "lightning-resonance-tower"
+    },
+    "abilities": [
+      {
+        "id": "ascend-refund-last-payment-1",
+        "name": "Ascend",
+        "cost": {
+          "Lightning": 1
+        },
+        "hook": "refund_last_payment_1",
+        "rulesText": "Activate: Refund 1 energy from your last payment."
+      }
+    ]
+  },
+  {
+    "id": "lightning-instant-rupture",
+    "name": "Instant Rupture",
+    "type": "Spell",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "return_enemy_field_to_hand_choice"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Choose an enemy Unit or Support. Return it to its owner's hand.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "return-enemy-field-to-hand-choice",
+      "rarity": "Rare",
+      "artKey": "lightning-instant-rupture"
+    }
+  },
+  {
+    "id": "lightning-tempest-crown",
+    "name": "Tempest Crown",
+    "type": "Unit",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 2,
+      "Generic": 3
+    },
+    "keywords": [
+      "Strike"
+    ],
+    "hooks": [
+      "discard_opponent_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Finisher",
+      "Removal"
+    ],
+    "rulesText": "Strike. Your opponent discards one card.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "discard-opponent-one",
+      "rarity": "Legendary",
+      "artKey": "lightning-tempest-crown"
+    },
+    "power": 10000
+  },
+  {
+    "id": "lightning-thunderclap-order",
+    "name": "Thunderclap Order",
+    "type": "Spell",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "deal_one_draw_one",
+      "exhaust_enemy_unit_choice"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Deal 1 damage to your opponent. Draw a card. Choose an enemy Unit. Exhaust it.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "deal-one-draw-one",
+      "rarity": "Legendary",
+      "artKey": "lightning-thunderclap-order"
+    }
+  },
+  {
+    "id": "lightning-apex-storm-dragon",
+    "name": "Apex Storm Dragon",
+    "type": "Unit",
+    "elements": [
+      "Lightning"
+    ],
+    "cost": {
+      "Lightning": 2,
+      "Generic": 4
+    },
+    "keywords": [
+      "Cantrip",
+      "Strike"
+    ],
+    "hooks": [
+      "return_enemy_field_to_hand_choice",
+      "deal_one_damage"
+    ],
+    "tags": [
+      "Aggro",
+      "Lightning",
+      "Elemental Ascension",
+      "Finisher",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Cantrip. Strike. Choose an enemy Unit or Support. Return it to its owner's hand. Deal 1 damage to your opponent.",
+    "rarity": "Mythic",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "lightning",
+      "effect": "return-enemy-field-to-hand-choice",
+      "rarity": "Mythic",
+      "artKey": "lightning-apex-storm-dragon"
+    },
+    "power": 12000
+  },
+  {
+    "id": "water-tide-page",
+    "name": "Tide Page",
+    "type": "Unit",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 1
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension"
+    ],
+    "rulesText": "A Water combatant shaped by the Elemental Ascension.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "water-tide-page"
+    },
+    "power": 2000
+  },
+  {
+    "id": "water-pearl-reader",
+    "name": "Pearl Reader",
+    "type": "Unit",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 1,
+      "Generic": 1
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Cantrip.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "water-pearl-reader"
+    },
+    "power": 4000
+  },
+  {
+    "id": "water-riverguide-envoy",
+    "name": "Riverguide Envoy",
+    "type": "Unit",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_two"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Draw"
+    ],
+    "rulesText": "Draw two cards.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "draw-two",
+      "rarity": "Common",
+      "artKey": "water-riverguide-envoy"
+    },
+    "power": 6000
+  },
+  {
+    "id": "water-coral-shieldbearer",
+    "name": "Coral Shieldbearer",
+    "type": "Unit",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Cantrip.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "water-coral-shieldbearer"
+    },
+    "power": 7000
+  },
+  {
+    "id": "water-current-archive",
+    "name": "Current Archive",
+    "type": "Support",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "recover_one_draw_one"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Engine",
+      "Draw",
+      "Recovery"
+    ],
+    "rulesText": "Recover 1 damage. Draw a card.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "recover-one-draw-one",
+      "rarity": "Common",
+      "artKey": "water-current-archive"
+    }
+  },
+  {
+    "id": "water-harbor-relay",
+    "name": "Harbor Relay",
+    "type": "Support",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Engine",
+      "Ramp"
+    ],
+    "rulesText": "Activate: Choose an element. Convert 1 energy into that element.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "support",
+      "rarity": "Common",
+      "artKey": "water-harbor-relay"
+    },
+    "abilities": [
+      {
+        "id": "relay-convert-one-energy",
+        "name": "Relay",
+        "cost": {
+          "Water": 1
+        },
+        "hook": "convert_one_energy",
+        "rulesText": "Activate: Choose an element. Convert 1 energy into that element."
+      }
+    ]
+  },
+  {
+    "id": "water-freshwater-grace",
+    "name": "Freshwater Grace",
+    "type": "Spell",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "return_enemy_unit_to_hand_choice"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Choose an enemy Unit. Return it to its owner's hand.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "return-enemy-unit-to-hand-choice",
+      "rarity": "Common",
+      "artKey": "water-freshwater-grace"
+    }
+  },
+  {
+    "id": "water-undertow-return",
+    "name": "Undertow Return",
+    "type": "Spell",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_two"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Draw"
+    ],
+    "rulesText": "Draw two cards.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "draw-two",
+      "rarity": "Common",
+      "artKey": "water-undertow-return"
+    }
+  },
+  {
+    "id": "water-mistcourt-analyst",
+    "name": "Mistcourt Analyst",
+    "type": "Unit",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "recover_one_draw_one"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Draw",
+      "Recovery"
+    ],
+    "rulesText": "Recover 1 damage. Draw a card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "recover-one-draw-one",
+      "rarity": "Uncommon",
+      "artKey": "water-mistcourt-analyst"
+    },
+    "power": 5000
+  },
+  {
+    "id": "water-wavecall-captain",
+    "name": "Wavecall Captain",
+    "type": "Unit",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "draw_two"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Draw"
+    ],
+    "rulesText": "Cantrip. Draw two cards.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "draw-two",
+      "rarity": "Uncommon",
+      "artKey": "water-wavecall-captain"
+    },
+    "power": 8000
+  },
+  {
+    "id": "water-mirror-basin",
+    "name": "Mirror Basin",
+    "type": "Support",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_two"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Engine",
+      "Draw"
+    ],
+    "rulesText": "Draw two cards. Activate: Draw two cards.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "draw-two",
+      "rarity": "Uncommon",
+      "artKey": "water-mirror-basin"
+    },
+    "abilities": [
+      {
+        "id": "engine-draw-two",
+        "name": "Engine",
+        "cost": {
+          "Water": 1
+        },
+        "hook": "draw_two",
+        "rulesText": "Activate: Draw two cards."
+      }
+    ]
+  },
+  {
+    "id": "water-sapphire-lesson",
+    "name": "Sapphire Lesson",
+    "type": "Spell",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "return_friendly_field_to_hand_choice"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Bounce"
+    ],
+    "rulesText": "Choose a friendly Unit or Support. Return it to its owner's hand.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "return-friendly-field-to-hand-choice",
+      "rarity": "Uncommon",
+      "artKey": "water-sapphire-lesson"
+    }
+  },
+  {
+    "id": "water-deep-channel",
+    "name": "Deep Channel",
+    "type": "Spell",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "return_enemy_field_to_hand_choice"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Refresh. Choose an enemy Unit or Support. Return it to its owner's hand.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "return-enemy-field-to-hand-choice",
+      "rarity": "Uncommon",
+      "artKey": "water-deep-channel"
+    }
+  },
+  {
+    "id": "water-rain-regent",
+    "name": "Rain Regent",
+    "type": "Unit",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "draw_two"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Value",
+      "Draw"
+    ],
+    "rulesText": "Cantrip. Draw two cards.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "draw-two",
+      "rarity": "Rare",
+      "artKey": "water-rain-regent"
+    },
+    "power": 8000
+  },
+  {
+    "id": "water-moonpool-keeper",
+    "name": "Moonpool Keeper",
+    "type": "Unit",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "recover_one_gain_source_energy_1"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Value",
+      "Ramp",
+      "Recovery"
+    ],
+    "rulesText": "Recover 1 damage. Gain 1 Water energy.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "recover-one-gain-source-energy-1",
+      "rarity": "Rare",
+      "artKey": "water-moonpool-keeper"
+    },
+    "power": 9000
+  },
+  {
+    "id": "water-tideglass-academy",
+    "name": "Tideglass Academy",
+    "type": "Support",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_two_gain_source_energy_1"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Engine",
+      "Value",
+      "Draw",
+      "Ramp"
+    ],
+    "rulesText": "Draw two cards. Gain 1 Water energy. Activate: Draw two cards. Gain 1 Water energy.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "draw-two-gain-source-energy-1",
+      "rarity": "Rare",
+      "artKey": "water-tideglass-academy"
+    },
+    "abilities": [
+      {
+        "id": "ascend-draw-two-gain-source-energy-1",
+        "name": "Ascend",
+        "cost": {
+          "Water": 1
+        },
+        "hook": "draw_two_gain_source_energy_1",
+        "rulesText": "Activate: Draw two cards. Gain 1 Water energy."
+      }
+    ]
+  },
+  {
+    "id": "water-floodgate-verdict",
+    "name": "Floodgate Verdict",
+    "type": "Spell",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "return_enemy_field_to_hand_choice"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Choose an enemy Unit or Support. Return it to its owner's hand.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "return-enemy-field-to-hand-choice",
+      "rarity": "Rare",
+      "artKey": "water-floodgate-verdict"
+    }
+  },
+  {
+    "id": "water-oceanic-regent",
+    "name": "Oceanic Regent",
+    "type": "Unit",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 2,
+      "Generic": 3
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "recover_one_draw_one"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Finisher",
+      "Draw",
+      "Recovery"
+    ],
+    "rulesText": "Cantrip. Recover 1 damage. Draw a card.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "recover-one-draw-one",
+      "rarity": "Legendary",
+      "artKey": "water-oceanic-regent"
+    },
+    "power": 10000
+  },
+  {
+    "id": "water-endless-circulation",
+    "name": "Endless Circulation",
+    "type": "Spell",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_three_discard_one",
+      "return_any_field_to_hand_choice"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Value",
+      "Draw",
+      "Bounce"
+    ],
+    "rulesText": "Draw three cards, then discard one card. Choose any Unit or Support. Return it to its owner's hand.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "draw-three-discard-one",
+      "rarity": "Legendary",
+      "artKey": "water-endless-circulation"
+    }
+  },
+  {
+    "id": "water-abyss-tide-dragon",
+    "name": "Abyss Tide Dragon",
+    "type": "Unit",
+    "elements": [
+      "Water"
+    ],
+    "cost": {
+      "Water": 2,
+      "Generic": 4
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "draw_two_gain_source_energy_1",
+      "return_enemy_field_to_hand_choice"
+    ],
+    "tags": [
+      "Control",
+      "Water",
+      "Elemental Ascension",
+      "Finisher",
+      "Removal",
+      "Draw",
+      "Ramp",
+      "Bounce"
+    ],
+    "rulesText": "Cantrip. Draw two cards. Gain 1 Water energy. Choose an enemy Unit or Support. Return it to its owner's hand.",
+    "rarity": "Mythic",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "water",
+      "effect": "draw-two-gain-source-energy-1",
+      "rarity": "Mythic",
+      "artKey": "water-abyss-tide-dragon"
+    },
+    "power": 12000
+  },
+  {
+    "id": "light-dawn-page",
+    "name": "Dawn Page",
+    "type": "Unit",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 1
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension"
+    ],
+    "rulesText": "A Light combatant shaped by the Elemental Ascension.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "light-dawn-page"
+    },
+    "power": 2000
+  },
+  {
+    "id": "light-gleam-attendant",
+    "name": "Gleam Attendant",
+    "type": "Unit",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 1,
+      "Generic": 1
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Cantrip.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "light-gleam-attendant"
+    },
+    "power": 4000
+  },
+  {
+    "id": "light-halo-escort",
+    "name": "Halo Escort",
+    "type": "Unit",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "recover_one_damage"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Recovery"
+    ],
+    "rulesText": "Recover 1 damage.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "recover-one-damage",
+      "rarity": "Common",
+      "artKey": "light-halo-escort"
+    },
+    "power": 6000
+  },
+  {
+    "id": "light-radiant-vanguard",
+    "name": "Radiant Vanguard",
+    "type": "Unit",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Refresh.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "light-radiant-vanguard"
+    },
+    "power": 7000
+  },
+  {
+    "id": "light-sanctum-ledger",
+    "name": "Sanctum Ledger",
+    "type": "Support",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "ready_friendly_unit_choice"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Engine"
+    ],
+    "rulesText": "Choose a friendly Unit. Ready it.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "ready-friendly-unit-choice",
+      "rarity": "Common",
+      "artKey": "light-sanctum-ledger"
+    }
+  },
+  {
+    "id": "light-beacon-relay",
+    "name": "Beacon Relay",
+    "type": "Support",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Engine",
+      "Draw",
+      "Recovery"
+    ],
+    "rulesText": "Activate: Recover 1 damage. Draw a card.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "support",
+      "rarity": "Common",
+      "artKey": "light-beacon-relay"
+    },
+    "abilities": [
+      {
+        "id": "relay-recover-one-draw-one",
+        "name": "Relay",
+        "cost": {
+          "Light": 1
+        },
+        "hook": "recover_one_draw_one",
+        "rulesText": "Activate: Recover 1 damage. Draw a card."
+      }
+    ]
+  },
+  {
+    "id": "light-mending-prayer",
+    "name": "Mending Prayer",
+    "type": "Spell",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "recover_one_damage"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Recovery"
+    ],
+    "rulesText": "Recover 1 damage.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "recover-one-damage",
+      "rarity": "Common",
+      "artKey": "light-mending-prayer"
+    }
+  },
+  {
+    "id": "light-mercy-recall",
+    "name": "Mercy Recall",
+    "type": "Spell",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "return_friendly_unit_to_hand_choice"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Bounce"
+    ],
+    "rulesText": "Choose a friendly Unit. Return it to its owner's hand.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "return-friendly-unit-to-hand-choice",
+      "rarity": "Common",
+      "artKey": "light-mercy-recall"
+    }
+  },
+  {
+    "id": "light-sunlit-herald",
+    "name": "Sunlit Herald",
+    "type": "Unit",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "recover_one_draw_one"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Draw",
+      "Recovery"
+    ],
+    "rulesText": "Recover 1 damage. Draw a card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "recover-one-draw-one",
+      "rarity": "Uncommon",
+      "artKey": "light-sunlit-herald"
+    },
+    "power": 5000
+  },
+  {
+    "id": "light-aegis-captain",
+    "name": "Aegis Captain",
+    "type": "Unit",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "recover_one_damage"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Recovery"
+    ],
+    "rulesText": "Refresh. Recover 1 damage.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "recover-one-damage",
+      "rarity": "Uncommon",
+      "artKey": "light-aegis-captain"
+    },
+    "power": 8000
+  },
+  {
+    "id": "light-luminous-engine",
+    "name": "Luminous Engine",
+    "type": "Support",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_two"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Engine",
+      "Draw"
+    ],
+    "rulesText": "Draw two cards. Activate: Draw two cards.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "draw-two",
+      "rarity": "Uncommon",
+      "artKey": "light-luminous-engine"
+    },
+    "abilities": [
+      {
+        "id": "engine-draw-two",
+        "name": "Engine",
+        "cost": {
+          "Light": 1
+        },
+        "hook": "draw_two",
+        "rulesText": "Activate: Draw two cards."
+      }
+    ]
+  },
+  {
+    "id": "light-bright-counsel",
+    "name": "Bright Counsel",
+    "type": "Spell",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "return_friendly_field_to_hand_choice"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Bounce"
+    ],
+    "rulesText": "Choose a friendly Unit or Support. Return it to its owner's hand.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "return-friendly-field-to-hand-choice",
+      "rarity": "Uncommon",
+      "artKey": "light-bright-counsel"
+    }
+  },
+  {
+    "id": "light-renewal-decree",
+    "name": "Renewal Decree",
+    "type": "Spell",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "ready_friendly_unit_choice"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Refresh. Choose a friendly Unit. Ready it.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "ready-friendly-unit-choice",
+      "rarity": "Uncommon",
+      "artKey": "light-renewal-decree"
+    }
+  },
+  {
+    "id": "light-seraphic-marshal",
+    "name": "Seraphic Marshal",
+    "type": "Unit",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "recover_one_draw_one"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Value",
+      "Draw",
+      "Recovery"
+    ],
+    "rulesText": "Cantrip. Recover 1 damage. Draw a card.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "recover-one-draw-one",
+      "rarity": "Rare",
+      "artKey": "light-seraphic-marshal"
+    },
+    "power": 8000
+  },
+  {
+    "id": "light-daybreak-keeper",
+    "name": "Daybreak Keeper",
+    "type": "Unit",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "ready_friendly_unit_choice"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Value"
+    ],
+    "rulesText": "Choose a friendly Unit. Ready it.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "ready-friendly-unit-choice",
+      "rarity": "Rare",
+      "artKey": "light-daybreak-keeper"
+    },
+    "power": 9000
+  },
+  {
+    "id": "light-prism-sanctuary",
+    "name": "Prism Sanctuary",
+    "type": "Support",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "recover_one_gain_source_energy_1"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Engine",
+      "Value",
+      "Ramp",
+      "Recovery"
+    ],
+    "rulesText": "Recover 1 damage. Gain 1 Light energy. Activate: Recover 1 damage. Gain 1 Light energy.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "recover-one-gain-source-energy-1",
+      "rarity": "Rare",
+      "artKey": "light-prism-sanctuary"
+    },
+    "abilities": [
+      {
+        "id": "ascend-recover-one-gain-source-energy-1",
+        "name": "Ascend",
+        "cost": {
+          "Light": 1
+        },
+        "hook": "recover_one_gain_source_energy_1",
+        "rulesText": "Activate: Recover 1 damage. Gain 1 Light energy."
+      }
+    ]
+  },
+  {
+    "id": "light-judgment-of-mercy",
+    "name": "Judgment of Mercy",
+    "type": "Spell",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "return_any_field_to_hand_choice"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Value",
+      "Bounce"
+    ],
+    "rulesText": "Choose any Unit or Support. Return it to its owner's hand.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "return-any-field-to-hand-choice",
+      "rarity": "Rare",
+      "artKey": "light-judgment-of-mercy"
+    }
+  },
+  {
+    "id": "light-crown-of-morning",
+    "name": "Crown of Morning",
+    "type": "Unit",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 2,
+      "Generic": 3
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "recover_one_draw_one"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Finisher",
+      "Draw",
+      "Recovery"
+    ],
+    "rulesText": "Refresh. Recover 1 damage. Draw a card.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "recover-one-draw-one",
+      "rarity": "Legendary",
+      "artKey": "light-crown-of-morning"
+    },
+    "power": 10000
+  },
+  {
+    "id": "light-unbroken-chorus",
+    "name": "Unbroken Chorus",
+    "type": "Spell",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_two",
+      "ready_friendly_unit_choice"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Value",
+      "Draw"
+    ],
+    "rulesText": "Draw two cards. Choose a friendly Unit. Ready it.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "draw-two",
+      "rarity": "Legendary",
+      "artKey": "light-unbroken-chorus"
+    }
+  },
+  {
+    "id": "light-apex-dawn-dragon",
+    "name": "Apex Dawn Dragon",
+    "type": "Unit",
+    "elements": [
+      "Light"
+    ],
+    "cost": {
+      "Light": 2,
+      "Generic": 4
+    },
+    "keywords": [
+      "Cantrip",
+      "Refresh"
+    ],
+    "hooks": [
+      "recover_one_gain_source_energy_1",
+      "return_friendly_field_to_hand_choice"
+    ],
+    "tags": [
+      "Balanced",
+      "Light",
+      "Elemental Ascension",
+      "Finisher",
+      "Ramp",
+      "Bounce",
+      "Recovery"
+    ],
+    "rulesText": "Cantrip. Refresh. Recover 1 damage. Gain 1 Light energy. Choose a friendly Unit or Support. Return it to its owner's hand.",
+    "rarity": "Mythic",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "light",
+      "effect": "recover-one-gain-source-energy-1",
+      "rarity": "Mythic",
+      "artKey": "light-apex-dawn-dragon"
+    },
+    "power": 12000
+  },
+  {
+    "id": "dark-gloom-initiate",
+    "name": "Gloom Initiate",
+    "type": "Unit",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 1
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension"
+    ],
+    "rulesText": "A Dark combatant shaped by the Elemental Ascension.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "dark-gloom-initiate"
+    },
+    "power": 2000
+  },
+  {
+    "id": "dark-inkblade-scribe",
+    "name": "Inkblade Scribe",
+    "type": "Unit",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 1,
+      "Generic": 1
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Cantrip.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "dark-inkblade-scribe"
+    },
+    "power": 4000
+  },
+  {
+    "id": "dark-duskline-prowler",
+    "name": "Duskline Prowler",
+    "type": "Unit",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "discard_opponent_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Your opponent discards one card.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "discard-opponent-one",
+      "rarity": "Common",
+      "artKey": "dark-duskline-prowler"
+    },
+    "power": 6000
+  },
+  {
+    "id": "dark-abyssal-bruiser",
+    "name": "Abyssal Bruiser",
+    "type": "Unit",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Strike"
+    ],
+    "hooks": [],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension"
+    ],
+    "rulesText": "Strike.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "unit",
+      "rarity": "Common",
+      "artKey": "dark-abyssal-bruiser"
+    },
+    "power": 7000
+  },
+  {
+    "id": "dark-night-ledger",
+    "name": "Night Ledger",
+    "type": "Support",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_three_discard_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Engine",
+      "Draw"
+    ],
+    "rulesText": "Draw three cards, then discard one card.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "draw-three-discard-one",
+      "rarity": "Common",
+      "artKey": "dark-night-ledger"
+    }
+  },
+  {
+    "id": "dark-gravetide-relay",
+    "name": "Gravetide Relay",
+    "type": "Support",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Engine",
+      "Removal"
+    ],
+    "rulesText": "Activate: Deal 1 damage to your opponent.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "support",
+      "rarity": "Common",
+      "artKey": "dark-gravetide-relay"
+    },
+    "abilities": [
+      {
+        "id": "relay-deal-one-damage",
+        "name": "Relay",
+        "cost": {
+          "Dark": 1
+        },
+        "hook": "deal_one_damage",
+        "rulesText": "Activate: Deal 1 damage to your opponent."
+      }
+    ]
+  },
+  {
+    "id": "dark-bleak-bargain",
+    "name": "Bleak Bargain",
+    "type": "Spell",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "discard_opponent_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Your opponent discards one card.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "discard-opponent-one",
+      "rarity": "Common",
+      "artKey": "dark-bleak-bargain"
+    }
+  },
+  {
+    "id": "dark-shadow-reversal",
+    "name": "Shadow Reversal",
+    "type": "Spell",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "deal_one_damage"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Deal 1 damage to your opponent.",
+    "rarity": "Common",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "deal-one-damage",
+      "rarity": "Common",
+      "artKey": "dark-shadow-reversal"
+    }
+  },
+  {
+    "id": "dark-veilcourt-broker",
+    "name": "Veilcourt Broker",
+    "type": "Unit",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 1,
+      "Generic": 1
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_three_discard_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Draw"
+    ],
+    "rulesText": "Draw three cards, then discard one card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "draw-three-discard-one",
+      "rarity": "Uncommon",
+      "artKey": "dark-veilcourt-broker"
+    },
+    "power": 5000
+  },
+  {
+    "id": "dark-ebon-ravager",
+    "name": "Ebon Ravager",
+    "type": "Unit",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Strike"
+    ],
+    "hooks": [
+      "discard_opponent_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Removal"
+    ],
+    "rulesText": "Strike. Your opponent discards one card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "discard-opponent-one",
+      "rarity": "Uncommon",
+      "artKey": "dark-ebon-ravager"
+    },
+    "power": 8000
+  },
+  {
+    "id": "dark-obsidian-engine",
+    "name": "Obsidian Engine",
+    "type": "Support",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "discard_opponent_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Engine",
+      "Removal"
+    ],
+    "rulesText": "Your opponent discards one card. Activate: Your opponent discards one card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "discard-opponent-one",
+      "rarity": "Uncommon",
+      "artKey": "dark-obsidian-engine"
+    },
+    "abilities": [
+      {
+        "id": "engine-discard-opponent-one",
+        "name": "Engine",
+        "cost": {
+          "Dark": 1
+        },
+        "hook": "discard_opponent_one",
+        "rulesText": "Activate: Your opponent discards one card."
+      }
+    ]
+  },
+  {
+    "id": "dark-mind-gouge",
+    "name": "Mind Gouge",
+    "type": "Spell",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 1,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "return_enemy_unit_to_hand_choice"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Choose an enemy Unit. Return it to its owner's hand.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "return-enemy-unit-to-hand-choice",
+      "rarity": "Uncommon",
+      "artKey": "dark-mind-gouge"
+    }
+  },
+  {
+    "id": "dark-void-pressure",
+    "name": "Void Pressure",
+    "type": "Spell",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Refresh"
+    ],
+    "hooks": [
+      "deal_one_draw_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Refresh. Deal 1 damage to your opponent. Draw a card.",
+    "rarity": "Uncommon",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "deal-one-draw-one",
+      "rarity": "Uncommon",
+      "artKey": "dark-void-pressure"
+    }
+  },
+  {
+    "id": "dark-nocturne-captain",
+    "name": "Nocturne Captain",
+    "type": "Unit",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 2,
+      "Generic": 2
+    },
+    "keywords": [
+      "Cantrip"
+    ],
+    "hooks": [
+      "discard_opponent_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Value",
+      "Removal"
+    ],
+    "rulesText": "Cantrip. Your opponent discards one card.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "discard-opponent-one",
+      "rarity": "Rare",
+      "artKey": "dark-nocturne-captain"
+    },
+    "power": 8000
+  },
+  {
+    "id": "dark-gravecall-enforcer",
+    "name": "Gravecall Enforcer",
+    "type": "Unit",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "deal_one_draw_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Deal 1 damage to your opponent. Draw a card.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "deal-one-draw-one",
+      "rarity": "Rare",
+      "artKey": "dark-gravecall-enforcer"
+    },
+    "power": 9000
+  },
+  {
+    "id": "dark-blackstar-reliquary",
+    "name": "Blackstar Reliquary",
+    "type": "Support",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "draw_three_discard_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Engine",
+      "Value",
+      "Draw"
+    ],
+    "rulesText": "Draw three cards, then discard one card. Activate: Draw three cards, then discard one card.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "draw-three-discard-one",
+      "rarity": "Rare",
+      "artKey": "dark-blackstar-reliquary"
+    },
+    "abilities": [
+      {
+        "id": "ascend-draw-three-discard-one",
+        "name": "Ascend",
+        "cost": {
+          "Dark": 1
+        },
+        "hook": "draw_three_discard_one",
+        "rulesText": "Activate: Draw three cards, then discard one card."
+      }
+    ]
+  },
+  {
+    "id": "dark-ruinous-claim",
+    "name": "Ruinous Claim",
+    "type": "Spell",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 2,
+      "Generic": 2
+    },
+    "keywords": [],
+    "hooks": [
+      "return_enemy_field_to_hand_choice"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Bounce"
+    ],
+    "rulesText": "Choose an enemy Unit or Support. Return it to its owner's hand.",
+    "rarity": "Rare",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "return-enemy-field-to-hand-choice",
+      "rarity": "Rare",
+      "artKey": "dark-ruinous-claim"
+    }
+  },
+  {
+    "id": "dark-dread-regent",
+    "name": "Dread Regent",
+    "type": "Unit",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 2,
+      "Generic": 3
+    },
+    "keywords": [
+      "Strike"
+    ],
+    "hooks": [
+      "deal_one_draw_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Finisher",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Strike. Deal 1 damage to your opponent. Draw a card.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "deal-one-draw-one",
+      "rarity": "Legendary",
+      "artKey": "dark-dread-regent"
+    },
+    "power": 10000
+  },
+  {
+    "id": "dark-final-debt",
+    "name": "Final Debt",
+    "type": "Spell",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 2,
+      "Generic": 3
+    },
+    "keywords": [],
+    "hooks": [
+      "discard_opponent_one",
+      "draw_three_discard_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Value",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Your opponent discards one card. Draw three cards, then discard one card.",
+    "rarity": "Legendary",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "discard-opponent-one",
+      "rarity": "Legendary",
+      "artKey": "dark-final-debt"
+    }
+  },
+  {
+    "id": "dark-apex-eclipse-dragon",
+    "name": "Apex Eclipse Dragon",
+    "type": "Unit",
+    "elements": [
+      "Dark"
+    ],
+    "cost": {
+      "Dark": 2,
+      "Generic": 4
+    },
+    "keywords": [
+      "Cantrip",
+      "Strike"
+    ],
+    "hooks": [
+      "discard_opponent_one",
+      "deal_one_draw_one"
+    ],
+    "tags": [
+      "Aggro",
+      "Dark",
+      "Elemental Ascension",
+      "Finisher",
+      "Removal",
+      "Draw"
+    ],
+    "rulesText": "Cantrip. Strike. Your opponent discards one card. Deal 1 damage to your opponent. Draw a card.",
+    "rarity": "Mythic",
+    "setId": "elemental-ascension",
+    "visual": {
+      "frame": "dark",
+      "effect": "discard-opponent-one",
+      "rarity": "Mythic",
+      "artKey": "dark-apex-eclipse-dragon"
+    },
+    "power": 12000
+  }
+]

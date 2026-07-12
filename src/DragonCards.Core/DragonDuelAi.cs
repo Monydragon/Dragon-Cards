@@ -35,6 +35,25 @@ public sealed class DragonDuelAi
                 continue;
             }
 
+            if (engine.State.PendingEnergySourceChoice is not null)
+            {
+                var sourceChoice = engine.State.PendingEnergySourceChoice;
+                if (sourceChoice.PlayerIndex != aiPlayerIndex)
+                {
+                    return new AiTurnResult(AiTurnStatus.WaitingForHuman, decisions);
+                }
+
+                var source = engine.State.Players[aiPlayerIndex].EnergyField
+                    .FirstOrDefault(card => !card.Exhausted &&
+                        !engine.State.DefinitionFor(card).Elements.Contains(sourceChoice.DestinationElement, StringComparer.OrdinalIgnoreCase));
+                var result = source is null
+                    ? GameActionResult.Fail("No ready Energy source is available to convert.")
+                    : engine.ResolveEnergySourceChoice(source.Id);
+                decisions.Add(new AiDecision("energy-source-choice", result.Message, result.Events));
+                actions++;
+                continue;
+            }
+
             if (engine.State.PendingTargetChoice is not null)
             {
                 if (engine.State.PendingTargetChoice.PlayerIndex != aiPlayerIndex)
@@ -94,6 +113,19 @@ public sealed class DragonDuelAi
 
             if (engine.IsMainPhase())
             {
+                var energyHandIndex = engine.State.ActivePlayer.Hand
+                    .Select((card, index) => (card, index))
+                    .Where(item => engine.CanPlayEnergyFromHand(item.index))
+                    .Select(item => (int?)item.index)
+                    .FirstOrDefault();
+                if (energyHandIndex is not null)
+                {
+                    var result = engine.PlayEnergyFromHand(energyHandIndex.Value);
+                    decisions.Add(new AiDecision("play-energy", result.Message, result.Events));
+                    actions++;
+                    continue;
+                }
+
                 if (engine.CanAddEnergy())
                 {
                     var element = ChooseEnergyElement(engine, aiPlayerIndex);

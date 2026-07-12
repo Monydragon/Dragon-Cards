@@ -17,6 +17,7 @@ public sealed class DragonCardsCoreTests
         Assert.Contains(data.Cards, card => card.Type == "Unit");
         Assert.Contains(data.Cards, card => card.Type == "Support");
         Assert.Contains(data.Cards, card => card.Type == "Spell");
+        Assert.Contains(data.Cards, BasicEnergy.IsBasicEnergyCard);
         Assert.Contains(data.Cards, card => card.Abilities.Count > 0);
         Assert.Equal(2000, data.GameModesById["dragon-duel"].ElementAdvantage?.PowerBonus);
         Assert.Contains("Fire", data.GameModesById["dragon-duel"].ElementAdvantage!.StrongAgainst["Water"]);
@@ -30,12 +31,12 @@ public sealed class DragonCardsCoreTests
 
         Assert.Contains(PlayableModeCatalog.All, mode => mode.Id == DragonCardsModeIds.DragonDuel);
         Assert.Contains(PlayableModeCatalog.All, mode => mode.Id == DragonCardsModeIds.DragonAvatar);
-        Assert.True(data.GameModesById[DragonCardsModeIds.DragonDuel].ProgressionEligible);
-        Assert.True(data.GameModesById[DragonCardsModeIds.StarterClash].ProgressionEligible);
-        Assert.False(data.GameModesById[DragonCardsModeIds.DragonAvatar].ProgressionEligible);
-        Assert.False(data.GameModesById[DragonCardsModeIds.SealedGauntlet].ProgressionEligible);
-        Assert.False(data.GameModesById[DragonCardsModeIds.SandboxLab].ProgressionEligible);
-        Assert.True(data.GameModesById[DragonCardsModeIds.TutorialTrials].ProgressionEligible);
+        Assert.All(PlayableModeCatalog.All, catalogMode =>
+        {
+            var dataMode = data.GameModesById[catalogMode.Id];
+            Assert.Equal(catalogMode.ProgressionEligible, dataMode.ProgressionEligible);
+            Assert.Equal(catalogMode.Id != DragonCardsModeIds.SandboxLab, dataMode.ProgressionEligible);
+        });
         Assert.True(data.GameModesById[DragonCardsModeIds.DragonAvatar].DeckRules.Singleton);
         Assert.Equal(60, data.GameModesById[DragonCardsModeIds.DragonAvatar].DeckRules.DeckSize);
         Assert.Equal(10, data.GameModesById[DragonCardsModeIds.DragonAvatar].DamageLimit);
@@ -49,6 +50,7 @@ public sealed class DragonCardsCoreTests
         var valid = DragonAvatarService.BuildSampleAvatarDeck(data, avatar.Id);
 
         Assert.Empty(DragonAvatarService.ValidateAvatarDeck(data, avatar.Id, valid));
+        Assert.Empty(GameDataValidator.ValidateDeck(valid, data));
 
         var invalidCards = valid.Cards.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
         invalidCards[invalidCards.Keys.First()] = 2;
@@ -59,6 +61,49 @@ public sealed class DragonCardsCoreTests
 
         Assert.Contains(issues, issue => issue.Code == "avatar.singleton");
         Assert.Contains(issues, issue => issue.Code == "avatar.identity");
+    }
+
+    [Theory]
+    [InlineData(DragonCardsModeIds.DragonDuel)]
+    [InlineData(DragonCardsModeIds.StarterClash)]
+    [InlineData(DragonCardsModeIds.DragonAvatar)]
+    [InlineData(DragonCardsModeIds.SealedGauntlet)]
+    [InlineData(DragonCardsModeIds.SandboxLab)]
+    public void EveryMatchModeStartsWithLegalDecks(string modeId)
+    {
+        var data = LoadData();
+        DeckDefinition firstDeck;
+        DeckDefinition secondDeck;
+        if (modeId == DragonCardsModeIds.DragonAvatar)
+        {
+            var avatars = DragonAvatarService.PlayableAvatarCandidates(data);
+            firstDeck = DragonAvatarService.BuildSampleAvatarDeck(data, avatars[0].Id, "-first");
+            secondDeck = DragonAvatarService.BuildSampleAvatarDeck(data, avatars[^1].Id, "-second");
+        }
+        else if (modeId == DragonCardsModeIds.SealedGauntlet)
+        {
+            firstDeck = SealedGauntletService.GeneratePool(data, 41).Deck;
+            secondDeck = SealedGauntletService.GeneratePool(data, 83).Deck;
+        }
+        else
+        {
+            firstDeck = data.DecksById["starter-fire"];
+            secondDeck = data.DecksById["starter-ice"];
+        }
+
+        Assert.Empty(GameDataValidator.ValidateDeck(firstDeck, data, modeId));
+        Assert.Empty(GameDataValidator.ValidateDeck(secondDeck, data, modeId));
+
+        var engine = DragonDuelEngine.Create(data, modeId, firstDeck, secondDeck, seed: 7, shuffle: false);
+
+        Assert.Equal(modeId, engine.State.Mode.Id);
+        Assert.Equal(engine.State.Mode.StartingHand, engine.State.Players[0].Hand.Count);
+        Assert.Equal(engine.State.Mode.StartingHand, engine.State.Players[1].Hand.Count);
+        var flow = engine.AdvanceToNextDecisionPhase();
+        Assert.True(flow.Success, flow.Message);
+        Assert.Equal("Main", engine.State.CurrentPhase);
+        var energy = engine.AddEnergy(engine.State.Mode.Elements[0]);
+        Assert.True(energy.Success, energy.Message);
     }
 
     [Fact]
@@ -82,6 +127,13 @@ public sealed class DragonCardsCoreTests
         Assert.Equal(SealedGauntletService.DeckSize, first.Deck.Count);
         Assert.Equal(DragonCardsModeIds.SealedGauntlet, first.Deck.ModeId);
         Assert.Empty(GameDataValidator.ValidateDeck(first.Deck, data));
+
+        for (var seed = -32; seed <= 96; seed++)
+        {
+            var generated = SealedGauntletService.GeneratePool(data, seed);
+            Assert.Equal(SealedGauntletService.DeckSize, generated.Deck.Count);
+            Assert.Empty(GameDataValidator.ValidateDeck(generated.Deck, data));
+        }
     }
 
     [Fact]
@@ -118,10 +170,10 @@ public sealed class DragonCardsCoreTests
     {
         var data = LoadData();
 
-        Assert.Equal(480, data.Cards.Count);
+        Assert.Equal(496, data.Cards.Count);
         Assert.Equal(data.Cards.Count, data.Cards.Select(card => card.Id).Distinct(StringComparer.OrdinalIgnoreCase).Count());
         Assert.All(data.Cards, card => Assert.Contains(card.Rarity, CardRarities.All));
-        Assert.Equal(232, data.Cards.Count(card => card.Rarity == CardRarities.Common));
+        Assert.Equal(248, data.Cards.Count(card => card.Rarity == CardRarities.Common));
         Assert.Equal(96, data.Cards.Count(card => card.Rarity == CardRarities.Uncommon));
         Assert.Equal(88, data.Cards.Count(card => card.Rarity == CardRarities.Rare));
         Assert.Equal(40, data.Cards.Count(card => card.Rarity == CardRarities.Legendary));
@@ -136,7 +188,7 @@ public sealed class DragonCardsCoreTests
         Assert.Equal(160, data.Cards.Count(card => card.SetId == CardSets.PrimalClash));
         foreach (var element in data.GameModesById["dragon-duel"].Elements)
         {
-            Assert.Equal(60, data.Cards.Count(card => card.Elements.FirstOrDefault()?.Equals(element, StringComparison.OrdinalIgnoreCase) == true));
+            Assert.Equal(62, data.Cards.Count(card => card.Elements.FirstOrDefault()?.Equals(element, StringComparison.OrdinalIgnoreCase) == true));
             var expansionCards = data.Cards
                 .Where(card => card.SetId == CardSets.ElementalAscension &&
                     card.Elements.FirstOrDefault()?.Equals(element, StringComparison.OrdinalIgnoreCase) == true)
@@ -196,11 +248,12 @@ public sealed class DragonCardsCoreTests
         var data = LoadData();
         var elements = data.GameModesById["dragon-duel"].Elements;
 
-        Assert.All(data.Decks, deck => Assert.All(deck.Cards, entry => Assert.InRange(entry.Value, 1, 3)));
+        Assert.All(data.Decks, deck => Assert.All(deck.Cards, entry => Assert.True(entry.Value is >= 1 and <= 3 || BasicEnergy.IsBasicEnergyCard(data.CardsById[entry.Key]))));
         Assert.Equal(elements.Count, data.Decks.Count);
         foreach (var element in elements)
         {
             var deck = data.DecksById[$"starter-{element.ToLowerInvariant()}"];
+            Assert.Equal(12, deck.Cards[BasicEnergy.CardId(element)]);
             Assert.All(deck.Cards.Keys, cardId => Assert.Equal(element, data.CardsById[cardId].Elements[0]));
             Assert.Contains(deck.Cards.Keys, cardId => data.CardsById[cardId].Hooks.Any(hook => hook.Contains("energy", StringComparison.OrdinalIgnoreCase)));
         }
@@ -232,7 +285,8 @@ public sealed class DragonCardsCoreTests
         Assert.Equal("Astra", roundTripped.PlayerName);
         Assert.Equal(1, roundTripped.Level);
         Assert.Contains("starter-fire", roundTripped.OwnedStarterDeckIds);
-        Assert.All(starter.Cards, entry => Assert.Equal(entry.Value, roundTripped.OwnedCards[entry.Key]));
+        Assert.All(starter.Cards.Where(entry => !BasicEnergy.IsBasicEnergyCardId(entry.Key)), entry => Assert.Equal(entry.Value, roundTripped.OwnedCards[entry.Key]));
+        Assert.DoesNotContain(starter.Cards.Keys.Where(BasicEnergy.IsBasicEnergyCardId), cardId => roundTripped.OwnedCards.ContainsKey(cardId));
         Assert.Equal(Playstyle.Ramp, roundTripped.DefaultRules.Playstyle);
     }
 
@@ -266,6 +320,191 @@ public sealed class DragonCardsCoreTests
         Assert.Contains("blocking-attacks", roundTripped.CompletedTutorialIds);
         Assert.Equal(2, roundTripped.CompletedTutorialIds.Count);
         Assert.Equal(500, roundTripped.Coins);
+    }
+
+    [Fact]
+    public void LocalProfilesAreCreatedSelectedAndIsolated()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var repository = new LocalProfileRepository(root);
+            Assert.True(repository.Initialize(out var migrated, out var initializationError), initializationError);
+            Assert.False(migrated);
+
+            var now = new DateTimeOffset(2026, 7, 10, 12, 0, 0, TimeSpan.Zero);
+            Assert.True(repository.TryCreateProfile(new PlayerProfile { PlayerName = "Astra", Coins = 100 }, now, out var astra, out var createError), createError);
+            Assert.NotNull(astra);
+            Assert.True(repository.TryCreateProfile(new PlayerProfile { PlayerName = "Bryn", Coins = 200 }, now.AddMinutes(1), out var bryn, out createError), createError);
+            Assert.NotNull(bryn);
+
+            Assert.True(repository.TryLoadProfile(astra!.Id, out var loadedAstra, out var loadError), loadError);
+            Assert.Equal(100, loadedAstra!.Coins);
+            loadedAstra.Coins = 150;
+            Assert.True(repository.TrySaveProfile(astra.Id, loadedAstra, now.AddMinutes(2), out var saveError), saveError);
+            Assert.True(repository.TryLoadProfile(bryn!.Id, out var loadedBryn, out loadError), loadError);
+            Assert.Equal(200, loadedBryn!.Coins);
+
+            Assert.True(repository.TrySelectProfile(bryn.Id, now.AddMinutes(3), out var selectError), selectError);
+            Assert.Equal(bryn.Id, repository.LastActiveProfileId);
+            Assert.Equal(2, repository.Profiles.Count);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LocalProfilesRequireUniqueNamesAndRenamePlayerData()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var repository = new LocalProfileRepository(root);
+            Assert.True(repository.Initialize(out _, out var initializationError), initializationError);
+            var now = DateTimeOffset.UtcNow;
+            Assert.True(repository.TryCreateProfile(new PlayerProfile { PlayerName = "Astra" }, now, out var astra, out var error), error);
+            Assert.False(repository.TryCreateProfile(new PlayerProfile { PlayerName = "astra" }, now, out _, out error));
+            Assert.Contains("unique", error!, StringComparison.OrdinalIgnoreCase);
+            Assert.False(repository.TryCreateProfile(new PlayerProfile { PlayerName = new string('A', 19) }, now, out _, out error));
+
+            Assert.True(repository.TryRenameProfile(astra!.Id, "Nova", now.AddMinutes(1), out error), error);
+            Assert.True(repository.TryLoadProfile(astra.Id, out var profile, out error), error);
+            Assert.Equal("Nova", profile!.PlayerName);
+            Assert.Equal("Nova", Assert.Single(repository.Profiles).DisplayName);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LocalDeckLibraryCrudIsProfileIsolated()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var repository = new LocalProfileRepository(root);
+            Assert.True(repository.Initialize(out _, out var initializationError), initializationError);
+            var now = DateTimeOffset.UtcNow;
+            Assert.True(repository.TryCreateProfile(new PlayerProfile { PlayerName = "Astra" }, now, out var astra, out var error), error);
+            Assert.True(repository.TryCreateProfile(new PlayerProfile { PlayerName = "Bryn" }, now, out var bryn, out error), error);
+            var deck = new DeckDefinition
+            {
+                Id = "deck-sunfire",
+                Name = "Sunfire",
+                ModeId = DragonCardsModeIds.DragonDuel,
+                Cards = new Dictionary<string, int> { ["fire-cinder-adept"] = 3 }
+            };
+
+            Assert.True(repository.TrySaveDeck(astra!.Id, deck, out error), error);
+            var astraDecks = repository.LoadDecks(astra.Id, out var deckErrors);
+            Assert.Empty(deckErrors);
+            Assert.Single(astraDecks);
+            Assert.Empty(repository.LoadDecks(bryn!.Id, out deckErrors));
+            Assert.Empty(deckErrors);
+
+            Assert.True(repository.TryDeleteDeck(astra.Id, deck.Id, out error), error);
+            Assert.Empty(repository.LoadDecks(astra.Id, out deckErrors));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LegacyProfileMigratesOnlyAfterNewProfileAndDeckAreWritten()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var legacyProfile = new PlayerProfile
+            {
+                PlayerName = "Astra",
+                SelectedStarterDeckId = "starter-fire",
+                ActiveDeckId = "custom-flame-gale"
+            };
+            File.WriteAllText(Path.Combine(root, "profile.json"), PlayerProfileSerializer.ToJson(legacyProfile));
+            var legacyDeckDirectory = Path.Combine(root, "decks");
+            Directory.CreateDirectory(legacyDeckDirectory);
+            var legacyDeck = new DeckDefinition
+            {
+                Id = "custom-flame-gale",
+                Name = "Flame Gale",
+                ModeId = DragonCardsModeIds.DragonDuel,
+                Cards = new Dictionary<string, int> { ["fire-cinder-adept"] = 3 }
+            };
+            File.WriteAllText(Path.Combine(legacyDeckDirectory, "custom-flame-gale.json"), GameData.ToJson(legacyDeck));
+
+            var repository = new LocalProfileRepository(root);
+            Assert.True(repository.Initialize(out var migrated, out var error), error);
+            Assert.True(migrated);
+            var summary = Assert.Single(repository.Profiles);
+            Assert.False(File.Exists(Path.Combine(root, "profile.json")));
+            Assert.False(File.Exists(Path.Combine(legacyDeckDirectory, "custom-flame-gale.json")));
+            Assert.True(repository.TryLoadProfile(summary.Id, out var migratedProfile, out error), error);
+            Assert.Equal("custom-flame-gale", migratedProfile!.ActiveDeckId);
+            Assert.Equal("starter-fire", migratedProfile.SelectedStarterDeckId);
+            Assert.Equal("custom-flame-gale", Assert.Single(repository.LoadDecks(summary.Id, out var deckErrors)).Id);
+            Assert.Empty(deckErrors);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void CorruptProfileAndIndexAreReportedWithoutOverwritingFiles()
+    {
+        var root = CreateTemporaryDirectory();
+        try
+        {
+            var profiles = Path.Combine(root, "profiles");
+            Directory.CreateDirectory(profiles);
+            var indexPath = Path.Combine(profiles, "index.json");
+            File.WriteAllText(indexPath, "{ invalid json");
+
+            var repository = new LocalProfileRepository(root);
+            Assert.False(repository.Initialize(out _, out var error));
+            Assert.Contains("left unchanged", error!, StringComparison.OrdinalIgnoreCase);
+            Assert.False(repository.TryCreateProfile(new PlayerProfile { PlayerName = "Astra" }, DateTimeOffset.UtcNow, out _, out error));
+            Assert.Contains("left unchanged", error!, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal("{ invalid json", File.ReadAllText(indexPath));
+            Assert.NotEmpty(repository.Errors);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void CollectionDiscoveryFiltersSortsAndSummarizesOwnedCards()
+    {
+        var cards = new[]
+        {
+            new CardDefinition { Id = "a", Name = "Zephyr", Type = "Unit", Elements = ["Wind"], Cost = new Dictionary<string, int> { ["Wind"] = 3 }, Rarity = CardRarities.Rare, SetId = CardSets.Core },
+            new CardDefinition { Id = "b", Name = "Ash", Type = "Spell", Elements = ["Fire"], Cost = new Dictionary<string, int> { ["Fire"] = 1 }, Rarity = CardRarities.Common, SetId = CardSets.Core },
+            new CardDefinition { Id = "c", Name = "Ancient", Type = "Unit", Elements = ["Fire"], Cost = new Dictionary<string, int> { ["Fire"] = 5 }, Rarity = CardRarities.Mythic, SetId = CardSets.AncientAwakening }
+        };
+        var owned = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase) { ["a"] = 2, ["c"] = 1 };
+
+        var ownedFire = CollectionDiscoveryService.FilterAndSort(cards, owned, "Fire", "All", "All", "All", CollectionOwnershipFilter.Owned, CollectionSortMode.Name);
+        Assert.Equal(new[] { "Ancient" }, ownedFire.Select(card => card.Name));
+        var byCost = CollectionDiscoveryService.FilterAndSort(cards, owned, "All", "All", "All", "All", CollectionOwnershipFilter.All, CollectionSortMode.Cost);
+        Assert.Equal(new[] { "Ash", "Zephyr", "Ancient" }, byCost.Select(card => card.Name));
+        var unowned = CollectionDiscoveryService.FilterAndSort(cards, owned, "All", "All", "All", CardSets.Core, CollectionOwnershipFilter.Unowned, CollectionSortMode.Name);
+        Assert.Equal(new[] { "Ash" }, unowned.Select(card => card.Name));
+
+        var summary = CollectionDiscoveryService.Summarize(cards, owned);
+        Assert.Equal(2, summary.OwnedDistinctCards);
+        Assert.Equal(3, summary.OwnedCopies);
+        Assert.Equal(1, Assert.Single(summary.Sets, set => set.SetId == CardSets.Core).OwnedDistinctCards);
+        Assert.Equal(1, Assert.Single(summary.Sets, set => set.SetId == CardSets.AncientAwakening).OwnedDistinctCards);
     }
 
     [Fact]
@@ -611,12 +850,16 @@ public sealed class DragonCardsCoreTests
     {
         var engine = CreateEngine();
         AdvanceToMain(engine);
-        engine.State.ActivePlayer.EnergyPool["Fire"] = 10;
+        var player = engine.State.ActivePlayer;
+        for (var index = 0; index < 10; index++)
+        {
+            player.EnergyField.Add(new CardInstance(EnergySource.CardId("Fire"), $"test-fire-source-{index}", EnergySourceOrigin.Effect));
+        }
 
         var result = engine.AddEnergy("Fire");
 
         Assert.False(result.Success);
-        Assert.Equal(10, engine.State.ActivePlayer.EnergyPool["Fire"]);
+        Assert.Equal(10, engine.State.ActivePlayer.EnergyField.Count(card => card.CardId == EnergySource.CardId("Fire")));
     }
 
     [Fact]
@@ -996,16 +1239,22 @@ public sealed class DragonCardsCoreTests
         var player = engine.State.ActivePlayer;
         var source = new CardInstance("ice-winter-shrine");
         player.SupportField.Add(source);
+        var iceSource = new CardInstance(EnergySource.CardId("Ice"), "test-ice-source", EnergySourceOrigin.Effect);
+        var fireSource = new CardInstance(EnergySource.CardId("Fire"), "test-fire-source", EnergySourceOrigin.Effect);
+        player.EnergyField.Add(iceSource);
+        player.EnergyField.Add(fireSource);
         player.EnergyPool["Ice"] = 1;
         player.EnergyPool["Fire"] = 1;
 
         Assert.True(engine.ActivateAbility(0, source.Id, "chill-channel").Success);
-        var result = engine.ResolveEnergyChoice("Water");
+        Assert.True(engine.ResolveEnergyChoice("Water").Success);
+        var result = engine.ResolveEnergySourceChoice(fireSource.Id);
 
         Assert.True(result.Success);
         Assert.Equal(0, player.EnergyPool["Ice"]);
         Assert.Equal(0, player.EnergyPool["Fire"]);
         Assert.Equal(1, player.EnergyPool["Water"]);
+        Assert.Contains(player.EnergyField, card => card.Id == fireSource.Id && card.CardId == EnergySource.CardId("Water"));
     }
 
     [Fact]
@@ -1055,6 +1304,25 @@ public sealed class DragonCardsCoreTests
         Assert.False(engine.CanResolveTargetChoice(0, 0));
         Assert.False(engine.ResolveTargetChoice(0, 0).Success);
         Assert.True(engine.ResolveTargetChoice(1, 0).Success);
+    }
+
+    [Fact]
+    public void ReadyTargetChoiceIsSkippedWhenEveryFriendlyUnitIsAlreadyReady()
+    {
+        var engine = CreateEngine();
+        AdvanceToMain(engine);
+        var source = new CardInstance("fire-ember-whelp");
+        engine.State.ActivePlayer.UnitField.Add(source);
+
+        engine.QueueTargetChoice(
+            0,
+            PendingTargetChoiceType.ReadyUnit,
+            TargetScope.FriendlyUnit,
+            source,
+            "Choose a friendly Unit to ready.");
+
+        Assert.Null(engine.State.PendingTargetChoice);
+        Assert.Contains("No legal target", engine.State.Log[^1], StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -1305,6 +1573,26 @@ public sealed class DragonCardsCoreTests
     }
 
     [Fact]
+    public void DragonAvatarEndsAtItsTenDamageLimit()
+    {
+        var data = LoadData();
+        var avatars = DragonAvatarService.PlayableAvatarCandidates(data);
+        var firstDeck = DragonAvatarService.BuildSampleAvatarDeck(data, avatars[0].Id, "-first");
+        var secondDeck = DragonAvatarService.BuildSampleAvatarDeck(data, avatars[^1].Id, "-second");
+        var engine = DragonDuelEngine.Create(data, DragonCardsModeIds.DragonAvatar, firstDeck, secondDeck, seed: 7, shuffle: false);
+
+        engine.DealDamageToOpponent(0, 9);
+
+        Assert.Null(engine.State.WinnerIndex);
+        Assert.Equal(9, engine.State.Players[1].DamageZone.Count);
+
+        engine.DealDamageToOpponent(0, 1);
+
+        Assert.Equal(0, engine.State.WinnerIndex);
+        Assert.Equal(engine.State.Mode.DamageLimit, engine.State.Players[1].DamageZone.Count);
+    }
+
+    [Fact]
     public void InvalidDeckReportsCopyAndSizeIssues()
     {
         var data = LoadData();
@@ -1469,6 +1757,37 @@ public sealed class DragonCardsCoreTests
         Assert.Equal(hostStart.ModeId, joinStart.ModeId);
         Assert.Equal(hostStart.Host.PlayerName, joinStart.Host.PlayerName);
         Assert.Equal(hostStart.Joiner.PlayerName, joinStart.Joiner.PlayerName);
+    }
+
+    [Fact]
+    public async Task DirectLobbySurvivesRejectedGuestsAndAcceptsDifferentProfileRules()
+    {
+        var data = LoadData();
+        var port = GetFreeTcpPort();
+        var invite = new NetworkInvite
+        {
+            Host = "127.0.0.1",
+            Port = port,
+            ModeId = DragonCardsModeIds.DragonDuel,
+            ProtocolVersion = InviteCode.ProtocolVersion,
+            LobbyToken = 0x14B2
+        };
+        var hostRules = GameRulesConfig.ForPreset(GameRulesPreset.Hard, Playstyle.Aggro);
+        var guestRules = GameRulesConfig.ForPreset(GameRulesPreset.Casual, Playstyle.Control);
+        var hostHandshake = DirectMatchConnection.CreateHandshake("Host", invite.ModeId, data.DecksById["starter-fire"], hostRules, invite.LobbyToken);
+        var rejectedHandshake = DirectMatchConnection.CreateHandshake("Wrong mode", DragonCardsModeIds.StarterClash, data.DecksById["starter-ice"], guestRules, invite.LobbyToken);
+        var guestHandshake = DirectMatchConnection.CreateHandshake("Guest", invite.ModeId, data.DecksById["starter-ice"], guestRules, invite.LobbyToken);
+
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(3));
+        var hostTask = DirectMatchConnection.HostLobbyAsync(invite, hostHandshake, timeout.Token);
+
+        await Assert.ThrowsAsync<IOException>(() => DirectMatchConnection.JoinLobbyAsync(invite, rejectedHandshake, timeout.Token));
+        await using var guest = await DirectMatchConnection.JoinLobbyAsync(invite, guestHandshake, timeout.Token);
+        await using var host = await hostTask;
+
+        Assert.Equal("Guest", host.Lobby.Joiner.PlayerName);
+        Assert.Equal(GameRulesPreset.Hard, host.Lobby.Host.Rules.Preset);
+        Assert.Equal(GameRulesPreset.Casual, guest.Lobby.Joiner.Rules.Preset);
     }
 
     [Fact]
@@ -1845,7 +2164,293 @@ public sealed class DragonCardsCoreTests
         Assert.Contains(analysis.Notes, note => note.Contains("owned-copy", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public void BasicEnergyIsUnlimitedAlwaysOwnedAndExcludedFromPacks()
+    {
+        var data = LoadData();
+        var basic = data.CardsById[BasicEnergy.CardId("Fire")];
+        var deck = data.DecksById["starter-fire"];
+        var profile = new PlayerProfile();
+
+        Assert.True(BasicEnergy.IsBasicEnergyCard(basic));
+        Assert.Equal(12, deck.Cards[basic.Id]);
+        Assert.Empty(GameDataValidator.ValidateDeck(deck, data));
+        Assert.Equal(int.MaxValue, PlayerCollection.CountOwned(profile, basic.Id));
+        Assert.DoesNotContain(DeckOwnershipValidator.ValidateDeckOwnership(deck, profile, GameRulesConfig.ForPreset(GameRulesPreset.Standard)),
+            issue => issue.SubjectId == basic.Id);
+        Assert.DoesNotContain(ShopCatalogService.CreateCatalog(data), item => item.CardId == basic.Id || item.SetId == "basic-energy");
+    }
+
+    [Fact]
+    public void BasicEnergyMovesFromHandToEnergyRowAndCoexistsWithFreeAdd()
+    {
+        var engine = CreateEngine();
+        AdvanceToMain(engine);
+        var player = engine.State.ActivePlayer;
+        player.Hand.Clear();
+        player.Hand.Add(new CardInstance(BasicEnergy.CardId("Fire")));
+        player.Hand.Add(new CardInstance(BasicEnergy.CardId("Fire")));
+
+        var played = engine.PlayEnergyFromHand(0);
+
+        Assert.True(played.Success, played.Message);
+        Assert.Single(player.Hand);
+        Assert.Single(player.EnergyField);
+        Assert.Equal(EnergySourceOrigin.BasicCard, player.EnergyField[0].SourceOrigin);
+        Assert.Equal(1, player.EnergyPool["Fire"]);
+        Assert.Equal(1, engine.State.EnergyCardsPlayedThisTurn);
+        Assert.Contains(played.Events, entry => entry.Kind == MatchEventKind.CardPlayed && entry.To?.Zone == "EnergyField");
+        Assert.False(engine.PlayEnergyFromHand(0).Success);
+        Assert.True(engine.AddEnergy("Fire").Success);
+        Assert.Equal(2, player.EnergyField.Count);
+        Assert.Equal(EnergySourceOrigin.FreeAdd, player.EnergyField[1].SourceOrigin);
+        Assert.Equal(2, player.EnergyPool["Fire"]);
+    }
+
+    [Fact]
+    public void PersistentEnergySourcesExhaustRefreshAndRetainSurplus()
+    {
+        var engine = CreateEngine();
+        AdvanceToMain(engine);
+        var player = engine.State.ActivePlayer;
+        player.Hand.Clear();
+        player.Hand.Add(new CardInstance(BasicEnergy.CardId("Fire")));
+        player.Hand.Add(new CardInstance("fire-ember-whelp"));
+
+        Assert.True(engine.PlayEnergyFromHand(0).Success);
+        Assert.True(engine.AddEnergy("Fire").Success);
+        Assert.Equal(2, player.EnergyPool["Fire"]);
+        Assert.True(engine.PlayCardFromHand(0).Success);
+        Assert.Equal(1, player.EnergyPool["Fire"]);
+        Assert.Single(player.EnergyField, source => source.Exhausted);
+
+        player.EnergyPool["Fire"] = 4;
+        Assert.True(engine.AdvancePhase().Success);
+        AdvanceToMainForPlayer(engine, 0);
+
+        Assert.Equal(4, player.EnergyPool["Fire"]);
+        Assert.All(player.EnergyField, source => Assert.False(source.Exhausted));
+    }
+
+    [Fact]
+    public void GeneratedEnergySourcesUseDeterministicIdsAndStandardModeScope()
+    {
+        var left = CreateEngine();
+        var right = CreateEngine();
+        AdvanceToMain(left);
+        AdvanceToMain(right);
+
+        Assert.True(left.AddEnergy("Fire").Success);
+        Assert.True(right.AddEnergy("Fire").Success);
+        Assert.Equal(left.State.ActivePlayer.EnergyField.Single().Id, right.State.ActivePlayer.EnergyField.Single().Id);
+        Assert.Equal(EnergySourceOrigin.FreeAdd, left.State.ActivePlayer.EnergyField.Single().SourceOrigin);
+
+        var data = LoadData();
+        Assert.True(data.GameModesById[DragonCardsModeIds.DragonDuel].EnergyRules.UsesPersistentEnergySources);
+        Assert.True(data.GameModesById[DragonCardsModeIds.StarterClash].EnergyRules.UsesPersistentEnergySources);
+        Assert.True(data.GameModesById[DragonCardsModeIds.SandboxLab].EnergyRules.UsesPersistentEnergySources);
+        Assert.False(data.GameModesById[DragonCardsModeIds.DragonAvatar].EnergyRules.UsesPersistentEnergySources);
+        Assert.False(data.GameModesById[DragonCardsModeIds.SealedGauntlet].EnergyRules.UsesPersistentEnergySources);
+        Assert.False(data.GameModesById[DragonCardsModeIds.TutorialTrials].EnergyRules.UsesPersistentEnergySources);
+    }
+
+    [Fact]
+    public void AiResolvesPendingEnergySourceChoice()
+    {
+        var engine = CreateEngine();
+        SetActivePhase(engine, 1, "Main");
+        var aiPlayer = engine.State.ActivePlayer;
+        var source = new CardInstance(EnergySource.CardId("Ice"), "ai-ice-source", EnergySourceOrigin.Effect);
+        aiPlayer.EnergyField.Add(source);
+        aiPlayer.EnergyPool["Ice"] = 1;
+        engine.State.PendingEnergySourceChoice = new PendingEnergySourceChoice(
+            1,
+            "Water",
+            "Choose a ready Energy source to convert to Water.");
+
+        var result = new DragonDuelAi().RunUntilHumanInput(engine, aiPlayerIndex: 1, maxActions: 1);
+
+        Assert.Equal("energy-source-choice", Assert.Single(result.Decisions).Kind);
+        Assert.Null(engine.State.PendingEnergySourceChoice);
+        Assert.Contains(aiPlayer.EnergyField, card => card.Id == source.Id && card.CardId == EnergySource.CardId("Water"));
+        Assert.Equal(0, aiPlayer.EnergyPool["Ice"]);
+        Assert.Equal(1, aiPlayer.EnergyPool["Water"]);
+    }
+
+    [Fact]
+    public void EnergySourceTokensAreFieldOnlyAndExcludedFromEconomySystems()
+    {
+        var data = LoadData();
+        var token = data.CardsById[EnergySource.CardId("Fire")];
+        var invalidDeck = new DeckDefinition
+        {
+            Id = "token-deck",
+            Name = "Token Deck",
+            ModeId = DragonCardsModeIds.DragonDuel,
+            Cards = new Dictionary<string, int> { [token.Id] = 50 }
+        };
+
+        Assert.True(EnergySource.IsEnergySourceToken(token));
+        Assert.Contains(GameDataValidator.ValidateDeck(invalidDeck, data), issue => issue.Code == "deck.energy_source_token");
+        Assert.DoesNotContain(ShopCatalogService.CreateCatalog(data), item => item.CardId == token.Id || item.SetId == "energy-tokens");
+        Assert.DoesNotContain(CollectionDiscoveryService.FilterAndSort(data.Cards, new Dictionary<string, int>(), "All", "All", "All", "All", CollectionOwnershipFilter.All, CollectionSortMode.Name), card => card.Id == token.Id);
+        Assert.DoesNotContain(DeckCode.Export(invalidDeck), token.Id, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void BasicEnergyLimitResetsForNextTurnAndAiPrioritizesIt()
+    {
+        var engine = CreateEngine();
+        SetActivePhase(engine, 1, "Main");
+        var aiPlayer = engine.State.ActivePlayer;
+        aiPlayer.Hand.Clear();
+        aiPlayer.Hand.Add(new CardInstance(BasicEnergy.CardId("Ice")));
+        var ai = new DragonDuelAi();
+
+        var turn = ai.RunUntilHumanInput(engine, aiPlayerIndex: 1, maxActions: 1);
+
+        Assert.Equal("play-energy", Assert.Single(turn.Decisions).Kind);
+        Assert.Single(aiPlayer.EnergyField);
+        engine.State.EnergyCardsPlayedThisTurn = 1;
+        SetActivePhase(engine, 0, "Ready");
+        engine.AdvancePhase();
+        engine.AdvancePhase();
+        engine.AdvancePhase();
+        engine.AdvancePhase();
+        engine.AdvancePhase();
+        engine.AdvancePhase();
+        Assert.Equal(0, engine.State.EnergyCardsPlayedThisTurn);
+    }
+
+    [Fact]
+    public void QuestRewardsAggregateOnceAndResetByUtcPeriod()
+    {
+        var profile = new PlayerProfile { Coins = 10 };
+        var dayOne = new DateTimeOffset(2026, 7, 11, 23, 0, 0, TimeSpan.Zero);
+
+        Assert.Empty(QuestService.Record(profile, dayOne, QuestMetric.EligibleMatches, 1, eligible: false).Rewards);
+        Assert.Empty(QuestService.Record(profile, dayOne, QuestMetric.EligibleMatches, 1, eligible: true).Rewards);
+        var completion = QuestService.Record(profile, dayOne, QuestMetric.EligibleMatches, 1, eligible: true);
+        Assert.Single(completion.Rewards);
+        Assert.Equal(110, profile.Coins);
+        Assert.Empty(QuestService.Record(profile, dayOne, QuestMetric.EligibleMatches, 5, eligible: true).Rewards);
+
+        QuestService.Refresh(profile, dayOne.AddDays(1));
+        var resetEntry = QuestService.EntryFor(profile, QuestService.Definitions.Single(quest => quest.Id == "daily-eligible-matches"));
+        Assert.False(resetEntry.Completed);
+        Assert.Equal(0, resetEntry.Progress);
+
+        var weekly = QuestService.Record(profile, dayOne, QuestMetric.EligibleWins, 5, eligible: true);
+        Assert.Single(weekly.Rewards);
+        Assert.Equal(1, profile.UnopenedPacks[BoosterService.StandardBoosterId]);
+    }
+
+    [Fact]
+    public void ProfileVersionFourMigratesQuestState()
+    {
+        var profile = PlayerProfileSerializer.FromJson("{\"version\":3,\"playerName\":\"Astra\",\"ownedCards\":{}}");
+
+        Assert.Equal(4, profile.Version);
+        Assert.NotNull(profile.Quests);
+        Assert.NotNull(profile.Quests.Entries);
+    }
+
+    [Fact]
+    public void DeckCodesRoundTripAndRejectChecksumUnknownCardsAndIllegalDecks()
+    {
+        var data = LoadData();
+        var starter = data.DecksById["starter-fire"];
+        var code = DeckCode.Export(starter);
+
+        Assert.True(DeckCode.TryImport(code, out var decoded, out var error), error);
+        Assert.NotNull(decoded);
+        Assert.Equal(starter.Name, decoded!.Name);
+        Assert.Equal(starter.Cards.OrderBy(item => item.Key), decoded.Cards.OrderBy(item => item.Key));
+        Assert.NotEmpty(DeckOwnershipValidator.ValidateDeckOwnership(decoded, new PlayerProfile(), GameRulesConfig.ForPreset(GameRulesPreset.Standard)));
+        Assert.False(DeckCode.TryImport(code[..^1] + (code.EndsWith("A", StringComparison.Ordinal) ? "B" : "A"), out _, out _));
+
+        var unknown = starter with { Cards = new Dictionary<string, int> { ["missing-card"] = 50 } };
+        Assert.True(DeckCode.TryImport(DeckCode.Export(unknown), out var unknownDeck, out _));
+        Assert.Contains(GameDataValidator.ValidateDeck(unknownDeck!, data), issue => issue.Code == "deck.card_missing");
+
+        var illegal = starter with { Cards = new Dictionary<string, int> { ["fire-ember-whelp"] = 50 } };
+        Assert.True(DeckCode.TryImport(DeckCode.Export(illegal), out var illegalDeck, out _));
+        Assert.Contains(GameDataValidator.ValidateDeck(illegalDeck!, data), issue => issue.Code == "deck.max_copies");
+    }
+
+    [Fact]
+    public async Task UnavailableMatchmakingClientReportsNoInternetQueue()
+    {
+        IMatchmakingClient client = new UnavailableMatchmakingClient();
+        var request = new MatchmakingQueueRequest("player", DragonCardsModeIds.DragonDuel, "starter-fire", "DCD1-test", "us-central", "0.3");
+
+        var queued = await client.QueueAsync(request);
+        var status = await client.GetStatusAsync("ticket");
+
+        Assert.False(queued.Accepted);
+        Assert.Equal(MatchmakingQueueState.Unavailable, queued.Status!.State);
+        Assert.Equal(MatchmakingQueueState.Unavailable, status.State);
+        Assert.Contains("LAN", queued.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task UnavailableProfileSyncKeepsProfilesLocalAndPreservesTheCursor()
+    {
+        IProfileSyncClient client = new UnavailableProfileSyncClient();
+        var mutation = new ProfileSyncMutation(
+            "mutation-1",
+            "profile-1",
+            "device-1",
+            2,
+            3,
+            ProfileSyncMutationKind.ProfileSaved,
+            "{\"coins\":1200}",
+            DateTimeOffset.UtcNow,
+            "0.3");
+        var push = await client.PushAsync(new ProfileSyncPushRequest("account-1", "device-1", [mutation], "0.3"));
+        var cursor = new ProfileSyncCursor("profile-1", 2);
+        var pull = await client.PullAsync(new ProfileSyncPullRequest("account-1", "device-1", cursor, "0.3"));
+
+        Assert.Equal(ProfileSyncState.Unavailable, push.State);
+        Assert.Equal(ProfileSyncState.Unavailable, pull.State);
+        Assert.Equal(cursor, pull.Cursor);
+        Assert.Empty(pull.Mutations);
+        Assert.Contains("local", push.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void ProfileSyncContractRequiresRevisionedUtcMutationsFromTheRequestDevice()
+    {
+        var valid = new ProfileSyncMutation(
+            "mutation-1",
+            "profile-1",
+            "device-1",
+            4,
+            5,
+            ProfileSyncMutationKind.DeckSaved,
+            "{\"deckId\":\"starter-fire\"}",
+            DateTimeOffset.UtcNow,
+            "0.3");
+        var request = new ProfileSyncPushRequest("account-1", "device-1", [valid], "0.3");
+        Assert.True(ProfileSyncContract.TryValidate(request, out var error), error);
+
+        var stale = valid with { Revision = valid.BaseRevision };
+        Assert.False(ProfileSyncContract.TryValidate(stale, out error));
+        Assert.Contains("advance", error, StringComparison.OrdinalIgnoreCase);
+
+        var mismatchedDevice = request with { Mutations = [valid with { DeviceId = "device-2" }] };
+        Assert.False(ProfileSyncContract.TryValidate(mismatchedDevice, out error));
+        Assert.Contains("device", error, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static GameData LoadData() => GameData.LoadDefault();
+
+    private static string CreateTemporaryDirectory()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "DragonCardsTests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(path);
+        return path;
+    }
 
     private static int GetFreeTcpPort()
     {

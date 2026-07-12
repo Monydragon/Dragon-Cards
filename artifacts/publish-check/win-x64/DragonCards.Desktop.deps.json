@@ -1,0 +1,669 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v10.0/win-x64",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v10.0": {},
+    ".NETCoreApp,Version=v10.0/win-x64": {
+      "DragonCards.Desktop/0.3.0": {
+        "dependencies": {
+          "DragonCards.Core": "0.3.0",
+          "DragonCards.Networking": "0.3.0",
+          "DragonCards.Persistence": "0.3.0",
+          "nkast.Kni.Platform.SDL2.GL": "4.2.9001.1",
+          "nkast.Xna.Framework": "4.2.9001",
+          "nkast.Xna.Framework.Audio": "4.2.9001",
+          "nkast.Xna.Framework.Content": "4.2.9001",
+          "nkast.Xna.Framework.Devices": "4.2.9001",
+          "nkast.Xna.Framework.Game": "4.2.9001",
+          "nkast.Xna.Framework.Graphics": "4.2.9001",
+          "nkast.Xna.Framework.Input": "4.2.9001",
+          "nkast.Xna.Framework.Media": "4.2.9001",
+          "nkast.Xna.Framework.Storage": "4.2.9001",
+          "nkast.Xna.Framework.XR": "4.2.9001"
+        },
+        "runtime": {
+          "DragonCards.Desktop.dll": {}
+        }
+      },
+      "Microsoft.Data.Sqlite.Core/10.0.9": {
+        "dependencies": {
+          "SQLitePCLRaw.core": "2.1.11"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.Data.Sqlite.dll": {
+            "assemblyVersion": "10.0.9.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.EntityFrameworkCore/10.0.9": {
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.Abstractions": "10.0.9",
+          "Microsoft.Extensions.Caching.Memory": "10.0.9",
+          "Microsoft.Extensions.Logging": "10.0.9"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.EntityFrameworkCore.dll": {
+            "assemblyVersion": "10.0.9.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.EntityFrameworkCore.Abstractions/10.0.9": {
+        "runtime": {
+          "lib/net10.0/Microsoft.EntityFrameworkCore.Abstractions.dll": {
+            "assemblyVersion": "10.0.9.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.EntityFrameworkCore.Relational/10.0.9": {
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore": "10.0.9",
+          "Microsoft.Extensions.Caching.Memory": "10.0.9",
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.9",
+          "Microsoft.Extensions.Logging": "10.0.9"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.EntityFrameworkCore.Relational.dll": {
+            "assemblyVersion": "10.0.9.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.EntityFrameworkCore.Sqlite/10.0.9": {
+        "dependencies": {
+          "Microsoft.EntityFrameworkCore.Sqlite.Core": "10.0.9",
+          "Microsoft.Extensions.Caching.Memory": "10.0.9",
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.9",
+          "Microsoft.Extensions.DependencyModel": "10.0.9",
+          "Microsoft.Extensions.Logging": "10.0.9",
+          "SQLitePCLRaw.bundle_e_sqlite3": "2.1.11",
+          "SQLitePCLRaw.core": "2.1.11"
+        }
+      },
+      "Microsoft.EntityFrameworkCore.Sqlite.Core/10.0.9": {
+        "dependencies": {
+          "Microsoft.Data.Sqlite.Core": "10.0.9",
+          "Microsoft.EntityFrameworkCore.Relational": "10.0.9",
+          "Microsoft.Extensions.Caching.Memory": "10.0.9",
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.9",
+          "Microsoft.Extensions.DependencyModel": "10.0.9",
+          "Microsoft.Extensions.Logging": "10.0.9",
+          "SQLitePCLRaw.core": "2.1.11"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.EntityFrameworkCore.Sqlite.dll": {
+            "assemblyVersion": "10.0.9.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.Extensions.Caching.Abstractions/10.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "10.0.9"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Caching.Abstractions.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.Extensions.Caching.Memory/10.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.Caching.Abstractions": "10.0.9",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.9",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.9",
+          "Microsoft.Extensions.Options": "10.0.9",
+          "Microsoft.Extensions.Primitives": "10.0.9"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Caching.Memory.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.Extensions.Configuration.Abstractions/10.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "10.0.9"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Configuration.Abstractions.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection/10.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.9"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.DependencyInjection.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.Extensions.DependencyInjection.Abstractions/10.0.9": {
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.Extensions.DependencyModel/10.0.9": {
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.DependencyModel.dll": {
+            "assemblyVersion": "10.0.0.9",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.Extensions.Logging/10.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection": "10.0.9",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.9",
+          "Microsoft.Extensions.Options": "10.0.9"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Logging.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.Extensions.Logging.Abstractions/10.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.9"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Logging.Abstractions.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.Extensions.Options/10.0.9": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.9",
+          "Microsoft.Extensions.Primitives": "10.0.9"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Options.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "Microsoft.Extensions.Primitives/10.0.9": {
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Primitives.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.926.27113"
+          }
+        }
+      },
+      "nkast.Kni.Platform.SDL2.GL/4.2.9001.1": {
+        "dependencies": {
+          "nkast.Xna.Framework": "4.2.9001",
+          "nkast.Xna.Framework.Audio": "4.2.9001",
+          "nkast.Xna.Framework.Content": "4.2.9001",
+          "nkast.Xna.Framework.Devices": "4.2.9001",
+          "nkast.Xna.Framework.Game": "4.2.9001",
+          "nkast.Xna.Framework.Graphics": "4.2.9001",
+          "nkast.Xna.Framework.Input": "4.2.9001",
+          "nkast.Xna.Framework.Media": "4.2.9001",
+          "nkast.Xna.Framework.Storage": "4.2.9001",
+          "nkast.Xna.Framework.XR": "4.2.9001"
+        },
+        "runtime": {
+          "lib/net8.0/Kni.Platform.dll": {
+            "assemblyVersion": "0.0.0.0",
+            "fileVersion": "0.0.0.0"
+          }
+        },
+        "native": {
+          "runtimes/win-x64/native/SDL2.dll": {
+            "fileVersion": "2.0.20.0"
+          },
+          "runtimes/win-x64/native/soft_oal.dll": {
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "nkast.Xna.Framework/4.2.9001": {
+        "runtime": {
+          "lib/net8.0/Xna.Framework.dll": {
+            "assemblyVersion": "4.2.9001.0",
+            "fileVersion": "4.2.9001.0"
+          }
+        }
+      },
+      "nkast.Xna.Framework.Audio/4.2.9001": {
+        "dependencies": {
+          "nkast.Xna.Framework": "4.2.9001",
+          "nkast.Xna.Framework.Content": "4.2.9001"
+        },
+        "runtime": {
+          "lib/net8.0/Xna.Framework.Audio.dll": {
+            "assemblyVersion": "4.2.9001.0",
+            "fileVersion": "4.2.9001.0"
+          }
+        }
+      },
+      "nkast.Xna.Framework.Content/4.2.9001": {
+        "dependencies": {
+          "nkast.Xna.Framework": "4.2.9001"
+        },
+        "runtime": {
+          "lib/net8.0/Xna.Framework.Content.dll": {
+            "assemblyVersion": "4.2.9001.0",
+            "fileVersion": "4.2.9001.0"
+          }
+        }
+      },
+      "nkast.Xna.Framework.Devices/4.2.9001": {
+        "dependencies": {
+          "nkast.Xna.Framework": "4.2.9001"
+        },
+        "runtime": {
+          "lib/net8.0/Xna.Framework.Devices.dll": {
+            "assemblyVersion": "4.2.9001.0",
+            "fileVersion": "4.2.9001.0"
+          }
+        }
+      },
+      "nkast.Xna.Framework.Game/4.2.9001": {
+        "dependencies": {
+          "nkast.Xna.Framework": "4.2.9001",
+          "nkast.Xna.Framework.Content": "4.2.9001",
+          "nkast.Xna.Framework.Graphics": "4.2.9001",
+          "nkast.Xna.Framework.Input": "4.2.9001"
+        },
+        "runtime": {
+          "lib/net8.0/Xna.Framework.Game.dll": {
+            "assemblyVersion": "4.2.9001.0",
+            "fileVersion": "4.2.9001.0"
+          }
+        }
+      },
+      "nkast.Xna.Framework.Graphics/4.2.9001": {
+        "dependencies": {
+          "nkast.Xna.Framework": "4.2.9001",
+          "nkast.Xna.Framework.Content": "4.2.9001"
+        },
+        "runtime": {
+          "lib/net8.0/Xna.Framework.Graphics.dll": {
+            "assemblyVersion": "4.2.9001.0",
+            "fileVersion": "4.2.9001.0"
+          }
+        }
+      },
+      "nkast.Xna.Framework.Input/4.2.9001": {
+        "dependencies": {
+          "nkast.Xna.Framework": "4.2.9001",
+          "nkast.Xna.Framework.Graphics": "4.2.9001"
+        },
+        "runtime": {
+          "lib/net8.0/Xna.Framework.Input.dll": {
+            "assemblyVersion": "4.2.9001.0",
+            "fileVersion": "4.2.9001.0"
+          }
+        }
+      },
+      "nkast.Xna.Framework.Media/4.2.9001": {
+        "dependencies": {
+          "nkast.Xna.Framework": "4.2.9001",
+          "nkast.Xna.Framework.Content": "4.2.9001",
+          "nkast.Xna.Framework.Graphics": "4.2.9001"
+        },
+        "runtime": {
+          "lib/net8.0/Xna.Framework.Media.dll": {
+            "assemblyVersion": "4.2.9001.0",
+            "fileVersion": "4.2.9001.0"
+          }
+        }
+      },
+      "nkast.Xna.Framework.Storage/4.2.9001": {
+        "dependencies": {
+          "nkast.Xna.Framework": "4.2.9001"
+        },
+        "runtime": {
+          "lib/net8.0/Xna.Framework.Storage.dll": {
+            "assemblyVersion": "4.2.9001.0",
+            "fileVersion": "4.2.9001.0"
+          }
+        }
+      },
+      "nkast.Xna.Framework.XR/4.2.9001": {
+        "dependencies": {
+          "nkast.Xna.Framework": "4.2.9001",
+          "nkast.Xna.Framework.Game": "4.2.9001",
+          "nkast.Xna.Framework.Graphics": "4.2.9001"
+        },
+        "runtime": {
+          "lib/net8.0/Xna.Framework.XR.dll": {
+            "assemblyVersion": "4.2.9001.0",
+            "fileVersion": "4.2.9001.0"
+          }
+        }
+      },
+      "SQLitePCLRaw.bundle_e_sqlite3/2.1.11": {
+        "dependencies": {
+          "SQLitePCLRaw.lib.e_sqlite3": "3.53.3",
+          "SQLitePCLRaw.provider.e_sqlite3": "2.1.11"
+        },
+        "runtime": {
+          "lib/netstandard2.0/SQLitePCLRaw.batteries_v2.dll": {
+            "assemblyVersion": "2.1.11.2622",
+            "fileVersion": "2.1.11.2622"
+          }
+        }
+      },
+      "SQLitePCLRaw.core/2.1.11": {
+        "runtime": {
+          "lib/netstandard2.0/SQLitePCLRaw.core.dll": {
+            "assemblyVersion": "2.1.11.2622",
+            "fileVersion": "2.1.11.2622"
+          }
+        }
+      },
+      "SQLitePCLRaw.lib.e_sqlite3/3.53.3": {
+        "native": {
+          "runtimes/win-x64/native/e_sqlite3.dll": {
+            "fileVersion": "3.53.3.0"
+          }
+        }
+      },
+      "SQLitePCLRaw.provider.e_sqlite3/2.1.11": {
+        "dependencies": {
+          "SQLitePCLRaw.core": "2.1.11"
+        },
+        "runtime": {
+          "lib/net6.0/SQLitePCLRaw.provider.e_sqlite3.dll": {
+            "assemblyVersion": "2.1.11.2622",
+            "fileVersion": "2.1.11.2622"
+          }
+        }
+      },
+      "DragonCards.Core/0.3.0": {
+        "runtime": {
+          "DragonCards.Core.dll": {
+            "assemblyVersion": "0.3.0.0",
+            "fileVersion": "0.3.0.0"
+          }
+        }
+      },
+      "DragonCards.Networking/0.3.0": {
+        "dependencies": {
+          "DragonCards.Core": "0.3.0"
+        },
+        "runtime": {
+          "DragonCards.Networking.dll": {
+            "assemblyVersion": "0.3.0.0",
+            "fileVersion": "0.3.0.0"
+          }
+        }
+      },
+      "DragonCards.Persistence/0.3.0": {
+        "dependencies": {
+          "DragonCards.Core": "0.3.0",
+          "Microsoft.EntityFrameworkCore.Sqlite": "10.0.9",
+          "SQLitePCLRaw.lib.e_sqlite3": "3.53.3"
+        },
+        "runtime": {
+          "DragonCards.Persistence.dll": {
+            "assemblyVersion": "0.3.0.0",
+            "fileVersion": "0.3.0.0"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "DragonCards.Desktop/0.3.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Microsoft.Data.Sqlite.Core/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-iZrONyMKPjxfVZnUktqO30QjzNwAGH+AxM61s8lKQnVhgbQ3bn0hiXI129ZmVicEbIcwljyy2OVsIYUR51ZHKQ==",
+      "path": "microsoft.data.sqlite.core/10.0.9",
+      "hashPath": "microsoft.data.sqlite.core.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.EntityFrameworkCore/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-tu85SRzOT021V7EQlViCiAE7TqldVn469Y6lt5TEn/+XC4/MeNCHgMRSxqYuWqvF4zAQZUhCmtNEZuM3ss4LeA==",
+      "path": "microsoft.entityframeworkcore/10.0.9",
+      "hashPath": "microsoft.entityframeworkcore.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.EntityFrameworkCore.Abstractions/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-GRMaiPkqYna/gCsyDffYDWmefGPC3hDrdMw+2rrGcQwhs6uZOsaMQXMJnoXQ35tx9SkBV2ieRRU9N/jLOO6BZw==",
+      "path": "microsoft.entityframeworkcore.abstractions/10.0.9",
+      "hashPath": "microsoft.entityframeworkcore.abstractions.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.EntityFrameworkCore.Relational/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-dEoyYKgiaZHHgOFm1WMWm1sFEsEuhPWufX4L9PekKtqd/RaIcPjkCjvbrVvJtApErb5wPSJhYvnTlxhH+p9h2g==",
+      "path": "microsoft.entityframeworkcore.relational/10.0.9",
+      "hashPath": "microsoft.entityframeworkcore.relational.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.EntityFrameworkCore.Sqlite/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-HH9/nnRF/YmRrc3hUlgXjMBYKH5kFmd5UWC81l9U0ySQhwHTcgvDPSewB8DyQHzFJzNGgG7VFK6ynC6+XQz9WA==",
+      "path": "microsoft.entityframeworkcore.sqlite/10.0.9",
+      "hashPath": "microsoft.entityframeworkcore.sqlite.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.EntityFrameworkCore.Sqlite.Core/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-3bPEmACAaPJJSw+m5XwTSi3yZnVtaifa4d8gLsNMzW0Qu28jS5kADSfgJRBlq49RJ1K098VCzEDRJwM8gE6f2w==",
+      "path": "microsoft.entityframeworkcore.sqlite.core/10.0.9",
+      "hashPath": "microsoft.entityframeworkcore.sqlite.core.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Caching.Abstractions/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-5fGxcw2vuYp8s0wio9H1ECiuk4iKSdTIlNuigdLIrkhg+5XAwgFVDB/5Ots3pfN/QhABLYXutA79JFtnUKDSHA==",
+      "path": "microsoft.extensions.caching.abstractions/10.0.9",
+      "hashPath": "microsoft.extensions.caching.abstractions.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Caching.Memory/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-G9mregdatGWMCQWeCw012LDeJVP7G/XIxH8Ddbjc8bD1//dA+8VVQdcRE9jI1moyoJxSSZhHITUnNQ8FUDl5+Q==",
+      "path": "microsoft.extensions.caching.memory/10.0.9",
+      "hashPath": "microsoft.extensions.caching.memory.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Configuration.Abstractions/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-qGhRPd3VxfLV9UqatVOiD9mAeUbj2KiMwGFYC5uXlzExiZQoe4X/hdmzGIU7BQjNLTqCnnbTHVyBglG3668/HA==",
+      "path": "microsoft.extensions.configuration.abstractions/10.0.9",
+      "hashPath": "microsoft.extensions.configuration.abstractions.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.DependencyInjection/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-NijozhERJDIaJ4k5TSMy1jOi0cSC2HfkvRD/Sl+kGSSKgVbFnF4GxgtMN/MrzHB8D1JxIrD4xSer9Blh9v3axQ==",
+      "path": "microsoft.extensions.dependencyinjection/10.0.9",
+      "hashPath": "microsoft.extensions.dependencyinjection.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.DependencyInjection.Abstractions/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-g41l/30G3K4B/d/L8kjux0+30e27c8D0FVQ/PFCpbekgfDpj9mnDhieP67EqXWvl1EWNeZh2rpR4F5B/jcDOHA==",
+      "path": "microsoft.extensions.dependencyinjection.abstractions/10.0.9",
+      "hashPath": "microsoft.extensions.dependencyinjection.abstractions.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.DependencyModel/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-SCDTQ6HubnRvTUjR7dgMKHZvNoCb03t44ttHL8trlFTGgfDteWn/0nRdOxDhcI+lTWhKgd/flCVJEtAOPhSLNg==",
+      "path": "microsoft.extensions.dependencymodel/10.0.9",
+      "hashPath": "microsoft.extensions.dependencymodel.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Logging/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-N7Gm9SjugYjmmnhwbBKC9DFqGqjfJvh6YfOJgtwh0AW0Xpok3dIVors1ik050XmUxKAgAc7nNngDIJyFb06K2g==",
+      "path": "microsoft.extensions.logging/10.0.9",
+      "hashPath": "microsoft.extensions.logging.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Logging.Abstractions/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-9S/DFt4cohlMPpzIxjG6kk0L8MuN2vDm9pbMCulxtJzzk82oJHVLBd8vuQxaPskaYQwKqmFmbannf5eoChgjYg==",
+      "path": "microsoft.extensions.logging.abstractions/10.0.9",
+      "hashPath": "microsoft.extensions.logging.abstractions.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Options/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-hyNdX4c2UwkRkzb9byw0H2DQkRzwBM3mzY2sCM9egwzTyg8dvQJmp5noQHGEaaCORQrNK3DD2gREBsc2DlXS4A==",
+      "path": "microsoft.extensions.options/10.0.9",
+      "hashPath": "microsoft.extensions.options.10.0.9.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Primitives/10.0.9": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-fmEbAUFsaIKirgLt/lYhuFRBwhcSJN31jjHgCdbQxJiWOum6EdLjkbgGuukSP9z/a+9LibaxII/kF+GwOXgC4g==",
+      "path": "microsoft.extensions.primitives/10.0.9",
+      "hashPath": "microsoft.extensions.primitives.10.0.9.nupkg.sha512"
+    },
+    "nkast.Kni.Platform.SDL2.GL/4.2.9001.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-0QC1hkdJ32hO5k82LpON3beCguRJWwQyQchme6vwjkCLpVjsDMllbogJrESsR6tjNEYWfbPWUt49ss9iYAE9Tg==",
+      "path": "nkast.kni.platform.sdl2.gl/4.2.9001.1",
+      "hashPath": "nkast.kni.platform.sdl2.gl.4.2.9001.1.nupkg.sha512"
+    },
+    "nkast.Xna.Framework/4.2.9001": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-HGW9WIYZ/+uwQvCZTdPKMmLWIdcTfDZ42LbYZpRwwOkL1SJRcD3/cL2PfhUffMDwqwz1BMFfMacOmd3sfJizYQ==",
+      "path": "nkast.xna.framework/4.2.9001",
+      "hashPath": "nkast.xna.framework.4.2.9001.nupkg.sha512"
+    },
+    "nkast.Xna.Framework.Audio/4.2.9001": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-x5u9k1TGax9mP1kULqOGcHdNyydD4RlnAYq4VSeE3jN0aYDd7R0JDtHTWqfDTW5/oBmOCDE+3JdmP5LLDjgscg==",
+      "path": "nkast.xna.framework.audio/4.2.9001",
+      "hashPath": "nkast.xna.framework.audio.4.2.9001.nupkg.sha512"
+    },
+    "nkast.Xna.Framework.Content/4.2.9001": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-TszcUxzLTWmTzxNnrZUg8cXqBm7rN6utD8Z+MORtlF3eD9wRMmMe7FrxUdJfK7eIjwWbklR2oF9EzxufciwQWw==",
+      "path": "nkast.xna.framework.content/4.2.9001",
+      "hashPath": "nkast.xna.framework.content.4.2.9001.nupkg.sha512"
+    },
+    "nkast.Xna.Framework.Devices/4.2.9001": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-VKufomeN2F8QVqrpBTN40ueo+CWmklFbhmmRfbNIpfnvdTypp8EaT0vKeS6e905jdYqdxnpfaBVhPZtt2rHmhw==",
+      "path": "nkast.xna.framework.devices/4.2.9001",
+      "hashPath": "nkast.xna.framework.devices.4.2.9001.nupkg.sha512"
+    },
+    "nkast.Xna.Framework.Game/4.2.9001": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-pxTAElIsWyj4JX6sm/moYUHzyk8Md2sLgBSTUMYS7keQ1kxsWyHzyjcuT1cvOc42hMHIRY+8sKCuiZhoFwFSNQ==",
+      "path": "nkast.xna.framework.game/4.2.9001",
+      "hashPath": "nkast.xna.framework.game.4.2.9001.nupkg.sha512"
+    },
+    "nkast.Xna.Framework.Graphics/4.2.9001": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-qMEnoyff3DfGkHbvFdLsZvK8rFYrHT+lds3wjUIKL5jpvPoJQeOdkLqJzSjykhb/mGpFs7XRmCYKDTC5r56s3A==",
+      "path": "nkast.xna.framework.graphics/4.2.9001",
+      "hashPath": "nkast.xna.framework.graphics.4.2.9001.nupkg.sha512"
+    },
+    "nkast.Xna.Framework.Input/4.2.9001": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-HbCgGt14uAvkEnvKlBvxpzqg1YteFYV7epjolzVT1cMZsSGJ3uOlUjiAyLFcWxPIuy1YmFvX8TsaJ3bliavjTg==",
+      "path": "nkast.xna.framework.input/4.2.9001",
+      "hashPath": "nkast.xna.framework.input.4.2.9001.nupkg.sha512"
+    },
+    "nkast.Xna.Framework.Media/4.2.9001": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-C/aSqkg/BAR3GKEQS6KjDlWBLyblI80QoNoAZD6jxsnYjbdk1JZyGsqOz8IRgQXXxl7ef8kQureegbwozwgC+A==",
+      "path": "nkast.xna.framework.media/4.2.9001",
+      "hashPath": "nkast.xna.framework.media.4.2.9001.nupkg.sha512"
+    },
+    "nkast.Xna.Framework.Storage/4.2.9001": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-UR0mXutoZBhOCeMuTgqP3GYFQalJ0fvZfB00b4ZZh4VaBUao8xrzJls0oJ1edKlnrn3kdIHZ5fni11D10Jag6g==",
+      "path": "nkast.xna.framework.storage/4.2.9001",
+      "hashPath": "nkast.xna.framework.storage.4.2.9001.nupkg.sha512"
+    },
+    "nkast.Xna.Framework.XR/4.2.9001": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-aoVka6yMsPzxP5NDLqfPbxY64nzACJiipqR6Xyi+vi43xcFG7XsVa1dSZqLkgHCXhhtkvOEuY47/bNqrejkrUQ==",
+      "path": "nkast.xna.framework.xr/4.2.9001",
+      "hashPath": "nkast.xna.framework.xr.4.2.9001.nupkg.sha512"
+    },
+    "SQLitePCLRaw.bundle_e_sqlite3/2.1.11": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-DC4nA7yWnf4UZdgJDF+9Mus4/cb0Y3Sfgi3gDnAoKNAIBwzkskNAbNbyu+u4atT0ruVlZNJfwZmwiEwE5oz9LQ==",
+      "path": "sqlitepclraw.bundle_e_sqlite3/2.1.11",
+      "hashPath": "sqlitepclraw.bundle_e_sqlite3.2.1.11.nupkg.sha512"
+    },
+    "SQLitePCLRaw.core/2.1.11": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-PK0GLFkfhZzLQeR3PJf71FmhtHox+U3vcY6ZtswoMjrefkB9k6ErNJEnwXqc5KgXDSjige2XXrezqS39gkpQKA==",
+      "path": "sqlitepclraw.core/2.1.11",
+      "hashPath": "sqlitepclraw.core.2.1.11.nupkg.sha512"
+    },
+    "SQLitePCLRaw.lib.e_sqlite3/3.53.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ZXiSbBkrlw2Of/dBqny/qtQol7dlThrUD8zH/jkQicCFm2yn2BbhKsQW0+YHAzhANWz4ZJCz7gvo88BwluVhkA==",
+      "path": "sqlitepclraw.lib.e_sqlite3/3.53.3",
+      "hashPath": "sqlitepclraw.lib.e_sqlite3.3.53.3.nupkg.sha512"
+    },
+    "SQLitePCLRaw.provider.e_sqlite3/2.1.11": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Y/0ZkR+r0Cg3DQFuCl1RBnv/tmxpIZRU3HUvelPw6MVaKHwYYR8YNvgs0vuNuXCMvlyJ+Fh88U1D4tah1tt6qw==",
+      "path": "sqlitepclraw.provider.e_sqlite3/2.1.11",
+      "hashPath": "sqlitepclraw.provider.e_sqlite3.2.1.11.nupkg.sha512"
+    },
+    "DragonCards.Core/0.3.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "DragonCards.Networking/0.3.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "DragonCards.Persistence/0.3.0": {
+      "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    }
+  }
+}

@@ -1,0 +1,49 @@
+{
+  "id": "sealed-gauntlet",
+  "name": "Sealed Gauntlet",
+  "description": "A temporary six-booster pool and 40-card deck challenge against AI opponents.",
+  "display": {
+    "category": "Solo Challenge",
+    "shortName": "Sealed",
+    "featureText": "Generate a fresh pool, build from what you open, and chase a three-win gauntlet.",
+    "tags": ["sealed", "solo", "challenge"]
+  },
+  "elements": ["Fire", "Ice", "Wind", "Earth", "Lightning", "Water", "Light", "Dark"],
+  "phases": ["Ready", "Draw", "Main", "Combat", "Second Main", "End"],
+  "allowedCardTypes": ["Unit", "Support", "Spell"],
+  "deckRules": {
+    "deckSize": 40,
+    "maxCopies": 1
+  },
+  "zoneLimits": {
+    "unitSlots": 5,
+    "supportSlots": 5
+  },
+  "energyRules": {
+    "maxPerElement": 10,
+    "addsPerTurn": 1
+  },
+  "elementAdvantage": {
+    "powerBonus": 2000,
+    "strongAgainst": {
+      "Water": ["Fire"],
+      "Fire": ["Ice"],
+      "Ice": ["Wind"],
+      "Wind": ["Earth"],
+      "Earth": ["Lightning"],
+      "Lightning": ["Light"],
+      "Light": ["Dark"],
+      "Dark": ["Water"]
+    }
+  },
+  "sealedRules": {
+    "enabled": true,
+    "boosterCount": 6,
+    "buildDeckSize": 40,
+    "gauntletWinsRequired": 3,
+    "completionCoins": 500
+  },
+  "progressionEligible": false,
+  "damageLimit": 7,
+  "startingHand": 5
+}

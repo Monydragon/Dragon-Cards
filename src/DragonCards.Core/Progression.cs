@@ -169,7 +169,7 @@ public sealed record GameRulesConfig
 
 public sealed record PlayerProfile
 {
-    public int Version { get; init; } = 2;
+    public int Version { get; set; } = 4;
     public string PlayerName { get; set; } = "Player";
     public int Level { get; set; } = 1;
     public int Experience { get; set; }
@@ -182,6 +182,7 @@ public sealed record PlayerProfile
     public Dictionary<string, int> OwnedCards { get; set; } = new(StringComparer.OrdinalIgnoreCase);
     public List<string> OwnedStarterDeckIds { get; set; } = [];
     public List<string> CompletedTutorialIds { get; set; } = [];
+    public QuestProgressState Quests { get; set; } = new();
 
     [JsonIgnore]
     public int ExperienceIntoLevel => ProgressionService.ExperienceIntoLevel(Experience);
@@ -194,6 +195,7 @@ public sealed record PlayerProfile
 
     public void Normalize()
     {
+        Version = 4;
         PlayerName = string.IsNullOrWhiteSpace(PlayerName) ? "Player" : PlayerName.Trim();
         Experience = Math.Clamp(Experience, 0, ProgressionService.MaxExperience);
         Level = ProgressionService.LevelForExperience(Experience);
@@ -223,6 +225,8 @@ public sealed record PlayerProfile
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(id => id, StringComparer.OrdinalIgnoreCase)
             .ToList();
+        Quests ??= new QuestProgressState();
+        Quests.Normalize();
     }
 }
 
@@ -361,6 +365,8 @@ public static class PlayerCollection
     public const int MaxOwnedCopies = 3;
 
     public static int CountOwned(PlayerProfile profile, string cardId) =>
+        EnergySource.IsEnergySourceCardId(cardId) ? 0 :
+        BasicEnergy.IsBasicEnergyCardId(cardId) ? int.MaxValue :
         profile.OwnedCards.GetValueOrDefault(cardId);
 
     public static bool HasStarterDeck(PlayerProfile profile, string deckId) =>
@@ -368,6 +374,10 @@ public static class PlayerCollection
 
     public static BoosterCardGrant GrantCard(PlayerProfile profile, CardDefinition card, int count = 1)
     {
+        if (BasicEnergy.IsBasicEnergyCard(card) || EnergySource.IsEnergySourceToken(card))
+        {
+            return new BoosterCardGrant(card.Id, card.Name, card.Rarity, 0, 0);
+        }
         var added = 0;
         var duplicateCoins = 0;
         for (var i = 0; i < Math.Max(0, count); i++)
@@ -435,6 +445,10 @@ public static class DeckOwnershipValidator
         var issues = new List<ValidationIssue>();
         foreach (var (cardId, required) in deck.Cards)
         {
+            if (BasicEnergy.IsBasicEnergyCardId(cardId) || EnergySource.IsEnergySourceCardId(cardId))
+            {
+                continue;
+            }
             var owned = PlayerCollection.CountOwned(profile, cardId);
             if (required > owned)
             {
@@ -495,6 +509,7 @@ public static class ShopCatalogService
         };
 
         items.AddRange(data.Cards
+            .Where(card => !BasicEnergy.IsBasicEnergyCard(card) && !EnergySource.IsEnergySourceToken(card))
             .Select(card => card.SetId)
             .Where(setId => !string.IsNullOrWhiteSpace(setId) &&
                 !setId.Equals(CardSets.Core, StringComparison.OrdinalIgnoreCase))
@@ -530,6 +545,7 @@ public static class ShopCatalogService
             }));
 
         items.AddRange(data.Cards
+            .Where(card => !BasicEnergy.IsBasicEnergyCard(card) && !EnergySource.IsEnergySourceToken(card))
             .OrderBy(card => CardRarityRank(card.Rarity))
             .ThenBy(card => card.Name, StringComparer.OrdinalIgnoreCase)
             .Select(card => new ShopCatalogItem
@@ -559,6 +575,10 @@ public static class ShopCatalogService
     {
         ArgumentNullException.ThrowIfNull(profile);
         ArgumentNullException.ThrowIfNull(card);
+        if (BasicEnergy.IsBasicEnergyCard(card) || EnergySource.IsEnergySourceToken(card))
+        {
+            return new ShopPurchaseResult(false, "Field-only Energy cards cannot be purchased.");
+        }
         if (PlayerCollection.CountOwned(profile, card.Id) >= PlayerCollection.MaxOwnedCopies)
         {
             return new ShopPurchaseResult(false, "Already own the maximum copies.");
@@ -733,6 +753,7 @@ public static class BoosterService
     {
         var normalized = CardRarities.Normalize(rarity);
         var pool = data.Cards
+            .Where(card => !BasicEnergy.IsBasicEnergyCard(card) && !EnergySource.IsEnergySourceToken(card))
             .Where(card => string.IsNullOrWhiteSpace(setId) || card.SetId.Equals(setId, StringComparison.OrdinalIgnoreCase))
             .Where(card => CardRarities.Normalize(card.Rarity).Equals(normalized, StringComparison.OrdinalIgnoreCase))
             .OrderBy(card => card.Id, StringComparer.OrdinalIgnoreCase)
@@ -740,6 +761,7 @@ public static class BoosterService
         if (pool.Length == 0)
         {
             pool = data.Cards
+                .Where(card => !BasicEnergy.IsBasicEnergyCard(card) && !EnergySource.IsEnergySourceToken(card))
                 .Where(card => CardRarities.Normalize(card.Rarity).Equals(normalized, StringComparison.OrdinalIgnoreCase))
                 .OrderBy(card => card.Id, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
@@ -747,7 +769,7 @@ public static class BoosterService
 
         if (pool.Length == 0)
         {
-            pool = data.Cards.OrderBy(card => card.Id, StringComparer.OrdinalIgnoreCase).ToArray();
+            pool = data.Cards.Where(card => !BasicEnergy.IsBasicEnergyCard(card) && !EnergySource.IsEnergySourceToken(card)).OrderBy(card => card.Id, StringComparer.OrdinalIgnoreCase).ToArray();
         }
 
         return pool[random.Next(pool.Length)];

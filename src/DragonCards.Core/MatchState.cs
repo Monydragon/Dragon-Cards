@@ -24,10 +24,14 @@ public sealed class MatchState
     public int PhaseIndex { get; set; }
     public int TurnNumber { get; set; } = 1;
     public int EnergyAddsThisTurn { get; set; }
+    public int EnergyCardsPlayedThisTurn { get; set; }
+    public int GeneratedEnergySourceSequence { get; set; }
     public bool HasAddedEnergyThisTurn => EnergyAddsThisTurn >= Mode.EnergyRules.AddsPerTurn;
+    public bool HasPlayedEnergyCardThisTurn => EnergyCardsPlayedThisTurn >= 1;
     public PendingAttack? PendingAttack { get; set; }
     public PendingCombatAction? PendingCombatAction { get; set; }
     public PendingEnergyChoice? PendingEnergyChoice { get; set; }
+    public PendingEnergySourceChoice? PendingEnergySourceChoice { get; set; }
     public PendingTargetChoice? PendingTargetChoice { get; set; }
     public int? WinnerIndex { get; set; }
     public List<string> Log { get; } = [];
@@ -54,6 +58,7 @@ public sealed class PlayerState
     public List<CardInstance> Hand { get; } = [];
     public List<CardInstance> UnitField { get; } = [];
     public List<CardInstance> SupportField { get; } = [];
+    public List<CardInstance> EnergyField { get; } = [];
     public Dictionary<string, int> EnergyPool { get; } = new(StringComparer.OrdinalIgnoreCase);
     public int NextCardCostReduction { get; set; }
     public Dictionary<string, int> LastPayment { get; } = new(StringComparer.OrdinalIgnoreCase);
@@ -71,15 +76,27 @@ public sealed class PlayerState
 
 public sealed class CardInstance
 {
-    public CardInstance(string cardId, string? id = null)
+    public CardInstance(string cardId, string? id = null, EnergySourceOrigin sourceOrigin = EnergySourceOrigin.None)
     {
         Id = string.IsNullOrWhiteSpace(id) ? Guid.NewGuid().ToString("N") : id;
         CardId = cardId;
+        SourceOrigin = sourceOrigin;
     }
 
     public string Id { get; }
     public string CardId { get; }
     public bool Exhausted { get; set; }
+    public EnergySourceOrigin SourceOrigin { get; }
+}
+
+public enum EnergySourceOrigin
+{
+    None,
+    BasicCard,
+    FreeAdd,
+    Effect,
+    Sacrifice,
+    Converted
 }
 
 public sealed record PendingAttack(int AttackerPlayerIndex, string AttackerInstanceId);
@@ -104,6 +121,14 @@ public enum PendingEnergyChoiceType
     Gain,
     ConvertTo
 }
+
+public sealed record PendingEnergySourceChoice(
+    int PlayerIndex,
+    string DestinationElement,
+    string Message,
+    string SourceInstanceId = "",
+    string CardId = "",
+    string EffectText = "");
 
 public sealed record PendingTargetChoice(
     int PlayerIndex,
@@ -169,6 +194,8 @@ public enum MatchEventKind
     CardSacrificed,
     EnergySpent,
     EnergyGained,
+    EnergySourceCreated,
+    EnergyRefreshed,
     EnergyConverted,
     EnergyRefunded,
     CostReduced,

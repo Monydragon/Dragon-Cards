@@ -22,6 +22,7 @@
     <ProjectReference Include="..\..\src\DragonCards.Core\DragonCards.Core.csproj" />
     <ProjectReference Include="..\..\src\DragonCards.Desktop\DragonCards.Desktop.csproj" />
     <ProjectReference Include="..\..\src\DragonCards.Networking\DragonCards.Networking.csproj" />
+    <ProjectReference Include="..\..\src\DragonCards.Persistence\DragonCards.Persistence.csproj" />
   </ItemGroup>
 
 </Project>

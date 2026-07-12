@@ -17,6 +17,7 @@ public sealed partial class DragonCardsGame : Game
     {
         Grid,
         ElementFilters,
+        CollectionFilters,
         TypeFilters,
         CardDetail,
         CardActions,
@@ -33,6 +34,8 @@ public sealed partial class DragonCardsGame : Game
     private const float CardDetailTextScale = 0.74f;
     private const float SmallCardDetailTextScale = 0.64f;
     private const float PromptDetailTextScale = 0.72f;
+    private const float AiInterActionPauseSeconds = 0.18f;
+    private static readonly int[] InteractionSpeedPercentOptions = [55, 70, 100, 140];
     private static readonly string[] ElementOrder = ["Fire", "Ice", "Wind", "Earth", "Lightning", "Water", "Light", "Dark"];
     private static readonly (int Width, int Height)[] WindowSizeOptions = [(1280, 720), (1440, 900), (1600, 900), (1920, 1080)];
     private static readonly IReadOnlyList<TutorialDefinition> TutorialDefinitions = CreateTutorialDefinitions();
@@ -47,6 +50,7 @@ public sealed partial class DragonCardsGame : Game
     private TextLayoutCache? _textLayoutCache;
     private Texture2D? _pixel;
     private Texture2D? _logoTexture;
+    private Texture2D? _mainMenuDragonTexture;
     private readonly AudioService _audio = new();
     private readonly Dictionary<string, Texture2D> _rarityIcons = new(StringComparer.OrdinalIgnoreCase);
     private readonly List<MatchTimelineEntry> _matchTimelineEntries = [];
@@ -70,14 +74,20 @@ public sealed partial class DragonCardsGame : Game
     private DragonDuelEngine? _engine;
     private readonly DragonDuelAi _ai = new();
     private readonly PresentationDirector _presentation = new();
+    private float _aiInteractionDelaySeconds;
+    private bool _aiAwaitingPresentation;
     private MatchKind _matchKind = MatchKind.Hotseat;
     private const int HumanPlayerIndex = 0;
     private const int AiPlayerIndex = 1;
     private int _selectedHandIndex = -1;
     private int _selectedUnitIndex = -1;
     private int _selectedSupportIndex = -1;
+    private int _energyFieldScrollOffset;
+    private int _energyChoiceIndex;
+    private int _energySourceChoiceIndex;
     private int _selectedBlockerIndex = -1;
     private int _menuFocus;
+    private int _mainMenuModeIndex;
     private int _multiplayerFocus;
     private int _optionsFocus;
     private int _deckFocusIndex;
@@ -104,6 +114,7 @@ public sealed partial class DragonCardsGame : Game
     private ReplacementTarget? _replacementTarget;
     private NetworkInvite _hostInvite = new();
     private string _hostInviteCode = "";
+    private string _hostSameComputerInviteCode = "";
     private string _joinInviteCode = "";
     private string _multiplayerNotice = "Choose Local, Host Lobby, or Join Lobby to start multiplayer.";
     private int _logScrollOffset;
@@ -156,6 +167,7 @@ public sealed partial class DragonCardsGame : Game
         _pixel.SetData([Color.White]);
         LoadRarityIcons();
         TryLoadLogo();
+        TryLoadMainMenuDragonArt();
         _audio.Configure(() => _settings.SoundVolume, () => _settings.MusicVolume, () => _settings.MuteAudio, CardTypeForAudio);
         _audio.Load(Content);
         _audio.LoadLoopingMusic(Content, "Audio/Throne_of_Parchment", "Throne of Parchment");
@@ -173,6 +185,18 @@ public sealed partial class DragonCardsGame : Game
         catch
         {
             _logoTexture = null;
+        }
+    }
+
+    private void TryLoadMainMenuDragonArt()
+    {
+        try
+        {
+            _mainMenuDragonTexture = Content.Load<Texture2D>("Branding/main-menu-blue-dragon");
+        }
+        catch
+        {
+            _mainMenuDragonTexture = null;
         }
     }
 
@@ -236,6 +260,7 @@ public sealed partial class DragonCardsGame : Game
         }
 
         _presentation.ReducedMotion = _settings.ReducedMotion;
+        _presentation.SpeedMultiplier = InteractionSpeedMultiplier;
         _presentation.Update(elapsedSeconds);
         _audio.PlayActivationCues(_presentation.DrainActivations());
         var skipBlockingBeat = _presentation.IsBlocking &&
@@ -267,7 +292,7 @@ public sealed partial class DragonCardsGame : Game
 
         HandleControllerInput();
         HandleMouseDrag();
-        TryAdvanceAiTurn();
+        UpdateAiInteractionPacing(elapsedSeconds);
         TrackScreenTransition();
         base.Update(gameTime);
     }
@@ -322,6 +347,10 @@ public sealed partial class DragonCardsGame : Game
         {
             DrawPlayerCreation();
         }
+        else if (_screen == Screen.ProfilePicker)
+        {
+            DrawProfilePicker();
+        }
         else if (_screen == Screen.Store)
         {
             DrawStoreUx();
@@ -329,6 +358,14 @@ public sealed partial class DragonCardsGame : Game
         else if (_screen == Screen.PackOpening)
         {
             DrawPackOpeningUx();
+        }
+        else if (_screen == Screen.Quests)
+        {
+            DrawQuestBoard();
+        }
+        else if (_screen == Screen.ProfileData)
+        {
+            DrawProfileData();
         }
         else if (_screen == Screen.MatchResult)
         {
@@ -402,40 +439,59 @@ public sealed partial class DragonCardsGame : Game
         }
     }
 
-    private string CurrentModeHeader() => _engine?.State.Mode.Name ?? "Prototype";
+    private string CurrentModeHeader()
+    {
+        if (_engine is not null)
+        {
+            return _engine.State.Mode.Name;
+        }
+
+        if (_screen == Screen.MainMenu && PlayableModeCatalog.All.Count > 0)
+        {
+            var index = Math.Clamp(_mainMenuModeIndex, 0, PlayableModeCatalog.All.Count - 1);
+            return $"Chosen: {PlayableModeCatalog.All[index].Name}";
+        }
+
+        return "Dragon Cards";
+    }
 
     private void DrawMainMenu()
     {
         var currentDeck = CurrentDeck();
-        var opponentDeck = OpponentDeck();
         var currentDeckIssues = GameDataValidator.ValidateDeck(currentDeck, _data);
-        var opponentDeckIssues = GameDataValidator.ValidateDeck(opponentDeck, _data);
-        var ownershipIssues = ValidateCurrentDeckOwnership(currentDeck);
         var canOpenModes = _profile is not null && _dataIssues.Count == 0;
+        var modes = PlayableModeCatalog.All;
+        _mainMenuModeIndex = Math.Clamp(_mainMenuModeIndex, 0, Math.Max(0, modes.Count - 1));
+        var selectedMode = modes.Count == 0 ? null : modes[_mainMenuModeIndex];
 
-        DrawText("Dragon Cards", new Vector2(54, 108), Color.White, 1.2f);
-        DrawText(MainMenuSubtitle(), new Vector2(56, 146), new Color(196, 207, 220), 0.74f);
+        DrawDragonHeroBackground();
+        DrawText("ENTER THE DRAGON'S ROOST", new Vector2(56, 108), new Color(218, 236, 255), 1.0f);
+        DrawText("Choose your deck, choose your flight, and let the blue wyrm carry you into the next duel.", new Vector2(58, 144), new Color(180, 209, 235), 0.6f);
 
-        DrawDeckSummary(new Rectangle(54, 198, 572, 292), "Single Player", currentDeck, currentDeckIssues, "fire-ashen-champion");
-        DrawDeckSummary(new Rectangle(654, 198, 572, 292), "AI Opponent", opponentDeck, opponentDeckIssues, "ice-crystal-champion");
+        var roostPanel = new Rectangle(50, 172, 770, 582);
+        DrawPanel(roostPanel, new Color(5, 13, 29, 224), border: new Color(70, 136, 194));
+        DrawText("YOUR CREST", new Vector2(roostPanel.X + 28, roostPanel.Y + 22), new Color(112, 201, 255), 0.58f);
+        DrawDeckSummary(new Rectangle(roostPanel.X + 28, roostPanel.Y + 58, roostPanel.Width - 56, 234), currentDeck, currentDeckIssues);
+        DrawMainMenuModeChooser(new Rectangle(roostPanel.X + 28, roostPanel.Y + 316, roostPanel.Width - 56, 236), selectedMode, canOpenModes);
 
-        DrawPanel(new Rectangle(54, 532, 792, 214), new Color(31, 37, 46), border: new Color(81, 96, 116));
-        DrawText("Dragon Duel", new Vector2(84, 560), Color.White, 1.0f);
-        DrawText("Elemental energy, units, supports, spells, blocking combat, sacrifice, and cinematic card play.", new Rectangle(84, 598, 708, 58), new Color(205, 214, 225), 0.76f);
-        DrawModePips(new Rectangle(84, 662, 650, 58));
-        var validation = _dataIssues.Count == 0 ? "Data validation passed." : $"{_dataIssues.Count} data issue(s) need attention.";
-        DrawText(validation, new Vector2(84, 716), _dataIssues.Count == 0 ? new Color(148, 224, 164) : new Color(255, 162, 128), 0.72f);
+        DrawProfileSummary(new Rectangle(850, 180, 300, 222));
+        DrawPanel(new Rectangle(850, 424, 300, 118), new Color(6, 16, 34, 204), border: new Color(70, 136, 194));
+        DrawText("THE BLUE WYRM WATCHES", new Vector2(872, 446), new Color(116, 205, 255), 0.5f);
+        DrawText("Wing over the horizon. Tail around the table. Keep your eyes on the next card.", new Rectangle(872, 478, 256, 48), new Color(195, 218, 237), 0.48f);
 
-        DrawProfileSummary(new Rectangle(896, 532, 370, 214));
-        DrawReleaseNotesPanel(new Rectangle(54, 760, 792, 86));
+        var navigationPanel = new Rectangle(1192, 172, 348, 632);
+        DrawPanel(navigationPanel, new Color(5, 13, 29, 216), border: new Color(70, 136, 194));
+        DrawText("TAKE FLIGHT", new Vector2(navigationPanel.X + 26, navigationPanel.Y + 24), new Color(112, 201, 255), 0.64f);
+        DrawText(selectedMode is null ? "Select a mode" : $"Prepared for {selectedMode.Name}", new Rectangle(navigationPanel.X + 26, navigationPanel.Y + 56, navigationPanel.Width - 52, 34), new Color(213, 231, 247), 0.5f);
 
-        if (Button(new Rectangle(1292, 182, 248, 54), "Play Modes", canOpenModes, _usingController && _menuFocus == 0))
+        var buttonX = navigationPanel.X + 26;
+        var buttonWidth = navigationPanel.Width - 52;
+        if (Button(new Rectangle(buttonX, navigationPanel.Y + 104, buttonWidth, 48), "Open Selected Mode", canOpenModes, _usingController && _menuFocus == 0))
         {
-            _screen = Screen.ModeSelect;
-            _status = "Choose a game mode.";
+            OpenSelectedMainMenuMode();
         }
 
-        if (Button(new Rectangle(1292, 250, 248, 54), "Multiplayer", canOpenModes, _usingController && _menuFocus == 1))
+        if (Button(new Rectangle(buttonX, navigationPanel.Y + 160, buttonWidth, 44), "Multiplayer", canOpenModes, _usingController && _menuFocus == 1))
         {
             EnsureHostInvite();
             _screen = Screen.Multiplayer;
@@ -445,53 +501,130 @@ public sealed partial class DragonCardsGame : Game
             _status = "Multiplayer opened.";
         }
 
-        if (Button(new Rectangle(1292, 318, 248, 54), "Deck Builder", focused: _usingController && _menuFocus == 2))
+        if (Button(new Rectangle(buttonX, navigationPanel.Y + 212, buttonWidth, 44), "Deck Builder", focused: _usingController && _menuFocus == 2))
         {
             _screen = Screen.DeckBuilder;
             _status = "Deck builder opened.";
         }
 
-        if (Button(new Rectangle(1292, 386, 248, 54), "Store / Packs", focused: _usingController && _menuFocus == 3))
+        if (Button(new Rectangle(buttonX, navigationPanel.Y + 264, buttonWidth, 44), "Store / Packs", focused: _usingController && _menuFocus == 3))
         {
             _screen = Screen.Store;
             _status = "Store opened.";
         }
 
-        if (Button(new Rectangle(1292, 454, 248, 54), "Tutorials", focused: _usingController && _menuFocus == 4))
+        if (Button(new Rectangle(buttonX, navigationPanel.Y + 316, buttonWidth, 44), "Tutorials", focused: _usingController && _menuFocus == 4))
         {
             _screen = Screen.Tutorials;
             _status = "Tutorials opened.";
         }
 
-        if (Button(new Rectangle(1292, 522, 248, 54), "Options", focused: _usingController && _menuFocus == 5))
+        if (Button(new Rectangle(buttonX, navigationPanel.Y + 368, buttonWidth, 44), "Quest Board", _profile is not null, _usingController && _menuFocus == 5))
+        {
+            _screen = Screen.Quests;
+            _status = "Quest Board opened.";
+        }
+
+        if (Button(new Rectangle(buttonX, navigationPanel.Y + 420, buttonWidth, 44), "Options", focused: _usingController && _menuFocus == 6))
         {
             _screen = Screen.Options;
             _status = "Options opened.";
         }
 
-        if (Button(new Rectangle(1292, 590, 248, 54), "New Game", focused: _usingController && _menuFocus == 6))
+        if (Button(new Rectangle(buttonX, navigationPanel.Y + 472, buttonWidth, 44), "Profile Data", _profile is not null, _usingController && _menuFocus == 7))
+        {
+            _screen = Screen.ProfileData;
+            _profileDataNotice = "Profile data workspace opened.";
+            _profileDataAudit = [];
+            _profileSeedRuns = [];
+        }
+
+        if (Button(new Rectangle(buttonX, navigationPanel.Y + 524, (buttonWidth - 12) / 2, 44), "Profiles", focused: _usingController && _menuFocus == 8))
         {
             BeginNewGame();
         }
 
-        if (Button(new Rectangle(1292, 658, 248, 54), "Exit", focused: _usingController && _menuFocus == 7))
+        if (Button(new Rectangle(buttonX + (buttonWidth + 12) / 2, navigationPanel.Y + 524, (buttonWidth - 12) / 2, 44), "Exit", focused: _usingController && _menuFocus == 9))
         {
             try { Exit(); }
             catch (PlatformNotSupportedException) { }
         }
     }
 
-    private void DrawReleaseNotesPanel(Rectangle rect)
+    private void DrawDragonHeroBackground()
     {
-        DrawPanel(rect, new Color(31, 37, 46), border: new Color(81, 96, 116));
-        DrawText("Prototype Playtest Notes", new Vector2(rect.X + 24, rect.Y + 14), Color.White, 0.62f);
-        DrawText("Try modes, starter matchups, tutorials, deck building, Store/Packs, direct LAN play, and balance feel. Progression stays off in sandbox variants.", new Rectangle(rect.X + 24, rect.Y + 44, rect.Width - 48, 28), new Color(196, 207, 220), 0.42f);
+        if (_mainMenuDragonTexture is not null)
+        {
+            DrawImageCover(_mainMenuDragonTexture, new Rectangle(0, 74, VirtualWidth, 788), new Color(255, 255, 255, 238));
+        }
+
+        Fill(new Rectangle(0, 74, 930, 788), new Color(3, 10, 24, 208));
+        Fill(new Rectangle(0, 74, VirtualWidth, 788), new Color(3, 8, 20, 54));
+        for (var index = 0; index < 9; index++)
+        {
+            var y = 176 + index * 72;
+            Fill(new Rectangle(824 + index * 16, y, 2, 46), new Color(73, 180, 255, 90 - index * 6));
+        }
+    }
+
+    private void DrawMainMenuModeChooser(Rectangle rect, PlayableModeDefinition? selectedMode, bool canOpenModes)
+    {
+        DrawPanel(rect, new Color(8, 22, 45, 228), border: new Color(63, 138, 200));
+        DrawText("CHOOSE YOUR FLIGHT", new Vector2(rect.X + 22, rect.Y + 18), new Color(112, 201, 255), 0.54f);
+        if (selectedMode is null)
+        {
+            DrawText("No playable modes are available.", new Vector2(rect.X + 22, rect.Y + 72), new Color(255, 162, 128), 0.64f);
+            return;
+        }
+
+        if (Button(new Rectangle(rect.X + 22, rect.Y + 62, 48, 42), "<", PlayableModeCatalog.All.Count > 1))
+        {
+            MoveMainMenuMode(-1);
+        }
+        if (Button(new Rectangle(rect.Right - 70, rect.Y + 62, 48, 42), ">", PlayableModeCatalog.All.Count > 1))
+        {
+            MoveMainMenuMode(1);
+        }
+
+        DrawFittedCenteredText(selectedMode.Name, new Rectangle(rect.X + 90, rect.Y + 62, rect.Width - 180, 42), Color.White, 0.84f, 0.5f);
+        DrawText(selectedMode.ProgressionEligible ? "Progression enabled" : "Progression disabled", new Rectangle(rect.X + 22, rect.Y + 120, 250, 24), selectedMode.ProgressionEligible ? new Color(148, 224, 164) : new Color(255, 190, 120), 0.48f);
+        DrawText(selectedMode.Description, new Rectangle(rect.X + 22, rect.Y + 148, rect.Width - 44, 48), new Color(205, 222, 239), 0.5f);
+        if (Button(new Rectangle(rect.Right - 210, rect.Bottom - 48, 188, 34), "Mode Setup", canOpenModes))
+        {
+            OpenSelectedMainMenuMode();
+        }
+    }
+
+    private void MoveMainMenuMode(int delta)
+    {
+        var count = PlayableModeCatalog.All.Count;
+        if (count == 0)
+        {
+            return;
+        }
+
+        _mainMenuModeIndex = (_mainMenuModeIndex + delta + count) % count;
+        _modeFocus = _mainMenuModeIndex;
+        _status = $"Selected {PlayableModeCatalog.All[_mainMenuModeIndex].Name}.";
+    }
+
+    private void OpenSelectedMainMenuMode()
+    {
+        if (PlayableModeCatalog.All.Count == 0)
+        {
+            return;
+        }
+
+        _modeFocus = Math.Clamp(_mainMenuModeIndex, 0, PlayableModeCatalog.All.Count - 1);
+        _modeListScroll.SetOffset(Math.Max(0, _modeFocus - 2));
+        _screen = Screen.ModeSelect;
+        _status = $"{PlayableModeCatalog.All[_modeFocus].Name} selected. Choose a setup to continue.";
     }
 
     private void DrawModeSelect()
     {
         DrawText("Mode Select", new Vector2(54, 108), Color.White, 1.2f);
-        DrawText("Choose a way to play. Prototype variants are clearly labeled when progression is disabled.", new Vector2(56, 146), new Color(196, 207, 220), 0.72f);
+        DrawText("Choose a way to play. Every mode earns profile progression except Sandbox Lab, where all content is unlocked.", new Vector2(56, 146), new Color(196, 207, 220), 0.72f);
 
         var modes = PlayableModeCatalog.All;
         _modeFocus = Math.Clamp(_modeFocus, 0, modes.Count - 1);
@@ -569,7 +702,7 @@ public sealed partial class DragonCardsGame : Game
 
             DrawCardFrame(new Rectangle(panel.X + 30, panel.Y + 258, 168, 236), avatar, selected: true, exhausted: false, count: 1, compact: false);
             DrawText($"{avatar.Name}   {avatar.Rarity}   {string.Join("/", avatar.Elements)}", new Rectangle(panel.X + 230, panel.Y + 208, 620, 36), new Color(244, 230, 158), 0.62f);
-            DrawText("Rules: 60-card singleton, avatar element identity, 10 damage limit, replay tax +2 generic per prior command-zone cast. Progression disabled for v1.", new Rectangle(panel.X + 230, panel.Y + 258, 600, 110), new Color(205, 214, 225), 0.58f);
+            DrawText("Rules: 60-card singleton, avatar element identity, 10 damage limit, replay tax +2 generic per prior command-zone cast. Progression rewards enabled.", new Rectangle(panel.X + 230, panel.Y + 258, 600, 110), new Color(205, 214, 225), 0.58f);
             var sampleDeck = DragonAvatarService.BuildSampleAvatarDeck(_data, avatar.Id);
             var issues = DragonAvatarService.ValidateAvatarDeck(_data, avatar.Id, sampleDeck);
             DrawText(issues.Count == 0 ? "Generated avatar deck is legal." : issues[0].Message, new Rectangle(panel.X + 230, panel.Y + 386, 600, 42), issues.Count == 0 ? new Color(148, 224, 164) : new Color(255, 162, 128), 0.54f);
@@ -581,7 +714,7 @@ public sealed partial class DragonCardsGame : Game
         _sealedPool ??= SealedGauntletService.GeneratePool(_data, Environment.TickCount);
         DrawText("Temporary Pool", new Vector2(panel.X + 30, panel.Y + 162), Color.White, 0.72f);
         DrawText($"6 boosters -> {_sealedPool.CardIds.Count} cards. Auto-builds a 40-card sealed deck for this prototype pass.", new Rectangle(panel.X + 30, panel.Y + 204, 760, 40), new Color(244, 230, 158), 0.58f);
-        DrawText("No owned cards are consumed. Progression is disabled except future one-time gauntlet completion rewards.", new Rectangle(panel.X + 30, panel.Y + 252, 760, 44), new Color(205, 214, 225), 0.54f);
+        DrawText("No owned cards are consumed. Completed matches earn normal progression rewards while the temporary pool is discarded.", new Rectangle(panel.X + 30, panel.Y + 252, 760, 44), new Color(205, 214, 225), 0.54f);
         if (Button(new Rectangle(panel.X + 30, panel.Y + 320, 168, 38), "Reroll Pool"))
         {
             _sealedPool = SealedGauntletService.GeneratePool(_data, Environment.TickCount);
@@ -741,13 +874,21 @@ public sealed partial class DragonCardsGame : Game
 
         if (modeId == DragonCardsModeIds.DragonDuel)
         {
-            return true;
+            return ValidateDecksForMode(modeId, playerDeck, opponentDeck, out error);
         }
 
         if (modeId == DragonCardsModeIds.StarterClash)
         {
-            opponentDeck = StarterDecks()[_starterClashOpponentIndex];
-            return true;
+            var starters = StarterDecks();
+            if (starters.Count == 0)
+            {
+                error = "No starter decks are available for Starter Clash.";
+                return false;
+            }
+
+            _starterClashOpponentIndex = Math.Clamp(_starterClashOpponentIndex, 0, starters.Count - 1);
+            opponentDeck = starters[_starterClashOpponentIndex];
+            return ValidateDecksForMode(modeId, playerDeck, opponentDeck, out error);
         }
 
         if (modeId == DragonCardsModeIds.DragonAvatar)
@@ -763,7 +904,7 @@ public sealed partial class DragonCardsGame : Game
             playerDeck = DragonAvatarService.BuildSampleAvatarDeck(_data, avatar.Id, "-player");
             var opponentAvatar = avatars.FirstOrDefault(card => !card.Elements.SequenceEqual(avatar.Elements)) ?? avatars[^1];
             opponentDeck = DragonAvatarService.BuildSampleAvatarDeck(_data, opponentAvatar.Id, "-ai");
-            return true;
+            return ValidateDecksForMode(modeId, playerDeck, opponentDeck, out error);
         }
 
         if (modeId == DragonCardsModeIds.SealedGauntlet)
@@ -771,16 +912,31 @@ public sealed partial class DragonCardsGame : Game
             _sealedPool ??= SealedGauntletService.GeneratePool(_data, Environment.TickCount);
             playerDeck = _sealedPool.Deck;
             opponentDeck = SealedGauntletService.GeneratePool(_data, Environment.TickCount + 71).Deck;
-            return true;
+            return ValidateDecksForMode(modeId, playerDeck, opponentDeck, out error);
         }
 
         if (modeId == DragonCardsModeIds.SandboxLab)
         {
-            return true;
+            return ValidateDecksForMode(modeId, playerDeck, opponentDeck, out error);
         }
 
         error = $"Mode '{modeId}' cannot start a match.";
         return false;
+    }
+
+    private bool ValidateDecksForMode(
+        string modeId,
+        DeckDefinition playerDeck,
+        DeckDefinition opponentDeck,
+        out string error)
+    {
+        var issues = GameDataValidator.ValidateDeck(playerDeck, _data, modeId)
+            .Concat(GameDataValidator.ValidateDeck(opponentDeck, _data, modeId))
+            .ToArray();
+        error = issues.Length == 0
+            ? ""
+            : $"Cannot start {ModeName(modeId)}: {issues[0].Message}";
+        return issues.Length == 0;
     }
 
     private bool TryCreateLocalDeckForMode(string modeId, out DeckDefinition deck, out string error)
@@ -990,12 +1146,12 @@ public sealed partial class DragonCardsGame : Game
         DrawText("Preferences", new Vector2(panel.X + 34, panel.Y + 18), Color.White, 0.82f);
 
         var listViewport = new Rectangle(panel.X + 34, panel.Y + 50, 690, 414);
-        var list = ListViewLayout.Create(listViewport, 8, 54, 8, _optionsListScroll);
-        if (_optionsFocusVisibilityPending && _optionsFocus <= 6)
+        var list = ListViewLayout.Create(listViewport, 9, 54, 8, _optionsListScroll);
+        if (_optionsFocusVisibilityPending && _optionsFocus <= 7)
         {
             _optionsListScroll.EnsureVisible(OptionsLogicalRow(_optionsFocus));
             _optionsFocusVisibilityPending = false;
-            list = ListViewLayout.Create(listViewport, 8, 54, 8, _optionsListScroll);
+            list = ListViewLayout.Create(listViewport, 9, 54, 8, _optionsListScroll);
         }
 
         foreach (var row in Enumerable.Range(list.VisibleItems.Start, list.VisibleItems.Count))
@@ -1025,7 +1181,10 @@ public sealed partial class DragonCardsGame : Game
                     DrawToggleRow(5, bounds, "Gameplay - Card Hover Zoom", _settings.CardZoom ? "On" : "Off", ToggleCardZoom);
                     break;
                 case 7:
-                    DrawToggleRow(6, bounds, "Accessibility - Reduced Motion", _settings.ReducedMotion ? "On" : "Off", ToggleReducedMotion);
+                    DrawChoiceRow(6, bounds, "Gameplay - Interaction Pace", InteractionSpeedLabel(), () => CycleInteractionSpeed(-1), () => CycleInteractionSpeed(1));
+                    break;
+                case 8:
+                    DrawToggleRow(7, bounds, "Accessibility - Reduced Motion", _settings.ReducedMotion ? "On" : "Off", ToggleReducedMotion);
                     break;
             }
         }
@@ -1038,13 +1197,13 @@ public sealed partial class DragonCardsGame : Game
         DrawText("Audio Status", new Vector2(846, 304), Color.White, 0.82f);
         DrawText($"SFX {_audio.LoadedSoundCount}/{_audio.ExpectedSoundCount}", new Rectangle(846, 340, 184, 24), new Color(196, 207, 220), 0.56f);
         DrawText(_audio.MusicStatus, new Rectangle(846, 370, 184, 42), new Color(196, 207, 220), 0.56f);
-        if (Button(new Rectangle(846, 424, 160, 34), "Test Music", _audio.MusicLoaded, focused: _usingController && _optionsFocus == 7))
+        if (Button(new Rectangle(846, 424, 160, 34), "Test Music", _audio.MusicLoaded, focused: _usingController && _optionsFocus == 8))
         {
             _audio.RestartMusic();
             _status = "BGM restarted.";
         }
 
-        if (Button(new Rectangle(846, 468, 160, 34), "Test Sound", focused: _usingController && _optionsFocus == 8))
+        if (Button(new Rectangle(846, 468, 160, 34), "Test Sound", focused: _usingController && _optionsFocus == 9))
         {
             _audio.Play(SoundKeys.RarePull, throttleSeconds: 0);
             _status = "Sound test played.";
@@ -1054,7 +1213,7 @@ public sealed partial class DragonCardsGame : Game
         DrawText("Settings File", new Vector2(846, 604), Color.White, 0.76f);
         DrawText(ShortPath(GameSettings.SettingsFilePath), new Rectangle(846, 638, 184, 46), new Color(196, 207, 220), 0.5f);
 
-        if (Button(new Rectangle(54, 786, 150, 42), "Back", focused: _usingController && _optionsFocus == 9))
+        if (Button(new Rectangle(54, 786, 150, 42), "Back", focused: _usingController && _optionsFocus == 10))
         {
             _screen = UxBackDestination(Screen.MainMenu);
             _status = "Options saved.";
@@ -1068,7 +1227,8 @@ public sealed partial class DragonCardsGame : Game
         3 => 4,
         4 => 5,
         5 => 6,
-        _ => 7
+        6 => 7,
+        _ => 8
     };
 
     private static int OptionsFocusForLogicalRow(int logicalRow) => logicalRow switch
@@ -1079,7 +1239,8 @@ public sealed partial class DragonCardsGame : Game
         4 => 3,
         5 => 4,
         6 => 5,
-        _ => 6
+        7 => 6,
+        _ => 7
     };
 
     private void DrawStaticRow(Rectangle rect, string label, string value)
@@ -1120,17 +1281,49 @@ public sealed partial class DragonCardsGame : Game
         }
     }
 
-    private void DrawDeckSummary(Rectangle rect, string playerName, DeckDefinition deck, IReadOnlyList<ValidationIssue> issues, string featureCardId)
+    private void DrawDeckSummary(Rectangle rect, DeckDefinition deck, IReadOnlyList<ValidationIssue> issues)
     {
-        DrawPanel(rect, new Color(34, 41, 51), border: new Color(84, 99, 119));
-        DrawText(playerName, new Vector2(rect.X + 28, rect.Y + 24), Color.White, 0.98f);
-        DrawText(deck.Name, new Vector2(rect.X + 28, rect.Y + 62), new Color(204, 214, 226), 0.8f);
-        DrawText($"{deck.Count}/50 cards", new Vector2(rect.X + 28, rect.Y + 100), issues.Count == 0 ? new Color(148, 224, 164) : new Color(255, 162, 128), 0.78f);
-        DrawText(issues.Count == 0 ? "Valid for Dragon Duel." : issues[0].Message, new Rectangle(rect.X + 28, rect.Y + 136, 294, 70), new Color(196, 207, 220), 0.66f);
+        var avatar = DeckAvatarCard(deck);
+        var accent = avatar?.Elements.FirstOrDefault() ?? "Water";
+        var accentColor = ElementColor(accent);
+        DrawPanel(rect, new Color(9, 25, 50, 232), border: Color.Lerp(accentColor, new Color(128, 214, 255), 0.45f));
+        Fill(new Rectangle(rect.X, rect.Y, 8, rect.Height), Color.Lerp(accentColor, Color.Black, 0.12f));
+        DrawText(deck.Name, new Rectangle(rect.X + 28, rect.Y + 22, rect.Width - 250, 30), Color.White, 0.78f);
+        DrawText($"{deck.Count} cards  |  {string.Join(" / ", DeckElements(deck))}", new Rectangle(rect.X + 28, rect.Y + 60, rect.Width - 250, 24), issues.Count == 0 ? new Color(148, 224, 164) : new Color(255, 162, 128), 0.52f);
+        DrawText(issues.Count == 0 ? "Ready for the standard Dragon Duel." : issues[0].Message, new Rectangle(rect.X + 28, rect.Y + 94, rect.Width - 250, 44), new Color(204, 220, 236), 0.5f);
 
-        var featureCard = _data.CardsById[featureCardId];
-        DrawCardFrame(new Rectangle(rect.Right - 196, rect.Y + 28, 140, 196), featureCard, selected: false, exhausted: false, count: deck.Cards.GetValueOrDefault(featureCard.Id), compact: false);
+        if (avatar is null)
+        {
+            DrawText("No playable avatar card found in this deck.", new Rectangle(rect.X + 28, rect.Y + 148, rect.Width - 250, 36), new Color(255, 190, 120), 0.48f);
+            return;
+        }
+
+        DrawText("DECK AVATAR", new Vector2(rect.X + 28, rect.Y + 154), new Color(112, 201, 255), 0.46f);
+        DrawText(avatar.Name, new Rectangle(rect.X + 28, rect.Y + 178, rect.Width - 250, 32), new Color(244, 230, 158), 0.6f);
+        DrawCardFrame(new Rectangle(rect.Right - 190, rect.Y + 18, 144, 200), avatar, selected: false, exhausted: false, count: deck.Cards.GetValueOrDefault(avatar.Id), compact: false);
     }
+
+    private CardDefinition? DeckAvatarCard(DeckDefinition deck) =>
+        deck.Cards
+            .Where(entry => entry.Value > 0 && _data.CardsById.TryGetValue(entry.Key, out _))
+            .Select(entry => new { Card = _data.CardsById[entry.Key], entry.Value })
+            .Where(entry => !BasicEnergy.IsBasicEnergyCard(entry.Card) && !EnergySource.IsEnergySourceToken(entry.Card))
+            .OrderByDescending(entry => entry.Card.Type.Equals("Unit", StringComparison.OrdinalIgnoreCase))
+            .ThenByDescending(entry => entry.Card.TotalCost)
+            .ThenByDescending(entry => entry.Card.Power)
+            .ThenByDescending(entry => entry.Value)
+            .ThenBy(entry => entry.Card.Name, StringComparer.OrdinalIgnoreCase)
+            .Select(entry => entry.Card)
+            .FirstOrDefault();
+
+    private IReadOnlyList<string> DeckElements(DeckDefinition deck) =>
+        deck.Cards.Keys
+            .Where(cardId => _data.CardsById.TryGetValue(cardId, out _))
+            .SelectMany(cardId => _data.CardsById[cardId].Elements)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Take(3)
+            .DefaultIfEmpty("Mixed")
+            .ToArray();
 
     private void DrawModePips(Rectangle rect)
     {
@@ -1212,6 +1405,26 @@ public sealed partial class DragonCardsGame : Game
             x += 102;
         }
 
+        var collectionFilters = new[]
+        {
+            $"Owned: {_deckBuilder.OwnershipFilter}",
+            $"Rarity: {_deckBuilder.RarityFilter}",
+            $"Set: {(_deckBuilder.SetFilter == "All" ? "All" : BoosterService.SetDisplayName(_deckBuilder.SetFilter))}",
+            $"Sort: {DeckSortLabel(_deckBuilder.SortMode)}"
+        };
+        var collectionWidths = new[] { 152, 160, 226, 146 };
+        x = 42;
+        for (var index = 0; index < collectionFilters.Length; index++)
+        {
+            if (Button(new Rectangle(x, 198, collectionWidths[index], 28), collectionFilters[index],
+                focused: _usingController && _deckFocusArea == DeckFocusArea.CollectionFilters && _deckControlFocus == index))
+            {
+                CycleDeckCollectionFilter(index);
+            }
+
+            x += collectionWidths[index] + 10;
+        }
+
         x = 42;
         for (var index = 0; index < _deckBuilder.TypeFilters.Count; index++)
         {
@@ -1225,6 +1438,39 @@ public sealed partial class DragonCardsGame : Game
 
             x += 110;
         }
+    }
+
+    private static string DeckSortLabel(CollectionSortMode sortMode) => sortMode switch
+    {
+        CollectionSortMode.OwnedCopies => "Owned",
+        _ => sortMode.ToString()
+    };
+
+    private void CycleDeckCollectionFilter(int filter)
+    {
+        switch (filter)
+        {
+            case 0:
+                _deckBuilder.OwnershipFilter = (CollectionOwnershipFilter)(((int)_deckBuilder.OwnershipFilter + 1) % Enum.GetValues<CollectionOwnershipFilter>().Length);
+                break;
+            case 1:
+                _deckBuilder.RarityFilter = NextFilterValue(_deckBuilder.RarityFilters, _deckBuilder.RarityFilter);
+                break;
+            case 2:
+                _deckBuilder.SetFilter = NextFilterValue(_deckBuilder.SetFilters, _deckBuilder.SetFilter);
+                break;
+            case 3:
+                _deckBuilder.SortMode = (CollectionSortMode)(((int)_deckBuilder.SortMode + 1) % Enum.GetValues<CollectionSortMode>().Length);
+                break;
+        }
+
+        ResetDeckFilterPosition();
+    }
+
+    private static string NextFilterValue(IReadOnlyList<string> values, string current)
+    {
+        var index = values.ToList().FindIndex(value => value.Equals(current, StringComparison.OrdinalIgnoreCase));
+        return values[(Math.Max(0, index) + 1) % values.Count];
     }
 
     private void DrawDeckSidebar(Rectangle panel)
@@ -1266,14 +1512,36 @@ public sealed partial class DragonCardsGame : Game
         Fill(new Rectangle(panel.X + 28, panel.Y + 414, panel.Width - 56, 1), new Color(86, 100, 120));
         DrawDeckAssistantPanel(new Rectangle(panel.X + 28, panel.Y + 434, panel.Width - 56, 204), deck, issues, ownershipIssues);
 
-        if (Button(new Rectangle(panel.X + 28, panel.Bottom - 76, 132, 42), "Save Deck",
+        if (Button(new Rectangle(panel.X + 28, panel.Bottom - 76, 86, 42), "Save",
             focused: _usingController && _deckFocusArea == DeckFocusArea.Footer && _deckControlFocus == 0))
         {
             SaveDeck(deck);
         }
 
-        if (Button(new Rectangle(panel.X + 178, panel.Bottom - 76, 112, 42), "Back",
+        if (Button(new Rectangle(panel.X + 122, panel.Bottom - 76, 90, 42), "Library",
             focused: _usingController && _deckFocusArea == DeckFocusArea.Footer && _deckControlFocus == 1))
+        {
+            _deckLibraryOpen = true;
+            _deckLibraryDeleteConfirmation = false;
+            _deckNameEditing = false;
+            _deckLibraryFocus = Math.Max(0, DeckLibraryEntries().ToList().FindIndex(entry => entry.Deck.Id.Equals(_deckBuilder.DeckId, StringComparison.OrdinalIgnoreCase)));
+            _status = "Deck library opened.";
+        }
+
+        if (Button(new Rectangle(panel.X + 220, panel.Bottom - 76, 88, 42), "Export",
+            focused: _usingController && _deckFocusArea == DeckFocusArea.Footer && _deckControlFocus == 2))
+        {
+            ExportCurrentDeckCode(deck);
+        }
+
+        if (Button(new Rectangle(panel.X + 316, panel.Bottom - 76, 88, 42), "Import",
+            focused: _usingController && _deckFocusArea == DeckFocusArea.Footer && _deckControlFocus == 3))
+        {
+            ImportDeckCodeFromClipboard();
+        }
+
+        if (Button(new Rectangle(panel.X + 412, panel.Bottom - 76, 76, 42), "Back",
+            focused: _usingController && _deckFocusArea == DeckFocusArea.Footer && _deckControlFocus == 4))
         {
             _screen = UxBackDestination(Screen.MainMenu);
             _status = "Returned.";
@@ -1541,12 +1809,20 @@ public sealed partial class DragonCardsGame : Game
 
     private void DrawEnergyPool(PlayerState player, Rectangle rect, bool isActive)
     {
+        if (_engine!.State.Mode.EnergyRules.UsesPersistentEnergySources)
+        {
+            DrawPersistentEnergyField(player, rect, isActive);
+            return;
+        }
+
         var canHumanAdd = isActive && CanHumanUseActions(_engine!.State) && _engine!.CanAddEnergy();
-        var label = canHumanAdd ? "Energy / Add" : "Energy";
+        var draggedHandIndex = _draggedHandCard?.HandIndex;
+        var canPlayEnergy = isActive && draggedHandIndex is not null && _engine!.CanPlayEnergyFromHand(draggedHandIndex.Value);
+        var label = canHumanAdd ? $"Energy / Add - Sources {player.EnergyField.Count}" : $"Energy - Sources {player.EnergyField.Count}";
         DrawText(label, new Vector2(rect.X, rect.Y - 26), new Color(199, 209, 222), 0.58f);
         var isDropTarget = isActive && _draggedHandCard is not null && rect.Contains(_virtualMouse);
-        Fill(rect, isDropTarget ? canHumanAdd ? new Color(48, 68, 61) : new Color(66, 42, 39) : new Color(28, 34, 43));
-        Border(rect, isDropTarget ? canHumanAdd ? new Color(148, 224, 164) : new Color(255, 145, 120) : new Color(70, 84, 104), isDropTarget ? 3 : 1);
+        Fill(rect, isDropTarget ? canPlayEnergy ? new Color(48, 68, 61) : new Color(66, 42, 39) : new Color(28, 34, 43));
+        Border(rect, isDropTarget ? canPlayEnergy ? new Color(148, 224, 164) : new Color(255, 145, 120) : new Color(70, 84, 104), isDropTarget ? 3 : 1);
 
         var elements = _engine!.State.Mode.Elements;
         var gap = 2;
@@ -1572,13 +1848,92 @@ public sealed partial class DragonCardsGame : Game
         }
     }
 
+    private void DrawPersistentEnergyField(PlayerState player, Rectangle rect, bool isActive)
+    {
+        var engine = _engine!;
+        var canHumanAdd = isActive && CanHumanUseActions(engine.State) && engine.CanAddEnergy();
+        var draggedHandIndex = _draggedHandCard?.HandIndex;
+        var canPlayEnergy = isActive && draggedHandIndex is not null && engine.CanPlayEnergyFromHand(draggedHandIndex.Value);
+        DrawText(canHumanAdd ? "Energy Sources / Add" : "Energy Sources", new Vector2(rect.X, rect.Y - 26), new Color(199, 209, 222), 0.58f);
+        var isDropTarget = isActive && _draggedHandCard is not null && rect.Contains(_virtualMouse);
+        Fill(rect, isDropTarget ? canPlayEnergy ? new Color(48, 68, 61) : new Color(66, 42, 39) : new Color(28, 34, 43));
+        Border(rect, isDropTarget ? canPlayEnergy ? new Color(148, 224, 164) : new Color(255, 145, 120) : new Color(70, 84, 104), isDropTarget ? 3 : 1);
+
+        var elements = engine.State.Mode.Elements;
+        for (var index = 0; index < elements.Count; index++)
+        {
+            var element = elements[index];
+            var column = index % 4;
+            var row = index / 4;
+            var pip = new Rectangle(rect.X + 6 + column * 42, rect.Y + 6 + row * 18, 38, 15);
+            var available = player.EnergyPool.GetValueOrDefault(element);
+            var sources = player.EnergyField.Count(card => engine.State.DefinitionFor(card).Elements.Contains(element, StringComparer.OrdinalIgnoreCase));
+            var canAdd = canHumanAdd && engine.CanAddEnergy(element);
+            Fill(pip, Color.Lerp(ElementColor(element), Color.Black, 0.24f));
+            Border(pip, canAdd && pip.Contains(_virtualMouse) ? Color.White : new Color(105, 119, 138), 1);
+            DrawFittedCenteredText($"{ElementAbbreviation(element)}{available}/{sources}", pip, Color.White, 0.25f, 0.18f);
+            if (canAdd && Hit(pip))
+            {
+                ExecuteCommand("add-energy", element, () => engine.AddEnergy(element));
+            }
+        }
+
+        var visible = player.EnergyField.Skip(_energyFieldScrollOffset).Take(6).ToArray();
+        for (var index = 0; index < visible.Length; index++)
+        {
+            var source = visible[index];
+            var card = engine.State.DefinitionFor(source);
+            var column = index % 3;
+            var row = index / 3;
+            var cardRect = new Rectangle(rect.X + 7 + column * 55, rect.Y + 47 + row * 43, 50, 38);
+            DrawMiniEnergySource(cardRect, card, source);
+        }
+
+        if (player.EnergyField.Count > visible.Length)
+        {
+            var maxOffset = Math.Max(0, player.EnergyField.Count - 6);
+            _energyFieldScrollOffset = Math.Clamp(_energyFieldScrollOffset, 0, maxOffset);
+            if (Button(new Rectangle(rect.X + 6, rect.Bottom - 18, 28, 14), "<", _energyFieldScrollOffset > 0))
+            {
+                _energyFieldScrollOffset--;
+            }
+
+            if (Button(new Rectangle(rect.X + 38, rect.Bottom - 18, 28, 14), ">", _energyFieldScrollOffset < maxOffset))
+            {
+                _energyFieldScrollOffset++;
+            }
+
+            DrawFittedCenteredText($"{_energyFieldScrollOffset + 1}-{Math.Min(player.EnergyField.Count, _energyFieldScrollOffset + 6)}/{player.EnergyField.Count}", new Rectangle(rect.Right - 68, rect.Bottom - 18, 62, 14), UiTheme.TextMuted, 0.24f, 0.16f);
+        }
+    }
+
+    private void DrawMiniEnergySource(Rectangle rect, CardDefinition card, CardInstance source)
+    {
+        var isBasic = BasicEnergy.IsBasicEnergyCard(card);
+        var fill = Color.Lerp(ElementColor(card.Elements[0]), Color.Black, source.Exhausted ? 0.72f : 0.34f);
+        Fill(rect, fill);
+        Border(rect, isBasic ? UiTheme.DragonGold : new Color(128, 206, 244), isBasic ? 2 : 1);
+        DrawFittedCenteredText(ElementAbbreviation(card.Elements[0]), new Rectangle(rect.X + 2, rect.Y + 4, rect.Width - 4, 14), Color.White, 0.32f, 0.2f);
+        DrawFittedCenteredText(source.SourceOrigin switch
+        {
+            EnergySourceOrigin.BasicCard => "CARD",
+            EnergySourceOrigin.FreeAdd => "ADD",
+            EnergySourceOrigin.Sacrifice => "SAC",
+            EnergySourceOrigin.Converted => "CONV",
+            _ => "GAIN"
+        }, new Rectangle(rect.X + 2, rect.Bottom - 16, rect.Width - 4, 12), source.Exhausted ? UiTheme.TextDisabled : Color.White, 0.2f, 0.16f);
+    }
+
+
     private void DrawZoneStats(PlayerState player, Rectangle rect)
     {
+        var damageLimit = _engine?.State.Mode.DamageLimit ?? 7;
+        var damageWarningThreshold = Math.Max(1, damageLimit - 2);
         Fill(rect, new Color(28, 34, 43, 180));
         Border(rect, new Color(70, 84, 104), 1);
         DrawFittedText($"Deck {player.Deck.Count}", new Vector2(rect.X + 10, rect.Y + 8), 64, new Color(205, 214, 225), 0.46f, 0.28f);
         DrawFittedText($"Discard {player.DiscardPile.Count}", new Vector2(rect.X + 82, rect.Y + 8), 68, new Color(205, 214, 225), 0.46f, 0.28f);
-        DrawFittedText($"Damage {player.DamageZone.Count}/7", new Vector2(rect.X + 10, rect.Y + 28), 136, player.DamageZone.Count >= 5 ? new Color(255, 190, 120) : new Color(205, 214, 225), 0.48f, 0.3f);
+        DrawFittedText($"Damage {player.DamageZone.Count}/{damageLimit}", new Vector2(rect.X + 10, rect.Y + 28), 136, player.DamageZone.Count >= damageWarningThreshold ? new Color(255, 190, 120) : new Color(205, 214, 225), 0.48f, 0.3f);
     }
 
     private void DrawCardZone(string label, List<CardInstance> instances, Rectangle rect, bool compact, bool selectable, bool blockerSelection, bool supportSelection)
@@ -2664,7 +3019,8 @@ public sealed partial class DragonCardsGame : Game
             _zoomCard is null ||
             _draggedHandCard is not null ||
             _chooseFreeEnergy ||
-            _engine?.State.PendingEnergyChoice is not null)
+            _engine?.State.PendingEnergyChoice is not null ||
+            _engine?.State.PendingEnergySourceChoice is not null)
         {
             return;
         }
@@ -2766,7 +3122,7 @@ public sealed partial class DragonCardsGame : Game
 
             var from = ZoneCenter(beat.Event.From, beat.Event.PlayerIndex);
             var to = ZoneCenter(beat.Event.To, beat.Event.PlayerIndex);
-            if (beat.Event.Kind is MatchEventKind.EnergyGained or MatchEventKind.EnergySpent or MatchEventKind.EnergyConverted)
+            if (beat.Event.Kind is MatchEventKind.EnergyGained or MatchEventKind.EnergyRefreshed or MatchEventKind.EnergySpent or MatchEventKind.EnergyConverted)
             {
                 to = ZoneCenter(new ZoneRef(beat.Event.PlayerIndex, "EnergyPool"), beat.Event.PlayerIndex);
                 var radius = 28 + (int)(pulse * 18);
@@ -2907,6 +3263,7 @@ public sealed partial class DragonCardsGame : Game
 
         var state = _engine.State;
         return CanHumanResolveEnergyChoice(state) ||
+            CanHumanResolveEnergySourceChoice(state) ||
             CanHumanResolveTarget(state) ||
             CanHumanResolveCombatAction(state) ||
             CanHumanResolveBlock(state);
@@ -2916,6 +3273,11 @@ public sealed partial class DragonCardsGame : Game
         state.WinnerIndex is null &&
         state.PendingEnergyChoice is not null &&
         (_matchKind == MatchKind.Hotseat || state.PendingEnergyChoice.PlayerIndex == LocalPlayerIndexForMatch());
+
+    private bool CanHumanResolveEnergySourceChoice(MatchState state) =>
+        state.WinnerIndex is null &&
+        state.PendingEnergySourceChoice is not null &&
+        (_matchKind == MatchKind.Hotseat || state.PendingEnergySourceChoice.PlayerIndex == LocalPlayerIndexForMatch());
 
     private void DrawDecisionPromptOverlay()
     {
@@ -2931,6 +3293,10 @@ public sealed partial class DragonCardsGame : Game
             if (_engine.State.PendingEnergyChoice is not null && CanHumanResolveEnergyChoice(_engine.State))
             {
                 DrawEnergyDecisionPrompt();
+            }
+            else if (_engine.State.PendingEnergySourceChoice is not null && CanHumanResolveEnergySourceChoice(_engine.State))
+            {
+                DrawEnergySourceDecisionPrompt();
             }
             else if (_engine.State.PendingTargetChoice is not null && CanHumanResolveTarget(_engine.State))
             {
@@ -2969,7 +3335,10 @@ public sealed partial class DragonCardsGame : Game
             var column = i % 4;
             var row = i / 4;
             var rect = new Rectangle(panel.X + 252 + column * 168, panel.Y + 326 + row * 62, 146, 44);
-            var maxed = _engine.State.Players[choice.PlayerIndex].EnergyPool.GetValueOrDefault(element) >= _engine.State.Mode.EnergyRules.MaxPerElement;
+            var choicePlayer = _engine.State.Players[choice.PlayerIndex];
+            var maxed = _engine.State.Mode.EnergyRules.UsesPersistentEnergySources
+                ? choicePlayer.EnergyField.Count(card => _engine.State.DefinitionFor(card).Elements.Contains(element, StringComparer.OrdinalIgnoreCase)) >= _engine.State.Mode.EnergyRules.MaxPerElement
+                : choicePlayer.EnergyPool.GetValueOrDefault(element) >= _engine.State.Mode.EnergyRules.MaxPerElement;
             if (Button(rect, element, !maxed))
             {
                 if (ExecuteCommand("resolve-energy", element, () => _engine.ResolveEnergyChoice(element)))
@@ -3010,6 +3379,47 @@ public sealed partial class DragonCardsGame : Game
             }
         }
     }
+
+    private void DrawEnergySourceDecisionPrompt()
+    {
+        var choice = _engine!.State.PendingEnergySourceChoice!;
+        var player = _engine.State.Players[choice.PlayerIndex];
+        var choices = player.EnergyField
+            .Select((source, index) => (Source: source, Index: index, Card: _engine.State.DefinitionFor(source)))
+            .Where(item => !item.Source.Exhausted && !item.Card.Elements.Contains(choice.DestinationElement, StringComparer.OrdinalIgnoreCase))
+            .Take(8)
+            .ToArray();
+        var panel = new Rectangle(252, 118, 1096, 650);
+        DrawPanel(panel, new Color(29, 36, 46), border: new Color(124, 143, 166));
+        DrawText("Convert an Energy Source", new Vector2(panel.X + 30, panel.Y + 24), Color.White, 0.94f);
+        DrawText(choice.Message, new Rectangle(panel.X + 30, panel.Y + 70, panel.Width - 60, 48), new Color(244, 230, 158), 0.66f);
+        DrawText("Choose a ready source card", new Vector2(panel.X + 30, panel.Y + 132), Color.White, 0.62f);
+        for (var index = 0; index < choices.Length; index++)
+        {
+            var option = choices[index];
+            var column = index % 4;
+            var row = index / 4;
+            var cardRect = new Rectangle(panel.X + 34 + column * 262, panel.Y + 174 + row * 196, 112, 156);
+            DrawCardFrame(cardRect, option.Card, selected: true, exhausted: false, count: 0, compact: true);
+            DrawFittedText(SourceOriginLabel(option.Source.SourceOrigin), new Vector2(cardRect.X, cardRect.Bottom + 8), cardRect.Width, UiTheme.TextMuted, 0.36f, 0.24f);
+            if (Button(new Rectangle(cardRect.X + 124, cardRect.Y + 56, 104, 42), "Convert"))
+            {
+                if (ExecuteCommand("resolve-energy-source", option.Source.Id, () => _engine.ResolveEnergySourceChoice(option.Source.Id)))
+                {
+                    ClearSelections();
+                }
+            }
+        }
+    }
+
+    private static string SourceOriginLabel(EnergySourceOrigin origin) => origin switch
+    {
+        EnergySourceOrigin.BasicCard => "Played Basic Energy",
+        EnergySourceOrigin.FreeAdd => "Free Add Energy",
+        EnergySourceOrigin.Sacrifice => "Sacrifice reward",
+        EnergySourceOrigin.Converted => "Converted source",
+        _ => "Effect energy"
+    };
 
     private void DrawBlockDecisionPrompt()
     {
@@ -3281,6 +3691,11 @@ public sealed partial class DragonCardsGame : Game
             return new Rectangle(board.X + 18, board.Y + 58, 174, 168).Center;
         }
 
+        if (zoneName.Equals("EnergyField", StringComparison.OrdinalIgnoreCase))
+        {
+            return new Rectangle(board.X + 18, board.Y + 58, 174, 168).Center;
+        }
+
         if (zoneName.Equals("DamageZone", StringComparison.OrdinalIgnoreCase))
         {
             return new Rectangle(board.Right - 164, board.Y + 42, 84, 30).Center;
@@ -3501,6 +3916,25 @@ public sealed partial class DragonCardsGame : Game
         _spriteBatch!.Draw(texture, rect, ApplyDrawOpacity(color));
     }
 
+    private void DrawImageCover(Texture2D texture, Rectangle bounds, Color color)
+    {
+        var sourceAspect = texture.Width / (float)texture.Height;
+        var targetAspect = bounds.Width / (float)bounds.Height;
+        var source = new Rectangle(0, 0, texture.Width, texture.Height);
+        if (sourceAspect > targetAspect)
+        {
+            source.Width = Math.Max(1, (int)MathF.Round(texture.Height * targetAspect));
+            source.X = (texture.Width - source.Width) / 2;
+        }
+        else if (sourceAspect < targetAspect)
+        {
+            source.Height = Math.Max(1, (int)MathF.Round(texture.Width / targetAspect));
+            source.Y = (texture.Height - source.Height) / 2;
+        }
+
+        _spriteBatch!.Draw(texture, bounds, source, ApplyDrawOpacity(color));
+    }
+
     private void Border(Rectangle rect, Color color, int thickness)
     {
         Fill(new Rectangle(rect.X, rect.Y, rect.Width, thickness), color);
@@ -3715,6 +4149,11 @@ public sealed partial class DragonCardsGame : Game
             return new Rectangle(306, 148, 988, 596);
         }
 
+        if (_engine.State.PendingEnergySourceChoice is not null && CanHumanResolveEnergySourceChoice(_engine.State))
+        {
+            return new Rectangle(252, 118, 1096, 650);
+        }
+
         if (_engine.State.PendingTargetChoice is not null && CanHumanResolveTarget(_engine.State))
         {
             return new Rectangle(252, 118, 1096, 650);
@@ -3871,6 +4310,14 @@ public sealed partial class DragonCardsGame : Game
             return;
         }
 
+        if (_engine.State.Mode.EnergyRules.UsesPersistentEnergySources && AddEnergyDropRect().Contains(_virtualMouse))
+        {
+            var maxOffset = Math.Max(0, _engine.State.ActivePlayer.EnergyField.Count - 6);
+            _energyFieldScrollOffset = Math.Clamp(_energyFieldScrollOffset + direction, 0, maxOffset);
+            _usingController = false;
+            return;
+        }
+
         if (new Rectangle(1282, 350, 266, 150).Contains(_virtualMouse))
         {
             _cardDetailScrollOffset += direction;
@@ -3899,16 +4346,13 @@ public sealed partial class DragonCardsGame : Game
         var card = _engine.State.DefinitionFor(_engine.State.ActivePlayer.Hand[handIndex]);
         if (AddEnergyDropRect().Contains(dropPoint))
         {
-            if (!_engine.CanAddEnergy())
+            if (BasicEnergy.IsBasicEnergyCard(card))
             {
-                _status = _engine.IsMainPhase()
-                    ? "Energy has already been added this turn."
-                    : "Energy can only be added during a main phase.";
+                PlayEnergyFromHand(handIndex);
                 return;
             }
 
-            _chooseFreeEnergy = true;
-            _status = "Choose an element to add energy.";
+            _status = "Drop a Basic Energy card here. The free Add Energy action remains available separately.";
             return;
         }
 
@@ -3983,7 +4427,7 @@ public sealed partial class DragonCardsGame : Game
             return true;
         }
 
-        var textEntryActive = _screen is Screen.PlayerCreation or Screen.Multiplayer || _storeSearchActive;
+        var textEntryActive = _screen is Screen.PlayerCreation or Screen.Multiplayer || _profileRenameActive || _deckNameEditing || _storeSearchActive;
         return button switch
         {
             Buttons.A => Pressed(Keys.Enter) || !textEntryActive && Pressed(Keys.Space),
@@ -4093,12 +4537,12 @@ public sealed partial class DragonCardsGame : Game
             return;
         }
 
-        if (_screen == Screen.Options && _optionsFocus <= 6)
+        if (_screen == Screen.Options && _optionsFocus <= 7)
         {
-            _optionsListScroll.Configure(8, 6);
+            _optionsListScroll.Configure(9, 6);
             if (!_optionsListScroll.VisibleRange.Contains(OptionsLogicalRow(_optionsFocus)))
             {
-                _optionsFocus = OptionsFocusForLogicalRow(_optionsListScroll.VisibleRange.Clamp(OptionsLogicalRow(_optionsFocus), 8));
+                _optionsFocus = OptionsFocusForLogicalRow(_optionsListScroll.VisibleRange.Clamp(OptionsLogicalRow(_optionsFocus), 9));
             }
             return;
         }
@@ -4174,24 +4618,21 @@ public sealed partial class DragonCardsGame : Game
         {
             if (FocusPressed(out var focusDelta))
             {
-                _menuFocus = (_menuFocus + focusDelta + 8) % 8;
+                _menuFocus = (_menuFocus + focusDelta + 10) % 10;
             }
             if (_uiActions.Triggered(UiAction.MoveToStart)) _menuFocus = 0;
-            else if (_uiActions.Triggered(UiAction.MoveToEnd)) _menuFocus = 7;
+            else if (_uiActions.Triggered(UiAction.MoveToEnd)) _menuFocus = 9;
             if (DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out var vertical))
             {
-                _menuFocus = Math.Clamp(_menuFocus + vertical, 0, 7);
+                _menuFocus = Math.Clamp(_menuFocus + vertical, 0, 9);
             }
 
             if (Pressed(Buttons.A))
             {
                 _usingController = true;
-                var currentDeck = CurrentDeck();
-                var opponentDeck = OpponentDeck();
                 if (_menuFocus == 0 && _profile is not null && _dataIssues.Count == 0)
                 {
-                    _screen = Screen.ModeSelect;
-                    _status = "Choose a game mode.";
+                    OpenSelectedMainMenuMode();
                 }
                 else if (_menuFocus == 1)
                 {
@@ -4219,14 +4660,26 @@ public sealed partial class DragonCardsGame : Game
                 }
                 else if (_menuFocus == 5)
                 {
-                    _screen = Screen.Options;
-                    _status = "Options opened.";
+                    _screen = Screen.Quests;
+                    _status = "Quest Board opened.";
                 }
                 else if (_menuFocus == 6)
                 {
-                    BeginNewGame();
+                    _screen = Screen.Options;
+                    _status = "Options opened.";
                 }
                 else if (_menuFocus == 7)
+                {
+                    _screen = Screen.ProfileData;
+                    _profileDataNotice = "Profile data workspace opened.";
+                    _profileDataAudit = [];
+                    _profileSeedRuns = [];
+                }
+                else if (_menuFocus == 8)
+                {
+                    BeginNewGame();
+                }
+                else if (_menuFocus == 9)
                 {
                     try { Exit(); }
                     catch (PlatformNotSupportedException) { }
@@ -4245,6 +4698,10 @@ public sealed partial class DragonCardsGame : Game
         {
             HandlePlayerCreationController();
         }
+        else if (_screen == Screen.ProfilePicker)
+        {
+            HandleProfilePickerController();
+        }
         else if (_screen == Screen.Store)
         {
             HandleStoreUxInput();
@@ -4252,6 +4709,13 @@ public sealed partial class DragonCardsGame : Game
         else if (_screen == Screen.PackOpening)
         {
             HandlePackOpeningUxInput();
+        }
+        else if (_screen == Screen.Quests)
+        {
+            if (Pressed(Buttons.A))
+            {
+                _screen = Screen.MainMenu;
+            }
         }
         else if (_screen == Screen.MatchResult)
         {
@@ -4277,7 +4741,7 @@ public sealed partial class DragonCardsGame : Game
 
     private bool IsTypingTextInput()
     {
-        if (_screen != Screen.PlayerCreation && !IsJoinInviteTextActive)
+        if (_screen != Screen.PlayerCreation && !_profileRenameActive && !_deckNameEditing && !IsJoinInviteTextActive)
         {
             return false;
         }
@@ -4290,11 +4754,11 @@ public sealed partial class DragonCardsGame : Game
 
     private void HandleOptionsController()
     {
-        _optionsListScroll.Configure(8, 6);
+        _optionsListScroll.Configure(9, 6);
         var focusMoved = false;
         if (FocusPressed(out var focusDelta))
         {
-            _optionsFocus = (_optionsFocus + focusDelta + 10) % 10;
+            _optionsFocus = (_optionsFocus + focusDelta + 11) % 11;
             focusMoved = true;
         }
         if (_uiActions.Triggered(UiAction.PagePrevious))
@@ -4319,17 +4783,17 @@ public sealed partial class DragonCardsGame : Game
         }
         else if (_uiActions.Triggered(UiAction.MoveToEnd))
         {
-            _optionsFocus = 9;
+            _optionsFocus = 10;
             _usingController = true;
             focusMoved = true;
         }
         if (DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out var vertical))
         {
-            _optionsFocus = Math.Clamp(_optionsFocus + vertical, 0, 9);
+            _optionsFocus = Math.Clamp(_optionsFocus + vertical, 0, 10);
             focusMoved = true;
         }
 
-        if (focusMoved && _optionsFocus <= 6)
+        if (focusMoved && _optionsFocus <= 7)
         {
             _optionsListScroll.EnsureVisible(OptionsLogicalRow(_optionsFocus));
             _optionsFocusVisibilityPending = false;
@@ -4343,21 +4807,21 @@ public sealed partial class DragonCardsGame : Game
         if (Pressed(Buttons.A))
         {
             _usingController = true;
-            if (_optionsFocus is 0 or 4 or 5 or 6)
+            if (_optionsFocus is 0 or 4 or 5 or 6 or 7)
             {
                 AdjustFocusedOption(1);
             }
-            else if (_optionsFocus == 7)
+            else if (_optionsFocus == 8)
             {
                 _audio.RestartMusic();
                 _status = "BGM restarted.";
             }
-            else if (_optionsFocus == 8)
+            else if (_optionsFocus == 9)
             {
                 _audio.Play(SoundKeys.RarePull, throttleSeconds: 0);
                 _status = "Sound test played.";
             }
-            else if (_optionsFocus == 9)
+            else if (_optionsFocus == 10)
             {
                 _screen = UxBackDestination(Screen.MainMenu);
                 _status = "Options saved.";
@@ -4502,13 +4966,16 @@ public sealed partial class DragonCardsGame : Game
                 ToggleCardZoom();
                 break;
             case 6:
-                ToggleReducedMotion();
+                CycleInteractionSpeed(delta);
                 break;
             case 7:
+                ToggleReducedMotion();
+                break;
+            case 8:
                 _audio.RestartMusic();
                 _status = "BGM restarted.";
                 break;
-            case 8:
+            case 9:
                 _audio.Play(SoundKeys.RarePull, throttleSeconds: 0);
                 _status = "Sound test played.";
                 break;
@@ -4662,11 +5129,64 @@ public sealed partial class DragonCardsGame : Game
 
         var state = _engine.State;
         var canUseActions = CanHumanUseActions(state);
+        var canResolveEnergy = CanHumanResolveEnergyChoice(state);
+        var canResolveEnergySource = CanHumanResolveEnergySourceChoice(state);
         var canResolveBlock = CanHumanResolveBlock(state);
         var canResolveTarget = CanHumanResolveTarget(state);
         var canResolveCombatAction = CanHumanResolveCombatAction(state);
-        if (!canUseActions && !canResolveBlock && !canResolveTarget && !canResolveCombatAction)
+        if (!canUseActions && !canResolveEnergy && !canResolveEnergySource && !canResolveBlock && !canResolveTarget && !canResolveCombatAction)
         {
+            return;
+        }
+
+        if (canResolveEnergy)
+        {
+            var elements = state.Mode.Elements;
+            if (DirectionPressed(Buttons.DPadLeft, Buttons.DPadRight, out var energyHorizontal) ||
+                DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out energyHorizontal))
+            {
+                _energyChoiceIndex = Math.Clamp(_energyChoiceIndex + energyHorizontal, 0, elements.Count - 1);
+            }
+
+            if (Pressed(Buttons.A))
+            {
+                _usingController = true;
+                var element = elements[_energyChoiceIndex];
+                ExecuteCommand("resolve-energy", element, () => _engine.ResolveEnergyChoice(element));
+            }
+
+            return;
+        }
+
+        if (canResolveEnergySource)
+        {
+            var choice = state.PendingEnergySourceChoice!;
+            var sources = state.Players[choice.PlayerIndex].EnergyField
+                .Where(source => !source.Exhausted &&
+                    !state.DefinitionFor(source).Elements.Contains(choice.DestinationElement, StringComparer.OrdinalIgnoreCase))
+                .ToArray();
+            if (DirectionPressed(Buttons.DPadLeft, Buttons.DPadRight, out var sourceHorizontal) ||
+                DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out sourceHorizontal))
+            {
+                _energySourceChoiceIndex = Math.Clamp(_energySourceChoiceIndex + sourceHorizontal, 0, Math.Max(0, sources.Length - 1));
+            }
+
+            if (Pressed(Buttons.A) && sources.Length > 0)
+            {
+                _usingController = true;
+                var source = sources[_energySourceChoiceIndex];
+                ExecuteCommand("resolve-energy-source", source.Id, () => _engine.ResolveEnergySourceChoice(source.Id));
+            }
+
+            return;
+        }
+
+        if (state.Mode.EnergyRules.UsesPersistentEnergySources &&
+            (_uiActions.Triggered(UiAction.PagePrevious) || _uiActions.Triggered(UiAction.PageNext)))
+        {
+            var direction = _uiActions.Triggered(UiAction.PagePrevious) ? -1 : 1;
+            _energyFieldScrollOffset = Math.Clamp(_energyFieldScrollOffset + direction * 6, 0, Math.Max(0, state.ActivePlayer.EnergyField.Count - 6));
+            _usingController = true;
             return;
         }
 
@@ -4938,6 +5458,33 @@ public sealed partial class DragonCardsGame : Game
         _status = _settings.CardZoom ? "Card hover zoom enabled." : "Card hover zoom disabled.";
     }
 
+    private float InteractionSpeedMultiplier => _settings.InteractionSpeedPercent / 100f;
+
+    private string InteractionSpeedLabel() => _settings.InteractionSpeedPercent switch
+    {
+        55 => "Cinematic (0.55x)",
+        70 => "Natural (0.70x)",
+        100 => "Quick (1.00x)",
+        140 => "Fast (1.40x)",
+        _ => $"Custom ({InteractionSpeedMultiplier:0.##}x)"
+    };
+
+    private void CycleInteractionSpeed(int delta)
+    {
+        var currentIndex = Array.IndexOf(InteractionSpeedPercentOptions, _settings.InteractionSpeedPercent);
+        if (currentIndex < 0)
+        {
+            currentIndex = Array.FindIndex(InteractionSpeedPercentOptions, value => value >= _settings.InteractionSpeedPercent);
+            currentIndex = currentIndex < 0 ? InteractionSpeedPercentOptions.Length - 1 : currentIndex;
+        }
+
+        var nextIndex = (currentIndex + Math.Sign(delta) + InteractionSpeedPercentOptions.Length) % InteractionSpeedPercentOptions.Length;
+        _settings.InteractionSpeedPercent = InteractionSpeedPercentOptions[nextIndex];
+        _presentation.SpeedMultiplier = InteractionSpeedMultiplier;
+        _settings.Save();
+        _status = $"Interaction pace set to {InteractionSpeedLabel()}.";
+    }
+
     private void ToggleReducedMotion()
     {
         _settings.ReducedMotion = !_settings.ReducedMotion;
@@ -4947,8 +5494,50 @@ public sealed partial class DragonCardsGame : Game
 
     private void GoBack()
     {
-        if (_screen == Screen.PlayerCreation && _profile is null)
+        if (_profileDeleteConfirmation)
         {
+            _profileDeleteConfirmation = false;
+            return;
+        }
+
+        if (_profileRenameActive)
+        {
+            _profileRenameActive = false;
+            return;
+        }
+
+        if (_deckLibraryDeleteConfirmation)
+        {
+            _deckLibraryDeleteConfirmation = false;
+            return;
+        }
+
+        if (_deckNameEditing)
+        {
+            _deckNameEditing = false;
+            return;
+        }
+
+        if (_deckLibraryOpen)
+        {
+            _deckLibraryOpen = false;
+            return;
+        }
+
+        if (_screen == Screen.PlayerCreation)
+        {
+            _screen = Screen.ProfilePicker;
+            _status = "Profile creation cancelled.";
+            return;
+        }
+
+        if (_screen == Screen.ProfilePicker)
+        {
+            if (_profilePickerOpenedFromMainMenu && _profile is not null)
+            {
+                _screen = Screen.MainMenu;
+                _status = "Returned to main menu.";
+            }
             return;
         }
 
@@ -5054,6 +5643,7 @@ public sealed partial class DragonCardsGame : Game
             LobbyToken = Random.Shared.Next(1, ushort.MaxValue + 1)
         };
         _hostInviteCode = InviteCode.EncodeLobbyCode(_hostInvite.LobbyToken);
+        _hostSameComputerInviteCode = InviteCode.Encode(_hostInvite with { Host = "127.0.0.1" });
         _multiplayerNotice = $"Five-character LAN code ready for {ModeName(modeId)}.";
     }
 
@@ -5081,17 +5671,28 @@ public sealed partial class DragonCardsGame : Game
 
     private void SaveDeck(DeckDefinition deck)
     {
-        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DragonCards", "decks");
-        Directory.CreateDirectory(folder);
-        var path = Path.Combine(folder, $"{deck.Id}.json");
-        File.WriteAllText(path, GameData.ToJson(deck));
-        if (_profile is not null)
+        if (_profile is null || _profileRepository is null || string.IsNullOrWhiteSpace(_activeProfileId))
         {
-            _profile.ActiveDeckId = deck.Id;
-            SaveProfile();
+            _status = "Select a local profile before saving a deck.";
+            return;
         }
 
-        _status = $"Saved deck to {path}";
+        if (_data.DecksById.ContainsKey(deck.Id))
+        {
+            var name = UniqueDeckName($"{deck.Name} Copy");
+            deck = deck with { Id = $"deck-{Guid.NewGuid():N}", Name = name };
+            _deckBuilder.SetIdentity(deck.Id, deck.Name, deck.ModeId);
+        }
+
+        if (!_profileRepository.TrySaveDeck(_activeProfileId, deck, out var error))
+        {
+            _status = error ?? "Could not save the deck.";
+            return;
+        }
+
+        _profile.ActiveDeckId = deck.Id;
+        SaveProfile();
+        _status = $"Saved {deck.Name} in this profile's deck library.";
     }
 
     private void ApplyResult(GameActionResult result)
@@ -5103,6 +5704,10 @@ public sealed partial class DragonCardsGame : Game
         }
 
         QueuePresentation(result.Events);
+        if (result.Success)
+        {
+            RecordQuestDamage(result.Events);
+        }
         if (result.Success && _engine?.State.WinnerIndex is not null)
         {
             _status = $"{_engine.State.Players[_engine.State.WinnerIndex.Value].Name} wins.";
@@ -5128,6 +5733,7 @@ public sealed partial class DragonCardsGame : Game
 
         AddTimelineEntries(events);
         _presentation.ReducedMotion = _settings.ReducedMotion;
+        _presentation.SpeedMultiplier = InteractionSpeedMultiplier;
         _presentation.Enqueue(events);
         _audio.PlayActivationCues(_presentation.DrainActivations());
     }
@@ -5136,6 +5742,8 @@ public sealed partial class DragonCardsGame : Game
     {
         _presentation.Clear();
         _audio.CancelQueuedCues();
+        _aiInteractionDelaySeconds = 0f;
+        _aiAwaitingPresentation = false;
     }
 
     private void AddTimelineEntries(IEnumerable<MatchEvent> events)
@@ -5197,6 +5805,16 @@ public sealed partial class DragonCardsGame : Game
         };
     }
 
+    private void UpdateAiInteractionPacing(float elapsedSeconds)
+    {
+        if (_aiInteractionDelaySeconds > 0f)
+        {
+            _aiInteractionDelaySeconds = Math.Max(0f, _aiInteractionDelaySeconds - elapsedSeconds);
+        }
+
+        TryAdvanceAiTurn();
+    }
+
     private void TryAdvanceAiTurn()
     {
         if (_engine is null ||
@@ -5207,7 +5825,26 @@ public sealed partial class DragonCardsGame : Game
             return;
         }
 
-        var result = _ai.RunUntilHumanInput(_engine, AiPlayerIndex, CurrentRules());
+        if (_aiAwaitingPresentation)
+        {
+            if (_presentation.PendingActionCount > 0)
+            {
+                return;
+            }
+
+            _aiAwaitingPresentation = false;
+            _aiInteractionDelaySeconds = AiInterActionPauseSeconds / InteractionSpeedMultiplier;
+            return;
+        }
+
+        if (_aiInteractionDelaySeconds > 0f || _presentation.PendingActionCount > 0)
+        {
+            return;
+        }
+
+        // Apply just one decision at a time. This keeps the board state, sound cues, and visual
+        // feedback readable instead of resolving an entire AI turn between two rendered frames.
+        var result = _ai.RunUntilHumanInput(_engine, AiPlayerIndex, CurrentRules(), maxActions: 1);
         if (result.Decisions.Count > 0)
         {
             _status = result.Decisions[^1].Message;
@@ -5215,6 +5852,8 @@ public sealed partial class DragonCardsGame : Game
             {
                 QueuePresentation(decision.Events);
             }
+
+            _aiAwaitingPresentation = true;
         }
 
         if (_engine.State.WinnerIndex is not null)
@@ -5230,7 +5869,7 @@ public sealed partial class DragonCardsGame : Game
             _matchFocus = MatchFocus.Blockers;
             EnsureSelectedBlocker(_engine.State);
         }
-        else if (result.Status == AiTurnStatus.ActionLimitReached)
+        else if (result.Status == AiTurnStatus.ActionLimitReached && result.Decisions.Count == 0)
         {
             _status = "AI stopped after its action guard.";
         }
@@ -5271,8 +5910,28 @@ public sealed partial class DragonCardsGame : Game
             return;
         }
 
+        if (IsValidHandIndex(handIndex) && BasicEnergy.IsBasicEnergyCard(_engine.State.DefinitionFor(_engine.State.ActivePlayer.Hand[handIndex])))
+        {
+            PlayEnergyFromHand(handIndex);
+            return;
+        }
+
         var payload = handIndex.ToString();
         if (ExecuteCommand("play-card", payload, () => _engine.PlayCardFromHand(handIndex)))
+        {
+            ClearSelections();
+        }
+    }
+
+    private void PlayEnergyFromHand(int handIndex)
+    {
+        if (_engine is null)
+        {
+            return;
+        }
+
+        var payload = handIndex.ToString();
+        if (ExecuteCommand("play-energy", payload, () => _engine.PlayEnergyFromHand(handIndex)))
         {
             ClearSelections();
         }
@@ -5365,6 +6024,9 @@ public sealed partial class DragonCardsGame : Game
         var previousCardZoom = _settings.CardZoom;
         var previousReducedMotion = _settings.ReducedMotion;
         var previousProfile = _profile;
+        var previousProfileRepository = _profileRepository;
+        var previousActiveProfileId = _activeProfileId;
+        var previousDeckBuilder = _deckBuilder;
         var previousOpening = _lastBoosterOpening;
         var previousReward = _lastMatchReward;
         var previousSpoils = _lastBattleSpoils;
@@ -5408,12 +6070,26 @@ public sealed partial class DragonCardsGame : Game
         var previousDrawOpacity = _drawOpacity;
         var previousHostInvite = _hostInvite;
         var previousHostInviteCode = _hostInviteCode;
+        var previousHostSameComputerInviteCode = _hostSameComputerInviteCode;
         var previousJoinInviteCode = _joinInviteCode;
         var previousMultiplayerNotice = _multiplayerNotice;
         var previousMultiplayerSection = _multiplayerSection;
         var previousDirectLobbyState = _directLobbyState;
         var previousJoinInviteEditing = _joinInviteEditing;
         var previousHostLobbyPort = _hostLobbyPort;
+        var previousSqliteMigrationPreview = _sqliteMigrationPreview;
+        var previousSqliteMigrationConfirmation = _sqliteMigrationConfirmation;
+        var previousProfileRestoreConfirmation = _profileRestoreConfirmation;
+        var previousProfileSeedValue = _profileSeedValue;
+        var previousProfileSeedPreview = _profileSeedPreview;
+        var previousProfileDataAudit = _profileDataAudit;
+        var previousProfileSeedRuns = _profileSeedRuns;
+        var previousProfileDataNotice = _profileDataNotice;
+        var previousProfileDataCardOffset = _profileDataCardOffset;
+        var captureProfileRoot = Path.Combine(Path.GetTempPath(), "DragonCardsCaptureProfiles", Guid.NewGuid().ToString("N"));
+        _profileRepository = new LocalProfileRepository(captureProfileRoot);
+        _profileRepository.Initialize(out _, out _);
+        _activeProfileId = null;
         _settings.CardZoom = true;
         _usingController = false;
         _storeFocusArea = StoreFocusArea.Catalog;
@@ -5422,6 +6098,45 @@ public sealed partial class DragonCardsGame : Game
         _matchInspectorFocused = false;
         _screenFadeRemaining = 0f;
         _drawOpacity = 1f;
+
+        CaptureScreen("profile-picker-empty.png", () =>
+        {
+            _profile = null;
+            _activeProfileId = null;
+            _profilePickerFocus = 0;
+            _profilePickerScrollOffset = 0;
+            _profileDeleteConfirmation = false;
+            _screen = Screen.ProfilePicker;
+            _status = "Capture: empty profile picker.";
+        });
+        CaptureScreen("profile-picker-multiple.png", () =>
+        {
+            var fireStarter = _data.DecksById["starter-fire"];
+            var iceStarter = _data.DecksById["starter-ice"];
+            var astra = ProgressionService.CreateProfile("Astra", GameRulesConfig.ForPreset(GameRulesPreset.Standard, Playstyle.Aggro), fireStarter, _data);
+            astra.Coins = 3200;
+            astra.Experience = 4200;
+            astra.Normalize();
+            _profileRepository!.TryCreateProfile(astra, DateTimeOffset.UtcNow, out var astraSummary, out _);
+            var bryn = ProgressionService.CreateProfile("Bryn", GameRulesConfig.ForPreset(GameRulesPreset.Standard), iceStarter, _data);
+            bryn.Coins = 800;
+            bryn.Normalize();
+            _profileRepository.TryCreateProfile(bryn, DateTimeOffset.UtcNow.AddMinutes(1), out _, out _);
+            _profile = astra;
+            _activeProfileId = astraSummary?.Id;
+            _deckBuilder = CreateDeckBuilderState(fireStarter);
+            _screen = Screen.ProfilePicker;
+            _profilePickerFocus = 1;
+            _profileDeleteConfirmation = false;
+            _status = "Capture: multiple local profiles.";
+        });
+        CaptureScreen("profile-delete-confirmation.png", () =>
+        {
+            _screen = Screen.ProfilePicker;
+            _profilePickerFocus = 0;
+            _profileDeleteConfirmation = true;
+            _status = "Capture: profile deletion confirmation.";
+        });
 
         CaptureScreen("player-creation.png", () =>
         {
@@ -5478,6 +6193,28 @@ public sealed partial class DragonCardsGame : Game
         CaptureScreen("tutorial-sacrifice-energy.png", () => PrepareCaptureTutorial("sacrifice-energy"));
         CaptureScreen("tutorial-blocking-attacks.png", () => PrepareCaptureTutorial("blocking-attacks"));
         CaptureScreen("tutorial-card-effects.png", () => PrepareCaptureTutorial("card-effects"));
+        CaptureScreen("quest-board.png", () =>
+        {
+            PrepareCaptureProfile();
+            QuestService.Record(_profile!, DateTimeOffset.UtcNow, QuestMetric.EligibleMatches, 1, eligible: true);
+            QuestService.Record(_profile!, DateTimeOffset.UtcNow, QuestMetric.NonEnergyCardsPlayed, 10, eligible: true);
+            _screen = Screen.Quests;
+            _status = "Capture: quest board.";
+        });
+        CaptureScreen("profile-data-json.png", () =>
+        {
+            PrepareCaptureProfile();
+            _sqliteMigrationPreview = null;
+            _sqliteMigrationConfirmation = false;
+            _profileRestoreConfirmation = false;
+            _profileSeedPreview = null;
+            _profileDataAudit = [];
+            _profileSeedRuns = [];
+            _profileDataCardOffset = 0;
+            _profileDataNotice = "Capture: profile data workspace before SQLite migration.";
+            _screen = Screen.ProfileData;
+            _status = "Capture: profile data workspace.";
+        });
         CaptureScreen("multiplayer.png", () =>
         {
             PrepareCaptureProfile();
@@ -5533,6 +6270,42 @@ public sealed partial class DragonCardsGame : Game
             _deckGridScroll.SetOffset(12);
             _deckBuilder.SelectedCardId = _deckBuilder.FilteredCards[_deckFocusIndex].Id;
             _status = "Capture: scrolled deck builder.";
+        });
+        CaptureScreen("deck-library.png", () =>
+        {
+            PrepareCaptureProfile();
+            var deck = new DeckDefinition
+            {
+                Id = "deck-capture-sunfire",
+                Name = "Sunfire Tactics",
+                ModeId = DragonCardsModeIds.DragonDuel,
+                Cards = _data.DecksById["starter-fire"].Cards.ToDictionary(card => card.Key, card => card.Value, StringComparer.OrdinalIgnoreCase)
+            };
+            _profileRepository!.TrySaveDeck(_activeProfileId!, deck, out _);
+            _deckBuilder = CreateDeckBuilderState(deck);
+            _deckLibraryOpen = true;
+            _deckLibraryFocus = DeckLibraryEntries().ToList().FindIndex(entry => entry.Deck.Id == deck.Id);
+            _deckLibraryDeleteConfirmation = false;
+            _deckNameEditing = false;
+            _screen = Screen.DeckBuilder;
+            _status = "Capture: profile deck library.";
+        });
+        CaptureScreen("collection-filter-sort.png", () =>
+        {
+            PrepareCaptureProfile();
+            _deckLibraryOpen = false;
+            _deckLibraryDeleteConfirmation = false;
+            _deckNameEditing = false;
+            _deckBuilder.ElementFilter = "All";
+            _deckBuilder.TypeFilter = "All";
+            _deckBuilder.OwnershipFilter = CollectionOwnershipFilter.Owned;
+            _deckBuilder.RarityFilter = "All";
+            _deckBuilder.SetFilter = "All";
+            _deckBuilder.SortMode = CollectionSortMode.OwnedCopies;
+            _deckFocusIndex = 0;
+            _deckGridScroll.MoveToStart();
+            _screen = Screen.DeckBuilder;
+            _status = "Capture: owned collection sorted by copies.";
         });
         CaptureScreen("store.png", () =>
         {
@@ -5591,7 +6364,7 @@ public sealed partial class DragonCardsGame : Game
         {
             _screen = Screen.Options;
             _optionsFocus = 0;
-            _optionsListScroll.Configure(8, 6);
+            _optionsListScroll.Configure(9, 6);
             _optionsListScroll.MoveToStart();
             _optionsFocusVisibilityPending = true;
             _settings.ReducedMotion = false;
@@ -5600,8 +6373,8 @@ public sealed partial class DragonCardsGame : Game
         CaptureScreen("options-reduced-motion.png", () =>
         {
             _screen = Screen.Options;
-            _optionsFocus = 6;
-            _optionsListScroll.Configure(8, 6);
+            _optionsFocus = 7;
+            _optionsListScroll.Configure(9, 6);
             _optionsFocusVisibilityPending = true;
             _settings.ReducedMotion = true;
             _status = "Capture: Reduced Motion enabled.";
@@ -5617,6 +6390,16 @@ public sealed partial class DragonCardsGame : Game
             PrepareCaptureSinglePlayerMatch();
             _screen = Screen.Match;
             _status = "Capture: single-player AI match.";
+        });
+        CaptureScreen("energy-source-conversion.png", () =>
+        {
+            PrepareCaptureMatch();
+            _engine!.State.PendingEnergySourceChoice = new PendingEnergySourceChoice(
+                _engine.State.ActivePlayerIndex,
+                "Water",
+                "Choose a ready Energy source to convert to Water.");
+            _screen = Screen.Match;
+            _status = "Capture: Energy source conversion picker.";
         });
         CaptureScreen("long-hand.png", () =>
         {
@@ -5726,7 +6509,7 @@ public sealed partial class DragonCardsGame : Game
         _selectedBlockerIndex = previousBlocker;
         _chooseFreeEnergy = previousChooseFreeEnergy;
         _optionsFocus = previousOptionsFocus;
-        _optionsListScroll.Configure(8, 6);
+        _optionsListScroll.Configure(9, 6);
         _optionsListScroll.SetOffset(previousOptionsScroll);
         _optionsFocusVisibilityPending = previousOptionsFocusVisibilityPending;
         _usingController = previousUsingController;
@@ -5739,6 +6522,8 @@ public sealed partial class DragonCardsGame : Game
         _settings.CardZoom = previousCardZoom;
         _settings.ReducedMotion = previousReducedMotion;
         _profile = previousProfile;
+        _profileRepository = previousProfileRepository;
+        _activeProfileId = previousActiveProfileId;
         _lastBoosterOpening = previousOpening;
         _lastMatchReward = previousReward;
         _lastBattleSpoils = previousSpoils;
@@ -5785,14 +6570,28 @@ public sealed partial class DragonCardsGame : Game
         _drawOpacity = previousDrawOpacity;
         _hostInvite = previousHostInvite;
         _hostInviteCode = previousHostInviteCode;
+        _hostSameComputerInviteCode = previousHostSameComputerInviteCode;
         _joinInviteCode = previousJoinInviteCode;
         _multiplayerNotice = previousMultiplayerNotice;
         _multiplayerSection = previousMultiplayerSection;
         _directLobbyState = previousDirectLobbyState;
         _joinInviteEditing = previousJoinInviteEditing;
         _hostLobbyPort = previousHostLobbyPort;
+        _sqliteMigrationPreview = previousSqliteMigrationPreview;
+        _sqliteMigrationConfirmation = previousSqliteMigrationConfirmation;
+        _profileRestoreConfirmation = previousProfileRestoreConfirmation;
+        _profileSeedValue = previousProfileSeedValue;
+        _profileSeedPreview = previousProfileSeedPreview;
+        _profileDataAudit = previousProfileDataAudit;
+        _profileSeedRuns = previousProfileSeedRuns;
+        _profileDataNotice = previousProfileDataNotice;
+        _profileDataCardOffset = previousProfileDataCardOffset;
+        _deckBuilder = previousDeckBuilder;
         ClearPresentation();
         GraphicsDevice.SetRenderTarget(null);
+        try { Directory.Delete(captureProfileRoot, recursive: true); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
         _status = $"Captured screens to {_captureDirectory}.";
     }
 
@@ -5838,6 +6637,7 @@ public sealed partial class DragonCardsGame : Game
             LobbyToken = 0x2A7B
         };
         _hostInviteCode = InviteCode.EncodeLobbyCode(_hostInvite.LobbyToken);
+        _hostSameComputerInviteCode = InviteCode.Encode(_hostInvite with { Host = "127.0.0.1" });
         _multiplayerNotice = "Five-character LAN code ready for Dragon Duel.";
     }
 
@@ -5854,6 +6654,14 @@ public sealed partial class DragonCardsGame : Game
         _engine.AdvanceToNextDecisionPhase();
         var active = _engine.State.ActivePlayer;
         var defender = _engine.State.DefendingPlayer;
+        active.EnergyField.Add(new CardInstance(BasicEnergy.CardId("Fire"), "capture-fire-basic", EnergySourceOrigin.BasicCard));
+        active.EnergyField.Add(new CardInstance(EnergySource.CardId("Fire"), "capture-fire-free", EnergySourceOrigin.FreeAdd) { Exhausted = true });
+        active.EnergyField.Add(new CardInstance(BasicEnergy.CardId("Wind"), "capture-wind-basic", EnergySourceOrigin.BasicCard));
+        active.EnergyField.Add(new CardInstance(EnergySource.CardId("Wind"), "capture-wind-effect", EnergySourceOrigin.Effect));
+        active.EnergyField.Add(new CardInstance(EnergySource.CardId("Light"), "capture-light-sacrifice", EnergySourceOrigin.Sacrifice));
+        defender.EnergyField.Add(new CardInstance(BasicEnergy.CardId("Ice"), "capture-ice-basic", EnergySourceOrigin.BasicCard));
+        defender.EnergyField.Add(new CardInstance(EnergySource.CardId("Ice"), "capture-ice-free", EnergySourceOrigin.FreeAdd));
+        defender.EnergyField.Add(new CardInstance(EnergySource.CardId("Earth"), "capture-earth-effect", EnergySourceOrigin.Effect));
         active.EnergyPool["Fire"] = 3;
         active.EnergyPool["Wind"] = 2;
         active.EnergyPool["Light"] = 1;
@@ -6187,6 +6995,7 @@ public sealed partial class DragonCardsGame : Game
 
     private enum Screen
     {
+        ProfilePicker,
         PlayerCreation,
         MainMenu,
         ModeSelect,
@@ -6196,6 +7005,8 @@ public sealed partial class DragonCardsGame : Game
         DeckBuilder,
         Store,
         PackOpening,
+        Quests,
+        ProfileData,
         Match,
         MatchResult
     }
@@ -6276,6 +7087,7 @@ public sealed partial class DragonCardsGame : Game
         public int SoundVolume { get; set; } = 80;
         public bool MuteAudio { get; set; }
         public bool CardZoom { get; set; } = true;
+        public int InteractionSpeedPercent { get; set; } = 70;
         public bool ReducedMotion { get; set; }
 
         public static string SettingsFilePath =>
@@ -6298,6 +7110,7 @@ public sealed partial class DragonCardsGame : Game
                         SoundVolume = ReadInteger(root, nameof(SoundVolume), 80),
                         MuteAudio = ReadBoolean(root, nameof(MuteAudio), defaultValue: false),
                         CardZoom = ReadBoolean(root, nameof(CardZoom), defaultValue: true),
+                        InteractionSpeedPercent = ReadInteger(root, nameof(InteractionSpeedPercent), 70),
                         ReducedMotion = ReadBoolean(root, nameof(ReducedMotion), defaultValue: false)
                     };
                     loaded.Normalize();
@@ -6335,6 +7148,7 @@ public sealed partial class DragonCardsGame : Game
                 writer.WriteNumber(nameof(SoundVolume), SoundVolume);
                 writer.WriteBoolean(nameof(MuteAudio), MuteAudio);
                 writer.WriteBoolean(nameof(CardZoom), CardZoom);
+                writer.WriteNumber(nameof(InteractionSpeedPercent), InteractionSpeedPercent);
                 writer.WriteBoolean(nameof(ReducedMotion), ReducedMotion);
                 writer.WriteEndObject();
             }
@@ -6359,6 +7173,7 @@ public sealed partial class DragonCardsGame : Game
             WindowHeight = Math.Clamp(WindowHeight, 576, 2160);
             MusicVolume = Math.Clamp(MusicVolume, 0, 100);
             SoundVolume = Math.Clamp(SoundVolume, 0, 100);
+            InteractionSpeedPercent = Math.Clamp(InteractionSpeedPercent, 35, 200);
         }
     }
 
@@ -6367,32 +7182,50 @@ public sealed partial class DragonCardsGame : Game
         public const int PageSize = 12;
         private readonly GameData _data;
         private readonly Dictionary<string, int> _cards;
+        private IReadOnlyDictionary<string, int> _ownedCards = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
 
         public DeckBuilderState(GameData data, DeckDefinition startingDeck)
         {
             _data = data;
             _cards = startingDeck.Cards.ToDictionary(entry => entry.Key, entry => entry.Value, StringComparer.OrdinalIgnoreCase);
-            DeckName = "Custom Flame Gale";
+            DeckId = startingDeck.Id;
+            DeckName = startingDeck.Name;
+            ModeId = string.IsNullOrWhiteSpace(startingDeck.ModeId) ? DragonCardsModeIds.DragonDuel : startingDeck.ModeId;
             ElementFilters = ["All", .. data.GameModesById["dragon-duel"].Elements];
             TypeFilters = ["All", .. data.GameModesById["dragon-duel"].AllowedCardTypes];
+            RarityFilters = ["All", .. CardRarities.All];
+            SetFilters = ["All", .. data.Cards.Where(card => !BasicEnergy.IsBasicEnergyCard(card) && !EnergySource.IsEnergySourceToken(card)).Select(card => card.SetId).Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(setId => setId, StringComparer.OrdinalIgnoreCase)];
             SelectedCardId = data.Cards.FirstOrDefault()?.Id;
         }
 
-        public string DeckName { get; }
+        public string DeckId { get; private set; }
+        public string DeckName { get; private set; }
+        public string ModeId { get; private set; }
         public string ElementFilter { get; set; } = "All";
         public string TypeFilter { get; set; } = "All";
+        public string RarityFilter { get; set; } = "All";
+        public string SetFilter { get; set; } = "All";
+        public CollectionOwnershipFilter OwnershipFilter { get; set; }
+        public CollectionSortMode SortMode { get; set; }
+        public bool IsSandbox { get; private set; }
         public int Page { get; set; }
         public string? SelectedCardId { get; set; }
         public IReadOnlyList<string> ElementFilters { get; }
         public IReadOnlyList<string> TypeFilters { get; }
+        public IReadOnlyList<string> RarityFilters { get; }
+        public IReadOnlyList<string> SetFilters { get; }
 
-        public IReadOnlyList<CardDefinition> FilteredCards => _data.Cards
-            .Where(card => ElementFilter == "All" || card.Elements.Contains(ElementFilter, StringComparer.OrdinalIgnoreCase))
-            .Where(card => TypeFilter == "All" || card.Type.Equals(TypeFilter, StringComparison.OrdinalIgnoreCase))
-            .OrderBy(card => card.Elements.FirstOrDefault())
-            .ThenBy(card => card.TotalCost)
-            .ThenBy(card => card.Name)
-            .ToArray();
+        public IReadOnlyList<CardDefinition> FilteredCards => CollectionDiscoveryService.FilterAndSort(
+            _data.Cards,
+            _ownedCards,
+            ElementFilter,
+            TypeFilter,
+            RarityFilter,
+            SetFilter,
+            OwnershipFilter,
+            SortMode);
+
+        public CollectionSummary CollectionSummary => CollectionDiscoveryService.Summarize(_data.Cards, _ownedCards);
 
         public CardDefinition? SelectedCard =>
             SelectedCardId is not null && _data.CardsById.TryGetValue(SelectedCardId, out var card) ? card : null;
@@ -6426,13 +7259,30 @@ public sealed partial class DragonCardsGame : Game
                     _cards[cardId] = count;
                 }
             }
+
+            SetIdentity(deck.Id, deck.Name, deck.ModeId);
+        }
+
+        public void SetIdentity(string id, string name, string modeId)
+        {
+            DeckId = id;
+            DeckName = name;
+            ModeId = string.IsNullOrWhiteSpace(modeId) ? DragonCardsModeIds.DragonDuel : modeId;
+        }
+
+        public void ConfigureCollection(PlayerProfile? profile, bool isSandbox)
+        {
+            _ownedCards = profile?.OwnedCards is { } cards
+                ? new Dictionary<string, int>(cards, StringComparer.OrdinalIgnoreCase)
+                : new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            IsSandbox = isSandbox;
         }
 
         public DeckDefinition CreateDeck() => new()
         {
-            Id = "custom-flame-gale",
+            Id = DeckId,
             Name = DeckName,
-            ModeId = "dragon-duel",
+            ModeId = ModeId,
             Cards = _cards
                 .Where(entry => entry.Value > 0)
                 .OrderBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)

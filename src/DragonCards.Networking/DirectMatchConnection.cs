@@ -7,6 +7,7 @@ namespace DragonCards.Networking;
 
 public sealed class DirectMatchConnection : IAsyncDisposable
 {
+    private static readonly TimeSpan LobbyHandshakeTimeout = TimeSpan.FromSeconds(10);
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -75,27 +76,38 @@ public sealed class DirectMatchConnection : IAsyncDisposable
 
             using var listener = new TcpListener(IPAddress.Any, invite.Port);
             listener.Start(1);
-            var client = await listener.AcceptTcpClientAsync(cancellationToken).ConfigureAwait(false);
-            var connection = new DirectMatchConnection(client, isHost: true, localPlayerIndex: 0, new NetworkLobby());
-            try
+            while (true)
             {
-                var joiner = NormalizeHandshake(await connection.ReadPayloadAsync<NetworkPlayerHandshake>("hello", cancellationToken).ConfigureAwait(false));
-                ValidateHandshake(joiner, host.ModeId, host.ProtocolVersion, host.RulesHash, invite.LobbyToken);
-
-                connection.Lobby = new NetworkLobby
+                var client = await listener.AcceptTcpClientAsync(cancellationToken).ConfigureAwait(false);
+                client.NoDelay = true;
+                var connection = new DirectMatchConnection(client, isHost: true, localPlayerIndex: 0, new NetworkLobby());
+                try
                 {
-                    ProtocolVersion = host.ProtocolVersion,
-                    ModeId = host.ModeId,
-                    Host = host,
-                    Joiner = joiner
-                };
-                await connection.SendPayloadAsync("lobby", connection.Lobby, cancellationToken).ConfigureAwait(false);
-                return connection;
-            }
-            catch
-            {
-                await connection.DisposeAsync().ConfigureAwait(false);
-                throw;
+                    using var handshakeCancellation = CreateHandshakeCancellation(cancellationToken);
+                    var joiner = NormalizeHandshake(await connection.ReadPayloadAsync<NetworkPlayerHandshake>("hello", handshakeCancellation.Token).ConfigureAwait(false));
+                    ValidateHandshake(joiner, host.ModeId, host.ProtocolVersion, invite.LobbyToken);
+
+                    connection.Lobby = new NetworkLobby
+                    {
+                        ProtocolVersion = host.ProtocolVersion,
+                        ModeId = host.ModeId,
+                        Host = host,
+                        Joiner = joiner
+                    };
+                    await connection.SendPayloadAsync("lobby", connection.Lobby, cancellationToken).ConfigureAwait(false);
+                    return connection;
+                }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+                {
+                    await connection.DisposeAsync().ConfigureAwait(false);
+                    throw;
+                }
+                catch
+                {
+                    // A mistyped, stale, or incompatible invite must not close the host's lobby.
+                    // The host remains available for the next valid guest connection.
+                    await connection.DisposeAsync().ConfigureAwait(false);
+                }
             }
         }
         finally
@@ -117,19 +129,41 @@ public sealed class DirectMatchConnection : IAsyncDisposable
 
         var joiner = NormalizeHandshake(joinerHandshake);
         var client = new TcpClient();
-        await client.ConnectAsync(invite.Host, invite.Port, cancellationToken).ConfigureAwait(false);
-        var connection = new DirectMatchConnection(client, isHost: false, localPlayerIndex: 1, new NetworkLobby());
+        DirectMatchConnection? connection = null;
         try
         {
-            await connection.SendPayloadAsync("hello", joiner, cancellationToken).ConfigureAwait(false);
-            var lobby = await connection.ReadPayloadAsync<NetworkLobby>("lobby", cancellationToken).ConfigureAwait(false);
-            ValidateLobby(lobby, invite, joiner);
+            using var handshakeCancellation = CreateHandshakeCancellation(cancellationToken);
+            await client.ConnectAsync(invite.Host, invite.Port, handshakeCancellation.Token).ConfigureAwait(false);
+            client.NoDelay = true;
+            connection = new DirectMatchConnection(client, isHost: false, localPlayerIndex: 1, new NetworkLobby());
+            await connection.SendPayloadAsync("hello", joiner, handshakeCancellation.Token).ConfigureAwait(false);
+            var lobby = await connection.ReadPayloadAsync<NetworkLobby>("lobby", handshakeCancellation.Token).ConfigureAwait(false);
+            ValidateLobby(lobby, invite);
             connection.Lobby = lobby;
             return connection;
         }
+        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        {
+            if (connection is not null)
+            {
+                await connection.DisposeAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                client.Dispose();
+            }
+            throw new TimeoutException("The host did not complete the lobby connection within 10 seconds. Confirm its lobby is open and the code is current.");
+        }
         catch
         {
-            await connection.DisposeAsync().ConfigureAwait(false);
+            if (connection is not null)
+            {
+                await connection.DisposeAsync().ConfigureAwait(false);
+            }
+            else
+            {
+                client.Dispose();
+            }
             throw;
         }
     }
@@ -211,7 +245,14 @@ public sealed class DirectMatchConnection : IAsyncDisposable
         };
     }
 
-    private static void ValidateHandshake(NetworkPlayerHandshake handshake, string modeId, string protocolVersion, string rulesHash, int expectedLobbyToken = 0)
+    private static CancellationTokenSource CreateHandshakeCancellation(CancellationToken cancellationToken)
+    {
+        var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeout.CancelAfter(LobbyHandshakeTimeout);
+        return timeout;
+    }
+
+    private static void ValidateHandshake(NetworkPlayerHandshake handshake, string modeId, string protocolVersion, int expectedLobbyToken = 0)
     {
         if (!handshake.ProtocolVersion.Equals(protocolVersion, StringComparison.OrdinalIgnoreCase))
         {
@@ -223,27 +264,21 @@ public sealed class DirectMatchConnection : IAsyncDisposable
             throw new InvalidOperationException($"Expected mode '{modeId}', got '{handshake.ModeId}'.");
         }
 
-        if (!string.IsNullOrWhiteSpace(rulesHash) &&
-            !handshake.RulesHash.Equals(rulesHash, StringComparison.OrdinalIgnoreCase))
-        {
-            throw new InvalidOperationException("The remote player is using incompatible rules.");
-        }
-
         if (expectedLobbyToken > 0 && handshake.LobbyToken != expectedLobbyToken)
         {
             throw new InvalidOperationException("The invite code does not match this hosted lobby.");
         }
     }
 
-    private static void ValidateLobby(NetworkLobby lobby, NetworkInvite invite, NetworkPlayerHandshake localJoiner)
+    private static void ValidateLobby(NetworkLobby lobby, NetworkInvite invite)
     {
         if (!lobby.ProtocolVersion.Equals(invite.ProtocolVersion, StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException($"Unsupported protocol version '{lobby.ProtocolVersion}'.");
         }
 
-        ValidateHandshake(lobby.Host, invite.ModeId, invite.ProtocolVersion, localJoiner.RulesHash, invite.LobbyToken);
-        ValidateHandshake(lobby.Joiner, invite.ModeId, invite.ProtocolVersion, localJoiner.RulesHash, invite.LobbyToken);
+        ValidateHandshake(lobby.Host, invite.ModeId, invite.ProtocolVersion, invite.LobbyToken);
+        ValidateHandshake(lobby.Joiner, invite.ModeId, invite.ProtocolVersion, invite.LobbyToken);
     }
 
     private static void ValidateMatchStart(NetworkMatchStart matchStart, NetworkLobby lobby)
@@ -254,8 +289,8 @@ public sealed class DirectMatchConnection : IAsyncDisposable
             throw new InvalidOperationException("The host started a match with incompatible lobby settings.");
         }
 
-        ValidateHandshake(matchStart.Host, lobby.ModeId, lobby.ProtocolVersion, lobby.Host.RulesHash, lobby.Host.LobbyToken);
-        ValidateHandshake(matchStart.Joiner, lobby.ModeId, lobby.ProtocolVersion, lobby.Joiner.RulesHash, lobby.Joiner.LobbyToken);
+        ValidateHandshake(matchStart.Host, lobby.ModeId, lobby.ProtocolVersion, lobby.Host.LobbyToken);
+        ValidateHandshake(matchStart.Joiner, lobby.ModeId, lobby.ProtocolVersion, lobby.Joiner.LobbyToken);
     }
 
     private async Task SendPayloadAsync<T>(string type, T payload, CancellationToken cancellationToken)

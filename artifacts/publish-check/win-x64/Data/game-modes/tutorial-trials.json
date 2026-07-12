@@ -1,0 +1,29 @@
+{
+  "id": "tutorial-trials",
+  "name": "Tutorial Trials",
+  "description": "Guided training lessons with one-time profile coin rewards.",
+  "display": {
+    "category": "Learning",
+    "shortName": "Tutorials",
+    "featureText": "Learn turns, energy, sacrifice, blocking, and effects with clear goals.",
+    "tags": ["tutorial", "training", "rewards"]
+  },
+  "elements": ["Fire", "Ice", "Wind", "Earth", "Lightning", "Water", "Light", "Dark"],
+  "phases": ["Ready", "Draw", "Main", "Combat", "Second Main", "End"],
+  "allowedCardTypes": ["Unit", "Support", "Spell"],
+  "deckRules": {
+    "deckSize": 50,
+    "maxCopies": 3
+  },
+  "zoneLimits": {
+    "unitSlots": 5,
+    "supportSlots": 5
+  },
+  "energyRules": {
+    "maxPerElement": 10,
+    "addsPerTurn": 1
+  },
+  "progressionEligible": false,
+  "damageLimit": 7,
+  "startingHand": 5
+}

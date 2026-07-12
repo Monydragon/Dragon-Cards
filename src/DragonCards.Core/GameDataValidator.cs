@@ -36,13 +36,16 @@ public static class GameDataValidator
         return issues;
     }
 
-    public static IReadOnlyList<ValidationIssue> ValidateDeck(DeckDefinition deck, GameData data)
+    public static IReadOnlyList<ValidationIssue> ValidateDeck(DeckDefinition deck, GameData data) =>
+        ValidateDeck(deck, data, deck.ModeId);
+
+    public static IReadOnlyList<ValidationIssue> ValidateDeck(DeckDefinition deck, GameData data, string modeId)
     {
         var issues = new List<ValidationIssue>();
 
-        if (!data.GameModesById.TryGetValue(deck.ModeId, out var mode))
+        if (!data.GameModesById.TryGetValue(modeId, out var mode))
         {
-            issues.Add(new ValidationIssue("deck.mode_missing", $"Deck '{deck.Name}' references missing mode '{deck.ModeId}'.", deck.Id));
+            issues.Add(new ValidationIssue("deck.mode_missing", $"Deck '{deck.Name}' references missing mode '{modeId}'.", deck.Id));
             return issues;
         }
 
@@ -59,15 +62,20 @@ public static class GameDataValidator
                 continue;
             }
 
-            if (count > mode.DeckRules.MaxCopies)
-            {
-                issues.Add(new ValidationIssue("deck.max_copies", $"Deck '{deck.Name}' has {count} copies of '{cardId}'; max is {mode.DeckRules.MaxCopies}.", deck.Id));
-            }
-
             if (!data.CardsById.TryGetValue(cardId, out var card))
             {
                 issues.Add(new ValidationIssue("deck.card_missing", $"Deck '{deck.Name}' references missing card '{cardId}'.", deck.Id));
                 continue;
+            }
+
+            if (count > mode.DeckRules.MaxCopies && !BasicEnergy.IsBasicEnergyCard(card))
+            {
+                issues.Add(new ValidationIssue("deck.max_copies", $"Deck '{deck.Name}' has {count} copies of '{cardId}'; max is {mode.DeckRules.MaxCopies}.", deck.Id));
+            }
+
+            if (EnergySource.IsEnergySourceToken(card))
+            {
+                issues.Add(new ValidationIssue("deck.energy_source_token", $"Deck '{deck.Name}' cannot contain field-only Energy source token '{cardId}'.", deck.Id));
             }
 
             if (!mode.AllowedCardTypes.Contains(card.Type, StringComparer.OrdinalIgnoreCase))
@@ -249,6 +257,16 @@ public static class GameDataValidator
         if (card.Type.Equals("Unit", StringComparison.OrdinalIgnoreCase) && card.Power <= 0)
         {
             issues.Add(new ValidationIssue("card.power", $"Unit '{card.Name}' must have positive power.", card.Id));
+        }
+
+        if (card.IsBasicEnergy && !BasicEnergy.IsBasicEnergyCard(card))
+        {
+            issues.Add(new ValidationIssue("card.basic_energy", $"Basic Energy '{card.Name}' must use the Energy type, its matching id, one element, and zero cost.", card.Id));
+        }
+
+        if (card.IsEnergySourceToken && !EnergySource.IsEnergySourceToken(card))
+        {
+            issues.Add(new ValidationIssue("card.energy_source_token", $"Energy source token '{card.Name}' must use the Energy type, matching token id, one element, and zero cost.", card.Id));
         }
 
         foreach (var keyword in card.Keywords)

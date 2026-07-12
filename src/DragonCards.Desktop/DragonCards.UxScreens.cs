@@ -338,6 +338,7 @@ public sealed partial class DragonCardsGame
 
     private void DrawDeckBuilderUx()
     {
+        _deckBuilder.ConfigureCollection(_profile, CurrentRules().IsSandbox);
         DrawUiText("Deck Builder", new Vector2(42, 98), Color.White, 0.96f);
         DrawUiText($"{_deckBuilder.DeckName}  -  {DeckBuilderModeLabel()}", new Vector2(42, 136), UiTheme.TextMuted, 0.58f);
         DrawFilterBar();
@@ -356,9 +357,9 @@ public sealed partial class DragonCardsGame
         var firstCard = Math.Min(cards.Count, _deckGridScroll.Offset * columns);
         var lastCard = Math.Min(cards.Count, firstCard + columns * visibleRows);
         DrawUiText(cards.Count == 0 ? "No cards match these filters." : $"Cards {firstCard + 1}-{lastCard} of {cards.Count}",
-            new Vector2(42, 206), UiTheme.TextMuted, 0.48f);
+            new Vector2(42, 234), UiTheme.TextMuted, 0.48f);
 
-        var libraryArea = new Rectangle(42, 246, 920, 548);
+        var libraryArea = new Rectangle(42, 254, 920, 540);
         DrawPanel(libraryArea, UiTheme.PanelRaised, border: UiTheme.Border);
         for (var index = firstCard; index < lastCard; index++)
         {
@@ -380,10 +381,17 @@ public sealed partial class DragonCardsGame
 
         DrawUxScrollBar("deck-grid", new Rectangle(libraryArea.Right - 14, libraryArea.Y + 18, 8, libraryArea.Height - 36), _deckGridScroll, UiTheme.Focus);
         DrawDeckSidebar(new Rectangle(1000, 96, 544, 746));
+        DrawDeckLibraryOverlay();
     }
 
     private void HandleDeckBuilderUxInput()
     {
+        if (_deckLibraryOpen)
+        {
+            HandleDeckLibraryInput();
+            return;
+        }
+
         if (Pressed(Keys.Tab))
         {
             CycleDeckFocusArea(IsDown(Keys.LeftShift) || IsDown(Keys.RightShift) ? -1 : 1);
@@ -400,7 +408,7 @@ public sealed partial class DragonCardsGame
             _deckFocusIndex = 0;
             if (DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out var emptyVertical))
             {
-                _deckFocusArea = emptyVertical < 0 ? DeckFocusArea.ElementFilters : DeckFocusArea.TypeFilters;
+                _deckFocusArea = emptyVertical < 0 ? DeckFocusArea.CollectionFilters : DeckFocusArea.TypeFilters;
                 SyncDeckControlFocus();
             }
             return;
@@ -434,7 +442,7 @@ public sealed partial class DragonCardsGame
             var lastRow = Math.Max(0, (cards.Count - 1) / columns);
             if (vertical < 0 && currentRow == 0)
             {
-                _deckFocusArea = DeckFocusArea.ElementFilters;
+                _deckFocusArea = DeckFocusArea.CollectionFilters;
                 SyncDeckControlFocus();
             }
             else if (vertical > 0 && currentRow == lastRow)
@@ -510,6 +518,89 @@ public sealed partial class DragonCardsGame
         }
     }
 
+    private void HandleDeckLibraryInput()
+    {
+        var entries = DeckLibraryEntries();
+        if (_deckLibraryDeleteConfirmation)
+        {
+            if (Pressed(Buttons.A) && _deckLibraryFocus < entries.Count)
+            {
+                DeleteLibraryDeck(entries[_deckLibraryFocus].Deck);
+            }
+            else if (Pressed(Buttons.B))
+            {
+                _deckLibraryDeleteConfirmation = false;
+            }
+
+            return;
+        }
+
+        if (_deckNameEditing)
+        {
+            if (Pressed(Buttons.A))
+            {
+                RenameLibraryDeck();
+            }
+            else if (Pressed(Buttons.B))
+            {
+                _deckNameEditing = false;
+            }
+
+            return;
+        }
+
+        if (DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out var vertical))
+        {
+            _deckLibraryFocus = Math.Clamp(_deckLibraryFocus + vertical, 0, Math.Max(0, entries.Count - 1));
+        }
+        else if (_uiActions.Triggered(UiAction.PagePrevious))
+        {
+            _deckLibraryFocus = Math.Max(0, _deckLibraryFocus - 7);
+        }
+        else if (_uiActions.Triggered(UiAction.PageNext))
+        {
+            _deckLibraryFocus = Math.Min(Math.Max(0, entries.Count - 1), _deckLibraryFocus + 7);
+        }
+
+        if (Pressed(Keys.N))
+        {
+            DuplicateLibraryDeck(_deckBuilder.CreateDeck());
+            return;
+        }
+
+        if (entries.Count == 0)
+        {
+            if (Pressed(Buttons.B))
+            {
+                _deckLibraryOpen = false;
+            }
+            return;
+        }
+
+        var entry = entries[_deckLibraryFocus];
+        if (Pressed(Buttons.X))
+        {
+            DuplicateLibraryDeck(entry.Deck);
+        }
+        else if ((Pressed(Buttons.Y) || Pressed(Keys.Delete)) && !entry.IsStarter)
+        {
+            _deckLibraryDeleteConfirmation = true;
+        }
+        else if (Pressed(Keys.R) && !entry.IsStarter)
+        {
+            _deckNameText = entry.Deck.Name;
+            _deckNameEditing = true;
+        }
+        else if (Pressed(Buttons.A))
+        {
+            LoadDeckLibraryEntry(entry);
+        }
+        else if (Pressed(Buttons.B))
+        {
+            _deckLibraryOpen = false;
+        }
+    }
+
     private void HandleDeckControlInput(IReadOnlyList<CardDefinition> cards)
     {
         var horizontalPressed = DirectionPressed(Buttons.DPadLeft, Buttons.DPadRight, out var horizontal);
@@ -525,11 +616,27 @@ public sealed partial class DragonCardsGame
                 }
                 if (verticalPressed && vertical > 0)
                 {
-                    _deckFocusArea = DeckFocusArea.Grid;
+                    _deckFocusArea = DeckFocusArea.CollectionFilters;
                 }
                 if (confirm)
                 {
                     ApplyDeckElementFilter(_deckBuilder.ElementFilters[_deckControlFocus]);
+                }
+                break;
+
+            case DeckFocusArea.CollectionFilters:
+                if (horizontalPressed)
+                {
+                    _deckControlFocus = Math.Clamp(_deckControlFocus + horizontal, 0, 3);
+                }
+                if (verticalPressed)
+                {
+                    _deckFocusArea = vertical < 0 ? DeckFocusArea.ElementFilters : DeckFocusArea.Grid;
+                    SyncDeckControlFocus();
+                }
+                if (confirm)
+                {
+                    CycleDeckCollectionFilter(_deckControlFocus);
                 }
                 break;
 
@@ -666,7 +773,7 @@ public sealed partial class DragonCardsGame
             case DeckFocusArea.Footer:
                 if (horizontalPressed)
                 {
-                    _deckControlFocus = Math.Clamp(_deckControlFocus + horizontal, 0, 1);
+                    _deckControlFocus = Math.Clamp(_deckControlFocus + horizontal, 0, 4);
                 }
                 if (verticalPressed && vertical < 0)
                 {
@@ -678,6 +785,22 @@ public sealed partial class DragonCardsGame
                     if (_deckControlFocus == 0)
                     {
                         SaveDeck(_deckBuilder.CreateDeck());
+                    }
+                    else if (_deckControlFocus == 1)
+                    {
+                        _deckLibraryOpen = true;
+                        _deckLibraryDeleteConfirmation = false;
+                        _deckNameEditing = false;
+                        _deckLibraryFocus = Math.Max(0, DeckLibraryEntries().ToList().FindIndex(entry => entry.Deck.Id.Equals(_deckBuilder.DeckId, StringComparison.OrdinalIgnoreCase)));
+                        _status = "Deck library opened.";
+                    }
+                    else if (_deckControlFocus == 2)
+                    {
+                        ExportCurrentDeckCode(_deckBuilder.CreateDeck());
+                    }
+                    else if (_deckControlFocus == 3)
+                    {
+                        ImportDeckCodeFromClipboard();
                     }
                     else
                     {
@@ -705,6 +828,7 @@ public sealed partial class DragonCardsGame
         _deckControlFocus = _deckFocusArea switch
         {
             DeckFocusArea.ElementFilters => Math.Max(0, _deckBuilder.ElementFilters.ToList().FindIndex(item => item.Equals(_deckBuilder.ElementFilter, StringComparison.OrdinalIgnoreCase))),
+            DeckFocusArea.CollectionFilters => 0,
             DeckFocusArea.TypeFilters => Math.Max(0, _deckBuilder.TypeFilters.ToList().FindIndex(item => item.Equals(_deckBuilder.TypeFilter, StringComparison.OrdinalIgnoreCase))),
             DeckFocusArea.AssistantGoals => (int)_deckAssistantGoal,
             _ => 0

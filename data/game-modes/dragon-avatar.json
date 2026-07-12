@@ -45,7 +45,7 @@
     "replayGenericCostIncrease": 2,
     "startingCommandZoneCards": 1
   },
-  "progressionEligible": false,
+  "progressionEligible": true,
   "damageLimit": 10,
   "startingHand": 7
 }

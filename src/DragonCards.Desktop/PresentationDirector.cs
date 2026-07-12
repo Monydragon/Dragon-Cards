@@ -56,6 +56,8 @@ internal static class AnimationRecipes
                 [MatchEventKind.CardSacrificed] = Recipe(0.38f, PresentationPriority.Primary, true, PresentationMotion.CardTravel, "Sacrifice", true, SoundKeys.Sacrifice),
                 [MatchEventKind.EnergySpent] = Recipe(0.18f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy spent", false, SoundKeys.EnergySpend),
                 [MatchEventKind.EnergyGained] = Recipe(0.18f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy gained", false, SoundKeys.EnergyGain),
+                [MatchEventKind.EnergySourceCreated] = Recipe(0.30f, PresentationPriority.Standard, false, PresentationMotion.CardTravel, "Energy source", true, SoundKeys.EnergyGain),
+                [MatchEventKind.EnergyRefreshed] = Recipe(0.18f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy refresh", false, SoundKeys.CardReady),
                 [MatchEventKind.EnergyConverted] = Recipe(0.20f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy converted", false, SoundKeys.EnergyGain),
                 [MatchEventKind.EnergyRefunded] = Recipe(0.18f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy refunded", false, SoundKeys.EnergyGain),
                 [MatchEventKind.CostReduced] = Recipe(0.18f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Cost reduced", false, SoundKeys.CostReduce),
@@ -162,6 +164,11 @@ internal sealed class PresentationDirector
     private int _nextActionId = 1;
 
     public bool ReducedMotion { get; set; }
+    /// <summary>
+    /// Multiplies the rate at which presentation beats advance. Values below one make every
+    /// animation and its matching sound cadence more deliberate; values above one speed them up.
+    /// </summary>
+    public float SpeedMultiplier { get; set; } = 1f;
     public PresentationBeat? Active => _activeGroup?.SequenceBeat ?? _activeGroup?.ParallelBeats.FirstOrDefault();
     public bool IsBlocking => _activeGroup?.CurrentBeats.Any(beat => beat.Blocking && !beat.IsComplete) == true;
     public bool CanSkip => _activeGroup is not null && _activeGroup.Elapsed >= MinimumSkipDelaySeconds;
@@ -192,7 +199,7 @@ internal sealed class PresentationDirector
 
     public void Update(float elapsedSeconds)
     {
-        var remaining = Math.Max(0f, elapsedSeconds);
+        var remaining = Math.Max(0f, elapsedSeconds) * Math.Clamp(SpeedMultiplier, 0.35f, 2f);
         EnsureActiveGroup();
 
         while (_activeGroup is not null && remaining > 0f)

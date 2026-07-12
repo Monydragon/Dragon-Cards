@@ -6,8 +6,9 @@
     <RollForward>Major</RollForward>
     <ProjectGuid>90BD1A5B-ED36-4FA6-85A3-3F8BD108B171</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <PublishTrimmed>True</PublishTrimmed>
-    <PublishAot>True</PublishAot>
+    <!-- EF Core NativeAOT remains experimental; use the supported managed runtime for local SQLite. -->
+    <PublishTrimmed>False</PublishTrimmed>
+    <PublishAot>False</PublishAot>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>DragonCards.Desktop</RootNamespace>
     <AssemblyName>DragonCards.Desktop</AssemblyName>
@@ -35,6 +36,7 @@
     <Compile Include="DragonCards.UxPass.cs" />
     <Compile Include="DragonCards.UxScreens.cs" />
     <Compile Include="DragonCards.MultiplayerUi.cs" />
+    <Compile Include="DragonCards.ProfileDataUi.cs" />
     <Compile Include="DesktopClipboard.cs" />
     <Compile Include="AudioService.cs" />
     <Compile Include="PresentationDirector.cs" />
@@ -50,6 +52,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DragonCards.Core\DragonCards.Core.csproj" />
     <ProjectReference Include="..\DragonCards.Networking\DragonCards.Networking.csproj" />
+    <ProjectReference Include="..\DragonCards.Persistence\DragonCards.Persistence.csproj" />
   </ItemGroup>
 
   <ItemGroup>

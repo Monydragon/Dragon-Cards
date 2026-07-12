@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DragonCards.Core;
 using DragonCards.Networking;
+using DragonCards.Persistence;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
@@ -14,6 +15,8 @@ namespace DragonCards.Desktop;
 
 public sealed partial class DragonCardsGame
 {
+    private sealed record DeckLibraryEntry(DeckDefinition Deck, bool IsStarter);
+
     private static readonly GameRulesPreset[] RulesPresetOrder =
     [
         GameRulesPreset.Casual,
@@ -35,6 +38,21 @@ public sealed partial class DragonCardsGame
     ];
 
     private PlayerProfile? _profile;
+    private IProfileRepository? _profileRepository;
+    private string? _activeProfileId;
+    private int _profilePickerFocus;
+    private int _profilePickerScrollOffset;
+    private bool _profilePickerOpenedFromMainMenu;
+    private bool _profileDeleteConfirmation;
+    private bool _profileRenameActive;
+    private string _profileRenameText = "";
+    private string _profileRepositoryNotice = "";
+    private bool _deckLibraryOpen;
+    private int _deckLibraryFocus;
+    private int _deckLibraryScrollOffset;
+    private bool _deckLibraryDeleteConfirmation;
+    private bool _deckNameEditing;
+    private string _deckNameText = "";
     private string _creationName = "Player";
     private int _creationPresetIndex = 2;
     private int _creationPlaystyleIndex;
@@ -46,6 +64,7 @@ public sealed partial class DragonCardsGame
     private int _cardDetailScrollOffset;
     private BoosterOpening? _lastBoosterOpening;
     private MatchReward? _lastMatchReward;
+    private IReadOnlyList<QuestReward> _lastQuestRewards = [];
     private BattleSpoilsReward? _lastBattleSpoils;
     private bool _pendingResultScreen;
     private bool _matchRewardApplied;
@@ -64,30 +83,41 @@ public sealed partial class DragonCardsGame
     private int _networkSequence;
     private bool _applyingRemoteCommand;
 
-    private static string ProfileFilePath =>
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DragonCards", "profile.json");
+    private static string ProfileDataDirectory =>
+        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "DragonCards");
 
     private void InitializeProgressionState()
     {
-        _profile = File.Exists(ProfileFilePath) ? PlayerProfileSerializer.Load(ProfileFilePath) : null;
-        if (_profile is null)
+        var sqliteDatabasePath = Path.Combine(ProfileDataDirectory, SqliteProfileRepository.DatabaseFileName);
+        _profileRepository = File.Exists(sqliteDatabasePath)
+            ? new SqliteProfileRepository(ProfileDataDirectory)
+            : new LocalProfileRepository(ProfileDataDirectory);
+        if (!_profileRepository.Initialize(out var migrated, out var error))
         {
-            _screen = Screen.PlayerCreation;
-            _deckBuilder = new DeckBuilderState(_data, StarterDecks().First());
-            _status = "Create your player profile.";
+            _profileRepositoryNotice = error ?? "Local profiles could not be opened.";
+            _deckBuilder = CreateDeckBuilderState(StarterDecks().First());
+            _screen = Screen.ProfilePicker;
+            _status = _profileRepositoryNotice;
             return;
         }
 
-        var startingDeck = _data.DecksById.TryGetValue(_profile.ActiveDeckId, out var deck)
-            ? deck
-            : StarterDecks().FirstOrDefault(item => item.Id.Equals(_profile.SelectedStarterDeckId, StringComparison.OrdinalIgnoreCase)) ?? StarterDecks().First();
-        _deckBuilder = new DeckBuilderState(_data, startingDeck);
-        _status = $"Welcome back, {_profile.PlayerName}.";
+        _deckBuilder = CreateDeckBuilderState(StarterDecks().First());
+        _profilePickerFocus = Math.Max(0, _profileRepository.Profiles.ToList().FindIndex(summary =>
+            summary.Id.Equals(_profileRepository.LastActiveProfileId, StringComparison.OrdinalIgnoreCase)));
+        _profileRepositoryNotice = migrated
+            ? "Your 0.1.2 save was safely moved into a local profile."
+            : _profileRepository.StorageKind == ProfileStorageKind.Sqlite
+                ? _profileRepository.Errors.FirstOrDefault()?.Message ?? "Choose a local SQLite profile to continue."
+                : _profileRepository.Errors.FirstOrDefault()?.Message ?? "Choose a local profile to continue.";
+        _screen = Screen.ProfilePicker;
+        _status = _profileRepositoryNotice;
     }
 
     private void HandleProgressionUpdate()
     {
         HandlePlayerCreationTextInput();
+        HandleProfileRenameTextInput();
+        HandleDeckNameTextInput();
         HandleJoinInviteTextInput();
         UpdateNetworkTasks();
     }
@@ -112,6 +142,13 @@ public sealed partial class DragonCardsGame
 
     private GameRulesConfig CurrentRules() =>
         (_profile?.DefaultRules ?? GameRulesConfig.ForPreset(GameRulesPreset.Standard)).Normalize();
+
+    private DeckBuilderState CreateDeckBuilderState(DeckDefinition deck)
+    {
+        var state = new DeckBuilderState(_data, deck);
+        state.ConfigureCollection(_profile, CurrentRules().IsSandbox);
+        return state;
+    }
 
     private DeckDefinition CurrentDeck() => _deckBuilder.CreateDeck();
 
@@ -140,13 +177,50 @@ public sealed partial class DragonCardsGame
     private bool CanAddCardToDeck(CardDefinition card, DeckDefinition deck)
     {
         var mode = _data.GameModesById["dragon-duel"];
-        if (deck.Count >= mode.DeckRules.DeckSize || _deckBuilder.CardCount(card.Id) >= mode.DeckRules.MaxCopies)
+        if (deck.Count >= mode.DeckRules.DeckSize ||
+            (!BasicEnergy.IsBasicEnergyCard(card) && _deckBuilder.CardCount(card.Id) >= mode.DeckRules.MaxCopies))
         {
             return false;
         }
 
         var rules = CurrentRules();
         return rules.UnlimitedDeckBuilder || rules.AllUnlocks || _profile is null || _deckBuilder.CardCount(card.Id) < PlayerCollection.CountOwned(_profile, card.Id);
+    }
+
+    private void ExportCurrentDeckCode(DeckDefinition deck)
+    {
+        var code = DeckCode.Export(deck);
+        _status = DesktopClipboard.TrySetText(code, out var error)
+            ? "DCD1 deck code copied to the clipboard."
+            : error;
+    }
+
+    private void ImportDeckCodeFromClipboard()
+    {
+        if (!DesktopClipboard.TryGetText(out var code, out var clipboardError))
+        {
+            _status = clipboardError;
+            return;
+        }
+
+        if (!DeckCode.TryImport(code, out var imported, out var decodeError) || imported is null)
+        {
+            _status = decodeError;
+            return;
+        }
+
+        var legalityIssues = GameDataValidator.ValidateDeck(imported, _data);
+        if (legalityIssues.Count > 0)
+        {
+            _status = $"Deck code rejected: {legalityIssues[0].Message}";
+            return;
+        }
+
+        var ownershipIssues = ValidateCurrentDeckOwnership(imported);
+        _deckBuilder.ReplaceWith(imported with { Id = $"deck-{Guid.NewGuid():N}" });
+        _status = ownershipIssues.Count == 0
+            ? $"Imported legal deck '{imported.Name}'. Save it to keep it."
+            : $"Imported legal deck preview: {ownershipIssues.Count} owned-copy issue(s). No cards were granted.";
     }
 
     private string DeckBuilderModeLabel()
@@ -159,6 +233,11 @@ public sealed partial class DragonCardsGame
 
     private string OwnedSummary(CardDefinition card)
     {
+        if (BasicEnergy.IsBasicEnergyCard(card))
+        {
+            return $"Always available  In deck {_deckBuilder.CardCount(card.Id)}";
+        }
+
         var rules = CurrentRules();
         if (rules.UnlimitedDeckBuilder || rules.AllUnlocks || _profile is null)
         {
@@ -172,6 +251,8 @@ public sealed partial class DragonCardsGame
     {
         var text = CurrentRules().UnlimitedDeckBuilder || CurrentRules().AllUnlocks || _profile is null
             ? "All"
+            : BasicEnergy.IsBasicEnergyCard(card)
+                ? $"{_deckBuilder.CardCount(card.Id)}/Unlimited"
             : $"{_deckBuilder.CardCount(card.Id)}/{PlayerCollection.CountOwned(_profile, card.Id)}";
         DrawFittedCenteredText(text, new Rectangle(rect.X + 6, rect.Bottom + 4, rect.Width - 12, 18), new Color(225, 233, 242), 0.42f, 0.28f);
     }
@@ -269,6 +350,473 @@ public sealed partial class DragonCardsGame
         {
             CreateProfileFromSelection();
         }
+    }
+
+    private void DrawProfilePicker()
+    {
+        DrawText("Profiles", new Vector2(54, 108), Color.White, 1.2f);
+        DrawText("Choose a local player profile. Progression, tutorials, inventory, rules, and decks stay on this device.", new Vector2(56, 146), new Color(196, 207, 220), 0.66f);
+
+        var profiles = _profileRepository?.Profiles ?? [];
+        _profilePickerFocus = Math.Clamp(_profilePickerFocus, 0, profiles.Count);
+        const int visibleRows = 6;
+        _profilePickerScrollOffset = Math.Clamp(_profilePickerScrollOffset, 0, Math.Max(0, profiles.Count - visibleRows));
+        if (_profilePickerFocus < _profilePickerScrollOffset)
+        {
+            _profilePickerScrollOffset = _profilePickerFocus;
+        }
+        else if (_profilePickerFocus < profiles.Count && _profilePickerFocus >= _profilePickerScrollOffset + visibleRows)
+        {
+            _profilePickerScrollOffset = _profilePickerFocus - visibleRows + 1;
+        }
+
+        var listPanel = new Rectangle(54, 198, 710, 560);
+        DrawPanel(listPanel, new Color(31, 37, 46), border: new Color(81, 96, 116));
+        DrawText("Local Profiles", new Vector2(listPanel.X + 26, listPanel.Y + 22), Color.White, 0.88f);
+        if (profiles.Count == 0)
+        {
+            DrawText("No local profiles yet. Create one to begin a separate Dragon Cards journey on this device.", new Rectangle(listPanel.X + 28, listPanel.Y + 86, listPanel.Width - 56, 72), new Color(205, 214, 225), 0.66f);
+        }
+
+        for (var row = 0; row < visibleRows && _profilePickerScrollOffset + row < profiles.Count; row++)
+        {
+            var index = _profilePickerScrollOffset + row;
+            var summary = profiles[index];
+            var rect = new Rectangle(listPanel.X + 24, listPanel.Y + 66 + row * 72, listPanel.Width - 48, 60);
+            var selected = index == _profilePickerFocus;
+            if (Button(rect, summary.DisplayName, selected: selected, focused: _usingController && selected))
+            {
+                _profilePickerFocus = index;
+                SelectProfile(summary.Id);
+            }
+
+            DrawText($"Last played {FormatProfileTime(summary.LastPlayedUtc)}", new Vector2(rect.X + 18, rect.Y + 35), new Color(187, 199, 214), 0.46f);
+        }
+
+        if (profiles.Count > visibleRows)
+        {
+            var maxOffset = Math.Max(1, profiles.Count - visibleRows);
+            var track = new Rectangle(listPanel.Right - 18, listPanel.Y + 68, 8, 416);
+            Fill(track, new Color(18, 23, 30));
+            var thumbHeight = Math.Max(28, track.Height * visibleRows / profiles.Count);
+            var thumbY = track.Y + (track.Height - thumbHeight) * _profilePickerScrollOffset / maxOffset;
+            Fill(new Rectangle(track.X, thumbY, track.Width, thumbHeight), UiTheme.Focus);
+        }
+
+        var createSelected = _profilePickerFocus == profiles.Count;
+        if (Button(new Rectangle(listPanel.X + 24, listPanel.Bottom - 58, 230, 38), "Create Profile", _profileRepository?.IsInitialized == true, focused: _usingController && createSelected))
+        {
+            BeginProfileCreation();
+        }
+        if (Button(new Rectangle(listPanel.Right - 174, listPanel.Bottom - 58, 150, 38), "Exit", focused: false))
+        {
+            try { Exit(); }
+            catch (PlatformNotSupportedException) { }
+        }
+
+        var detailPanel = new Rectangle(792, 198, 752, 560);
+        DrawPanel(detailPanel, new Color(34, 41, 51), border: new Color(84, 99, 119));
+        if (_profilePickerFocus < profiles.Count && TryProfilePreview(profiles[_profilePickerFocus], out var profile))
+        {
+            var summary = profiles[_profilePickerFocus];
+            DrawText(profile.PlayerName, new Vector2(detailPanel.X + 32, detailPanel.Y + 30), Color.White, 1.04f);
+            DrawText($"Level {profile.Level}   {profile.Coins} Coins", new Vector2(detailPanel.X + 32, detailPanel.Y + 74), new Color(244, 230, 158), 0.7f);
+            var starterName = _data.DecksById.TryGetValue(profile.SelectedStarterDeckId, out var starter) ? starter.Name : "No starter selected";
+            DrawText($"Starter: {starterName}", new Vector2(detailPanel.X + 32, detailPanel.Y + 110), new Color(205, 214, 225), 0.62f);
+            DrawText($"Last played: {FormatProfileTime(summary.LastPlayedUtc)}", new Vector2(detailPanel.X + 32, detailPanel.Y + 144), new Color(205, 214, 225), 0.58f);
+            DrawText("Profiles are local only. Switching is unavailable while a match, pack opening, or active lobby is in progress.", new Rectangle(detailPanel.X + 32, detailPanel.Y + 190, detailPanel.Width - 64, 50), new Color(148, 224, 164), 0.56f);
+
+            if (_profileRenameActive)
+            {
+                DrawText("Rename", new Vector2(detailPanel.X + 32, detailPanel.Y + 280), Color.White, 0.72f);
+                var nameBox = new Rectangle(detailPanel.X + 32, detailPanel.Y + 316, 386, 46);
+                Fill(nameBox, new Color(20, 25, 32));
+                Border(nameBox, UiTheme.Focus, 2);
+                DrawText(_profileRenameText, new Vector2(nameBox.X + 14, nameBox.Y + 12), Color.White, 0.68f);
+                if (Button(new Rectangle(detailPanel.X + 32, detailPanel.Y + 386, 142, 42), "Save Rename", focused: _usingController))
+                {
+                    RenameSelectedProfile();
+                }
+                if (Button(new Rectangle(detailPanel.X + 190, detailPanel.Y + 386, 116, 42), "Cancel"))
+                {
+                    _profileRenameActive = false;
+                }
+            }
+            else
+            {
+                if (Button(new Rectangle(detailPanel.X + 32, detailPanel.Bottom - 76, 168, 44), "Select", focused: _usingController))
+                {
+                    SelectProfile(summary.Id);
+                }
+                if (Button(new Rectangle(detailPanel.X + 218, detailPanel.Bottom - 76, 142, 44), "Rename"))
+                {
+                    _profileRenameActive = true;
+                    _profileRenameText = profile.PlayerName;
+                }
+                if (Button(new Rectangle(detailPanel.X + 378, detailPanel.Bottom - 76, 142, 44), "Delete"))
+                {
+                    _profileDeleteConfirmation = true;
+                }
+            }
+        }
+        else
+        {
+            DrawText("Create a Profile", new Vector2(detailPanel.X + 32, detailPanel.Y + 30), Color.White, 1.04f);
+            DrawText("Each profile keeps its own progress, collection, tutorial completion, rules, and named decks. Device display, audio, and accessibility options stay shared.", new Rectangle(detailPanel.X + 32, detailPanel.Y + 84, detailPanel.Width - 64, 94), new Color(205, 214, 225), 0.66f);
+            if (Button(new Rectangle(detailPanel.X + 32, detailPanel.Y + 214, 206, 46), "Create Profile", _profileRepository?.IsInitialized == true, focused: _usingController && createSelected))
+            {
+                BeginProfileCreation();
+            }
+        }
+
+        if (!string.IsNullOrWhiteSpace(_profileRepositoryNotice))
+        {
+            DrawText(_profileRepositoryNotice, new Rectangle(56, 778, 1440, 36), _profileRepositoryNotice.Contains("could not", StringComparison.OrdinalIgnoreCase) || _profileRepositoryNotice.Contains("recovery", StringComparison.OrdinalIgnoreCase) ? new Color(255, 190, 120) : new Color(148, 224, 164), 0.54f);
+        }
+
+        if (_profileDeleteConfirmation && _profilePickerFocus < profiles.Count)
+        {
+            DrawProfileDeleteConfirmation(profiles[_profilePickerFocus]);
+        }
+    }
+
+    private void DrawProfileDeleteConfirmation(LocalProfileSummary summary)
+    {
+        _drawingModal = true;
+        try
+        {
+            Fill(new Rectangle(0, 0, VirtualWidth, VirtualHeight), new Color(0, 0, 0, 178));
+            var panel = new Rectangle(474, 290, 652, 310);
+            DrawPanel(panel, UiTheme.PanelRaised, border: new Color(214, 102, 92));
+            DrawText("Delete Profile?", new Vector2(panel.X + 32, panel.Y + 30), Color.White, 0.96f);
+            DrawText($"Delete {summary.DisplayName} permanently? This removes its progression, tutorials, inventory, rules, and saved decks from this device.", new Rectangle(panel.X + 32, panel.Y + 82, panel.Width - 64, 86), new Color(224, 208, 205), 0.66f);
+            if (Button(new Rectangle(panel.X + 32, panel.Bottom - 68, 168, 42), "Delete Permanently", focused: _usingController))
+            {
+                DeleteSelectedProfile();
+            }
+            if (Button(new Rectangle(panel.Right - 160, panel.Bottom - 68, 128, 42), "Cancel"))
+            {
+                _profileDeleteConfirmation = false;
+            }
+        }
+        finally
+        {
+            _drawingModal = false;
+        }
+    }
+
+    private bool TryProfilePreview(LocalProfileSummary summary, out PlayerProfile profile)
+    {
+        profile = new PlayerProfile();
+        string? error = null;
+        if (_profileRepository is null || !_profileRepository.TryLoadProfile(summary.Id, out var loaded, out error) || loaded is null)
+        {
+            _profileRepositoryNotice = error ?? "The selected profile could not be loaded.";
+            return false;
+        }
+
+        profile = loaded;
+        return true;
+    }
+
+    private static string FormatProfileTime(DateTimeOffset value)
+    {
+        if (value == default)
+        {
+            return "never";
+        }
+
+        var local = value.ToLocalTime();
+        return local.Date == DateTime.Today ? local.ToString("h:mm tt") : local.ToString("MMM d, yyyy");
+    }
+
+    private IReadOnlyList<DeckLibraryEntry> DeckLibraryEntries()
+    {
+        var entries = StarterDecks().Select(deck => new DeckLibraryEntry(deck, true)).ToList();
+        if (_profileRepository is null || string.IsNullOrWhiteSpace(_activeProfileId))
+        {
+            return entries;
+        }
+
+        var customDecks = _profileRepository.LoadDecks(_activeProfileId, out var errors);
+        if (errors.Count > 0)
+        {
+            _status = errors[0].Message;
+        }
+
+        entries.AddRange(customDecks.Select(deck => new DeckLibraryEntry(deck, false)));
+        return entries;
+    }
+
+    private void DrawDeckLibraryOverlay()
+    {
+        if (!_deckLibraryOpen)
+        {
+            return;
+        }
+
+        _drawingModal = true;
+        try
+        {
+            Fill(new Rectangle(0, 0, VirtualWidth, VirtualHeight), new Color(0, 0, 0, 178));
+            var panel = new Rectangle(180, 102, 1240, 698);
+            DrawPanel(panel, UiTheme.PanelRaised, border: UiTheme.BorderStrong);
+            DrawUiText("Deck Library", new Vector2(panel.X + 30, panel.Y + 24), Color.White, 0.96f);
+            DrawUiText("Starter decks are read-only. Custom decks belong only to the selected local profile.", new Vector2(panel.X + 32, panel.Y + 62), UiTheme.TextMuted, 0.52f);
+
+            var entries = DeckLibraryEntries();
+            _deckLibraryFocus = Math.Clamp(_deckLibraryFocus, 0, Math.Max(0, entries.Count - 1));
+            const int visibleRows = 7;
+            _deckLibraryScrollOffset = Math.Clamp(_deckLibraryScrollOffset, 0, Math.Max(0, entries.Count - visibleRows));
+            if (_deckLibraryFocus < _deckLibraryScrollOffset)
+            {
+                _deckLibraryScrollOffset = _deckLibraryFocus;
+            }
+            else if (_deckLibraryFocus >= _deckLibraryScrollOffset + visibleRows)
+            {
+                _deckLibraryScrollOffset = _deckLibraryFocus - visibleRows + 1;
+            }
+
+            var list = new Rectangle(panel.X + 30, panel.Y + 106, 564, 468);
+            DrawPanel(list, UiTheme.Panel, border: UiTheme.Border);
+            for (var row = 0; row < visibleRows && _deckLibraryScrollOffset + row < entries.Count; row++)
+            {
+                var index = _deckLibraryScrollOffset + row;
+                var entry = entries[index];
+                var rect = new Rectangle(list.X + 16, list.Y + 16 + row * 62, list.Width - 32, 52);
+                var selected = index == _deckLibraryFocus;
+                if (Button(rect, entry.Deck.Name, selected: selected, focused: _usingController && selected))
+                {
+                    _deckLibraryFocus = index;
+                    LoadDeckLibraryEntry(entry);
+                }
+                DrawUiText(entry.IsStarter ? "Starter deck - read-only" : $"Custom - {entry.Deck.Count} cards", new Vector2(rect.X + 16, rect.Y + 31), entry.IsStarter ? UiTheme.TextMuted : new Color(148, 224, 164), 0.42f);
+            }
+
+            if (entries.Count > visibleRows)
+            {
+                var maxOffset = Math.Max(1, entries.Count - visibleRows);
+                var track = new Rectangle(list.Right - 12, list.Y + 14, 6, list.Height - 28);
+                Fill(track, new Color(18, 23, 30));
+                var thumbHeight = Math.Max(26, track.Height * visibleRows / entries.Count);
+                var thumbY = track.Y + (track.Height - thumbHeight) * _deckLibraryScrollOffset / maxOffset;
+                Fill(new Rectangle(track.X, thumbY, track.Width, thumbHeight), UiTheme.Focus);
+            }
+
+            if (entries.Count == 0)
+            {
+                DrawUiText("No decks are available.", new Vector2(list.X + 20, list.Y + 24), UiTheme.TextMuted, 0.56f);
+            }
+
+            var selectedEntry = entries.Count == 0 ? null : entries[_deckLibraryFocus];
+            var detail = new Rectangle(panel.X + 622, panel.Y + 106, 588, 468);
+            DrawPanel(detail, UiTheme.Panel, border: UiTheme.Border);
+            if (selectedEntry is not null)
+            {
+                DrawUiText(selectedEntry.Deck.Name, new Vector2(detail.X + 24, detail.Y + 22), Color.White, 0.82f);
+                DrawUiText(selectedEntry.IsStarter ? "Built-in starter deck" : "Profile-owned custom deck", new Vector2(detail.X + 24, detail.Y + 58), selectedEntry.IsStarter ? UiTheme.TextMuted : new Color(148, 224, 164), 0.5f);
+                DrawUiText($"{selectedEntry.Deck.Count} cards - {selectedEntry.Deck.ModeId}", new Vector2(detail.X + 24, detail.Y + 88), UiTheme.Text, 0.52f);
+                DrawText(string.Join("\n", selectedEntry.Deck.Cards.OrderBy(card => card.Key, StringComparer.OrdinalIgnoreCase).Take(11).Select(card => $"{card.Value}x {_data.CardsById.GetValueOrDefault(card.Key)?.Name ?? card.Key}")), new Rectangle(detail.X + 24, detail.Y + 132, detail.Width - 48, 202), UiTheme.Text, 0.5f);
+
+                if (_deckNameEditing)
+                {
+                    DrawUiText("Deck name", new Vector2(detail.X + 24, detail.Bottom - 120), Color.White, 0.58f);
+                    var nameBox = new Rectangle(detail.X + 24, detail.Bottom - 92, 322, 38);
+                    Fill(nameBox, new Color(20, 25, 32));
+                    Border(nameBox, UiTheme.Focus, 2);
+                    DrawUiText(_deckNameText, new Vector2(nameBox.X + 10, nameBox.Y + 9), Color.White, 0.54f);
+                    if (Button(new Rectangle(detail.Right - 192, detail.Bottom - 92, 78, 38), "Save", focused: _usingController))
+                    {
+                        RenameLibraryDeck();
+                    }
+                    if (Button(new Rectangle(detail.Right - 104, detail.Bottom - 92, 80, 38), "Cancel"))
+                    {
+                        _deckNameEditing = false;
+                    }
+                }
+                else
+                {
+                    if (Button(new Rectangle(detail.X + 24, detail.Bottom - 62, 110, 38), "Load", focused: _usingController))
+                    {
+                        LoadDeckLibraryEntry(selectedEntry);
+                    }
+                    if (Button(new Rectangle(detail.X + 146, detail.Bottom - 62, 116, 38), "Duplicate"))
+                    {
+                        DuplicateLibraryDeck(selectedEntry.Deck);
+                    }
+                    if (!selectedEntry.IsStarter && Button(new Rectangle(detail.X + 274, detail.Bottom - 62, 100, 38), "Rename"))
+                    {
+                        _deckNameText = selectedEntry.Deck.Name;
+                        _deckNameEditing = true;
+                    }
+                    if (!selectedEntry.IsStarter && Button(new Rectangle(detail.X + 386, detail.Bottom - 62, 100, 38), "Delete"))
+                    {
+                        _deckLibraryDeleteConfirmation = true;
+                    }
+                }
+            }
+
+            if (Button(new Rectangle(panel.X + 30, panel.Bottom - 64, 146, 38), "New Deck"))
+            {
+                DuplicateLibraryDeck(_deckBuilder.CreateDeck());
+            }
+            if (Button(new Rectangle(panel.Right - 142, panel.Bottom - 64, 112, 38), "Close"))
+            {
+                _deckLibraryOpen = false;
+                _deckNameEditing = false;
+            }
+
+            if (_deckLibraryDeleteConfirmation && selectedEntry is not null)
+            {
+                DrawDeckDeleteConfirmation(selectedEntry);
+            }
+        }
+        finally
+        {
+            _drawingModal = false;
+        }
+    }
+
+    private void DrawDeckDeleteConfirmation(DeckLibraryEntry entry)
+    {
+        Fill(new Rectangle(0, 0, VirtualWidth, VirtualHeight), new Color(0, 0, 0, 122));
+        var panel = new Rectangle(510, 326, 580, 248);
+        DrawPanel(panel, UiTheme.PanelRaised, border: UiTheme.Danger);
+        DrawUiText("Delete Deck?", new Vector2(panel.X + 28, panel.Y + 24), Color.White, 0.88f);
+        DrawUiText($"Delete {entry.Deck.Name} permanently from this profile?", new Rectangle(panel.X + 28, panel.Y + 70, panel.Width - 56, 54), UiTheme.Text, 0.58f);
+        if (Button(new Rectangle(panel.X + 28, panel.Bottom - 58, 166, 38), "Delete Deck", focused: _usingController))
+        {
+            DeleteLibraryDeck(entry.Deck);
+        }
+        if (Button(new Rectangle(panel.Right - 130, panel.Bottom - 58, 102, 38), "Cancel"))
+        {
+            _deckLibraryDeleteConfirmation = false;
+        }
+    }
+
+    private void LoadDeckLibraryEntry(DeckLibraryEntry entry)
+    {
+        _deckBuilder = CreateDeckBuilderState(entry.Deck);
+        if (_profile is not null)
+        {
+            _profile.ActiveDeckId = entry.Deck.Id;
+            SaveProfile();
+        }
+
+        _deckLibraryOpen = false;
+        _deckNameEditing = false;
+        _status = $"Loaded {entry.Deck.Name}.";
+    }
+
+    private void DuplicateLibraryDeck(DeckDefinition source)
+    {
+        if (_profileRepository is null || string.IsNullOrWhiteSpace(_activeProfileId))
+        {
+            _status = "Select a local profile before creating a deck.";
+            return;
+        }
+
+        var deck = source with
+        {
+            Id = $"deck-{Guid.NewGuid():N}",
+            Name = UniqueDeckName($"{source.Name} Copy"),
+            Cards = source.Cards.ToDictionary(card => card.Key, card => card.Value, StringComparer.OrdinalIgnoreCase)
+        };
+        if (!_profileRepository.TrySaveDeck(_activeProfileId, deck, out var error))
+        {
+            _status = error ?? "Could not create the deck.";
+            return;
+        }
+
+        _deckBuilder = CreateDeckBuilderState(deck);
+        _profile!.ActiveDeckId = deck.Id;
+        SaveProfile();
+        _deckLibraryOpen = false;
+        _deckNameEditing = false;
+        _status = $"Created {deck.Name}.";
+    }
+
+    private void RenameLibraryDeck()
+    {
+        var entries = DeckLibraryEntries();
+        if (_profileRepository is null || string.IsNullOrWhiteSpace(_activeProfileId) || _deckLibraryFocus >= entries.Count || entries[_deckLibraryFocus].IsStarter)
+        {
+            return;
+        }
+
+        var entry = entries[_deckLibraryFocus];
+        var name = _deckNameText.Trim();
+        if (name.Length is < 1 or > 32)
+        {
+            _status = "Deck names must be 1-32 characters.";
+            return;
+        }
+        if (DeckLibraryEntries().Any(other => !other.Deck.Id.Equals(entry.Deck.Id, StringComparison.OrdinalIgnoreCase) && other.Deck.Name.Equals(name, StringComparison.OrdinalIgnoreCase)))
+        {
+            _status = "Deck names must be unique in this profile.";
+            return;
+        }
+
+        var renamed = entry.Deck with { Name = name };
+        if (!_profileRepository.TrySaveDeck(_activeProfileId, renamed, out var error))
+        {
+            _status = error ?? "Could not rename the deck.";
+            return;
+        }
+
+        if (_deckBuilder.DeckId.Equals(renamed.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            _deckBuilder.SetIdentity(renamed.Id, renamed.Name, renamed.ModeId);
+        }
+        _deckNameEditing = false;
+        _status = $"Renamed deck to {renamed.Name}.";
+    }
+
+    private void DeleteLibraryDeck(DeckDefinition deck)
+    {
+        if (_profileRepository is null || string.IsNullOrWhiteSpace(_activeProfileId))
+        {
+            return;
+        }
+
+        if (!_profileRepository.TryDeleteDeck(_activeProfileId, deck.Id, out var error))
+        {
+            _status = error ?? "Could not delete the deck.";
+            return;
+        }
+
+        if (_profile is not null && _profile.ActiveDeckId.Equals(deck.Id, StringComparison.OrdinalIgnoreCase))
+        {
+            var fallback = StarterDecks().FirstOrDefault(item => item.Id.Equals(_profile.SelectedStarterDeckId, StringComparison.OrdinalIgnoreCase)) ?? StarterDecks().First();
+            _profile.ActiveDeckId = fallback.Id;
+            _deckBuilder = CreateDeckBuilderState(fallback);
+            SaveProfile();
+        }
+
+        _deckLibraryFocus = Math.Max(0, _deckLibraryFocus - 1);
+        _deckLibraryDeleteConfirmation = false;
+        _status = $"Deleted {deck.Name}.";
+    }
+
+    private string UniqueDeckName(string baseName)
+    {
+        var existing = DeckLibraryEntries().Select(entry => entry.Deck.Name).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var candidate = string.IsNullOrWhiteSpace(baseName) ? "New Deck" : baseName.Trim();
+        if (!existing.Contains(candidate))
+        {
+            return candidate;
+        }
+
+        for (var index = 2; index < 1000; index++)
+        {
+            var numbered = $"{candidate} {index}";
+            if (!existing.Contains(numbered))
+            {
+                return numbered;
+            }
+        }
+
+        return $"Deck {Guid.NewGuid():N}";
     }
 
     private void DrawStore()
@@ -401,7 +949,14 @@ public sealed partial class DragonCardsGame
             DrawProfileSummary(new Rectangle(panel.Right - 430, panel.Y + 36, 360, 214));
         }
 
-        DrawText(ResultNextStepText(), new Rectangle(panel.Right - 430, panel.Y + 286, 360, 96), new Color(205, 214, 225), 0.6f);
+        var questSummary = _lastQuestRewards.Count == 0
+            ? "Quest progress updated for this eligible match."
+            : string.Join("  ", _lastQuestRewards.Select(reward =>
+                $"Quest complete: +{reward.Coins} Coins{(reward.StandardPacks > 0 ? $" +{reward.StandardPacks} Pack" : "")}"));
+        DrawFittedText(questSummary, new Vector2(panel.Right - 430, panel.Y + 266), 360,
+            _lastQuestRewards.Count > 0 ? new Color(148, 224, 164) : new Color(205, 214, 225), 0.54f, 0.38f);
+
+        DrawText(ResultNextStepText(), new Rectangle(panel.Right - 430, panel.Y + 320, 360, 96), new Color(205, 214, 225), 0.6f);
 
         var y = 786;
         if (Button(new Rectangle(54, y, 150, 42), "Continue",
@@ -426,6 +981,49 @@ public sealed partial class DragonCardsGame
             focused: _usingController && _resultFocus == 3))
         {
             ActivateResultAction(3);
+        }
+    }
+
+    private void DrawQuestBoard()
+    {
+        DrawText("Quest Board", new Vector2(54, 108), Color.White, 1.2f);
+        DrawText("Complete eligible matches in Dragon Duel or Starter Clash. Rewards are applied automatically.",
+            new Rectangle(56, 146, 1080, 34), UiTheme.TextMuted, 0.62f);
+
+        if (_profile is null)
+        {
+            DrawText("Create or select a profile to track quests.", new Vector2(56, 218), UiTheme.TextMuted, 0.72f);
+            return;
+        }
+
+        var refresh = QuestService.Refresh(_profile, DateTimeOffset.UtcNow);
+        if (refresh.StateChanged)
+        {
+            SaveProfile();
+        }
+
+        var panel = new Rectangle(54, 206, 1490, 510);
+        DrawPanel(panel, new Color(31, 37, 46), border: new Color(81, 96, 116));
+        for (var i = 0; i < QuestService.Definitions.Count; i++)
+        {
+            var quest = QuestService.Definitions[i];
+            var entry = QuestService.EntryFor(_profile, quest);
+            var row = new Rectangle(panel.X + 28, panel.Y + 26 + i * 92, panel.Width - 56, 72);
+            Fill(row, entry.Completed ? new Color(40, 68, 57) : UiTheme.PanelInset);
+            Border(row, entry.Completed ? new Color(148, 224, 164) : UiTheme.BorderStrong, 1);
+            DrawText(quest.Cadence == QuestCadence.Daily ? "DAILY" : "WEEKLY", new Vector2(row.X + 18, row.Y + 14), UiTheme.DragonGold, 0.54f);
+            DrawText(quest.Title, new Vector2(row.X + 130, row.Y + 12), Color.White, 0.72f);
+            DrawText(entry.Completed ? "Complete" : $"{entry.Progress}/{quest.Target}", new Vector2(row.X + 130, row.Y + 42),
+                entry.Completed ? new Color(148, 224, 164) : new Color(205, 214, 225), 0.56f);
+            var rewardText = $"+{quest.Coins} Coins" + (quest.StandardPacks > 0 ? $"  +{quest.StandardPacks} Standard Pack" : "");
+            DrawFittedText(rewardText, new Vector2(row.Right - 320, row.Y + 24), 284, UiTheme.DragonGold, 0.58f, 0.42f);
+        }
+
+        DrawText($"Daily reset: {QuestService.DailyPeriod(DateTimeOffset.UtcNow)} UTC - Weekly reset: {QuestService.WeeklyPeriod(DateTimeOffset.UtcNow)} UTC",
+            new Vector2(panel.X + 28, panel.Bottom + 22), UiTheme.TextMuted, 0.54f);
+        if (Button(new Rectangle(54, 786, 150, 42), "Back", focused: _usingController))
+        {
+            _screen = Screen.MainMenu;
         }
     }
 
@@ -672,6 +1270,92 @@ public sealed partial class DragonCardsGame
         }
     }
 
+    private void HandleProfilePickerController()
+    {
+        var profiles = _profileRepository?.Profiles ?? [];
+        if (_profileDeleteConfirmation)
+        {
+            if (Pressed(Buttons.A))
+            {
+                DeleteSelectedProfile();
+            }
+            else if (Pressed(Buttons.B))
+            {
+                _profileDeleteConfirmation = false;
+            }
+
+            return;
+        }
+
+        if (_profileRenameActive)
+        {
+            if (Pressed(Buttons.A))
+            {
+                RenameSelectedProfile();
+            }
+            else if (Pressed(Buttons.B))
+            {
+                _profileRenameActive = false;
+            }
+
+            return;
+        }
+
+        if (DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out var vertical))
+        {
+            _profilePickerFocus = Math.Clamp(_profilePickerFocus + vertical, 0, profiles.Count);
+        }
+        else if (_uiActions.Triggered(UiAction.PagePrevious))
+        {
+            _profilePickerFocus = Math.Max(0, _profilePickerFocus - 6);
+        }
+        else if (_uiActions.Triggered(UiAction.PageNext))
+        {
+            _profilePickerFocus = Math.Min(profiles.Count, _profilePickerFocus + 6);
+        }
+        else if (_uiActions.Triggered(UiAction.MoveToStart))
+        {
+            _profilePickerFocus = 0;
+        }
+        else if (_uiActions.Triggered(UiAction.MoveToEnd))
+        {
+            _profilePickerFocus = profiles.Count;
+        }
+
+        if (Pressed(Buttons.X) || Pressed(Keys.R))
+        {
+            if (_profilePickerFocus < profiles.Count && TryProfilePreview(profiles[_profilePickerFocus], out var profile))
+            {
+                _profileRenameText = profile.PlayerName;
+                _profileRenameActive = true;
+            }
+
+            return;
+        }
+
+        if (Pressed(Buttons.Y) || Pressed(Keys.Delete))
+        {
+            if (_profilePickerFocus < profiles.Count)
+            {
+                _profileDeleteConfirmation = true;
+            }
+
+            return;
+        }
+
+        if (Pressed(Buttons.A))
+        {
+            if (_profilePickerFocus < profiles.Count)
+            {
+                SelectProfile(profiles[_profilePickerFocus].Id);
+            }
+            else
+            {
+                BeginProfileCreation();
+            }
+        }
+    }
+
     private void HandleStoreController()
     {
         var catalog = ShopCatalogService.CreateCatalog(_data);
@@ -839,6 +1523,88 @@ public sealed partial class DragonCardsGame
         }
     }
 
+    private void HandleProfileRenameTextInput()
+    {
+        if (_screen != Screen.ProfilePicker || !_profileRenameActive)
+        {
+            return;
+        }
+
+        if (Pressed(Keys.Back) && _profileRenameText.Length > 0)
+        {
+            _profileRenameText = _profileRenameText[..^1];
+            return;
+        }
+
+        if (Pressed(Keys.Space) && _profileRenameText.Length < 18)
+        {
+            _profileRenameText += " ";
+            return;
+        }
+
+        var shift = _keyboard.IsKeyDown(Keys.LeftShift) || _keyboard.IsKeyDown(Keys.RightShift);
+        foreach (var key in _keyboard.GetPressedKeys())
+        {
+            if (_previousKeyboard.IsKeyDown(key) || _profileRenameText.Length >= 18)
+            {
+                continue;
+            }
+
+            if (key is >= Keys.A and <= Keys.Z)
+            {
+                var character = (char)('a' + (key - Keys.A));
+                _profileRenameText += shift ? char.ToUpperInvariant(character) : character;
+            }
+            else if (key is >= Keys.D0 and <= Keys.D9)
+            {
+                _profileRenameText += (char)('0' + (key - Keys.D0));
+            }
+        }
+
+        _profileRenameText = _profileRenameText.TrimStart();
+    }
+
+    private void HandleDeckNameTextInput()
+    {
+        if (_screen != Screen.DeckBuilder || !_deckLibraryOpen || !_deckNameEditing)
+        {
+            return;
+        }
+
+        if (Pressed(Keys.Back) && _deckNameText.Length > 0)
+        {
+            _deckNameText = _deckNameText[..^1];
+            return;
+        }
+
+        if (Pressed(Keys.Space) && _deckNameText.Length < 32)
+        {
+            _deckNameText += " ";
+            return;
+        }
+
+        var shift = _keyboard.IsKeyDown(Keys.LeftShift) || _keyboard.IsKeyDown(Keys.RightShift);
+        foreach (var key in _keyboard.GetPressedKeys())
+        {
+            if (_previousKeyboard.IsKeyDown(key) || _deckNameText.Length >= 32)
+            {
+                continue;
+            }
+
+            if (key is >= Keys.A and <= Keys.Z)
+            {
+                var character = (char)('a' + (key - Keys.A));
+                _deckNameText += shift ? char.ToUpperInvariant(character) : character;
+            }
+            else if (key is >= Keys.D0 and <= Keys.D9)
+            {
+                _deckNameText += (char)('0' + (key - Keys.D0));
+            }
+        }
+
+        _deckNameText = _deckNameText.TrimStart();
+    }
+
     private void HandleJoinInviteTextInput()
     {
         if (!IsJoinInviteTextActive)
@@ -890,9 +1656,18 @@ public sealed partial class DragonCardsGame
     {
         var starter = StarterDecks()[Math.Clamp(_creationStarterIndex, 0, StarterDecks().Count - 1)];
         var rules = GameRulesConfig.ForPreset(RulesPresetOrder[_creationPresetIndex], PlaystyleOrder[_creationPlaystyleIndex]).Normalize();
-        _profile = ProgressionService.CreateProfile(string.IsNullOrWhiteSpace(_creationName) ? "Player" : _creationName, rules, starter, _data);
-        SaveProfile();
-        _deckBuilder = new DeckBuilderState(_data, starter);
+        var profile = ProgressionService.CreateProfile(_creationName.Trim(), rules, starter, _data);
+        string? error = null;
+        if (_profileRepository is null || !_profileRepository.TryCreateProfile(profile, DateTimeOffset.UtcNow, out var summary, out error) || summary is null)
+        {
+            _status = error ?? "Could not create the local profile.";
+            _profileRepositoryNotice = _status;
+            return;
+        }
+
+        _profile = profile;
+        _activeProfileId = summary.Id;
+        _deckBuilder = CreateDeckBuilderState(starter);
         _screen = Screen.MainMenu;
         _status = $"Welcome, {_profile.PlayerName}.";
     }
@@ -907,25 +1682,169 @@ public sealed partial class DragonCardsGame
         BoosterService.AddUnopenedPack(_profile, BoosterService.StandardBoosterId, 2);
         _profile.OwnedStarterDeckIds.Add("starter-ice");
         _profile.Normalize();
-        _deckBuilder = new DeckBuilderState(_data, starter);
+        _deckBuilder = CreateDeckBuilderState(starter);
     }
 
     private void BeginNewGame()
     {
-        _creationName = _profile?.PlayerName ?? "Player";
+        if (!CanSwitchProfiles())
+        {
+            _status = "Profiles cannot be switched during a match, pack opening, or active multiplayer lobby.";
+            return;
+        }
+
+        _profilePickerOpenedFromMainMenu = _screen == Screen.MainMenu;
+        _profileRenameActive = false;
+        _profileDeleteConfirmation = false;
+        _screen = Screen.ProfilePicker;
+        _status = "Choose a local profile.";
+    }
+
+    private void BeginProfileCreation()
+    {
+        if (_profileRepository?.IsInitialized != true)
+        {
+            _status = "Profile storage needs recovery before a new profile can be created. Existing files were left unchanged.";
+            return;
+        }
+
+        _creationName = "";
         _creationPresetIndex = 2;
         _creationPlaystyleIndex = 0;
         _creationStarterIndex = 0;
-        _profile = null;
         _screen = Screen.PlayerCreation;
-        _status = "New game started.";
+        _status = "Create a local profile.";
     }
 
     private void SaveProfile()
     {
-        if (_profile is not null)
+        if (_profile is not null && _profileRepository is not null && !string.IsNullOrWhiteSpace(_activeProfileId))
         {
-            PlayerProfileSerializer.Save(ProfileFilePath, _profile);
+            if (!_profileRepository.TrySaveProfile(_activeProfileId, _profile, DateTimeOffset.UtcNow, out var error))
+            {
+                _status = error ?? "Could not save the local profile.";
+                _profileRepositoryNotice = _status;
+            }
+        }
+    }
+
+    private bool CanSwitchProfiles() =>
+        _screen is not Screen.Match and not Screen.PackOpening &&
+        _directLobbyState is not DirectLobbyState.Hosting and not DirectLobbyState.Connected &&
+        _networkConnection is null;
+
+    private void SelectProfile(string profileId)
+    {
+        if (!CanSwitchProfiles())
+        {
+            _status = "Profiles cannot be switched during a match, pack opening, or active multiplayer lobby.";
+            return;
+        }
+
+        string? error = null;
+        if (_profileRepository is null || !_profileRepository.TryLoadProfile(profileId, out var profile, out error) || profile is null)
+        {
+            _status = error ?? "Could not load the local profile.";
+            _profileRepositoryNotice = _status;
+            return;
+        }
+
+        if (!_profileRepository.TrySelectProfile(profileId, DateTimeOffset.UtcNow, out error))
+        {
+            _status = error ?? "Could not select the local profile.";
+            _profileRepositoryNotice = _status;
+            return;
+        }
+
+        _profile = profile;
+        _activeProfileId = profileId;
+        _deckBuilder = CreateDeckBuilderState(ResolveProfileDeck(profileId, profile));
+        _profileRenameActive = false;
+        _profileDeleteConfirmation = false;
+        _screen = Screen.MainMenu;
+        _status = $"Welcome back, {_profile.PlayerName}.";
+    }
+
+    private DeckDefinition ResolveProfileDeck(string profileId, PlayerProfile profile)
+    {
+        if (_data.DecksById.TryGetValue(profile.ActiveDeckId, out var starterDeck))
+        {
+            return starterDeck;
+        }
+
+        if (_profileRepository is not null)
+        {
+            var decks = _profileRepository.LoadDecks(profileId, out var deckErrors);
+            if (deckErrors.Count > 0)
+            {
+                _profileRepositoryNotice = deckErrors[0].Message;
+            }
+
+            var activeDeck = decks.FirstOrDefault(deck => deck.Id.Equals(profile.ActiveDeckId, StringComparison.OrdinalIgnoreCase));
+            if (activeDeck is not null)
+            {
+                return activeDeck;
+            }
+        }
+
+        var fallback = StarterDecks().FirstOrDefault(deck => deck.Id.Equals(profile.SelectedStarterDeckId, StringComparison.OrdinalIgnoreCase)) ?? StarterDecks().First();
+        profile.ActiveDeckId = fallback.Id;
+        SaveProfile();
+        return fallback;
+    }
+
+    private void RenameSelectedProfile()
+    {
+        var profiles = _profileRepository?.Profiles ?? [];
+        if (_profileRepository is null || _profilePickerFocus >= profiles.Count)
+        {
+            return;
+        }
+
+        if (_profileRepository.TryRenameProfile(profiles[_profilePickerFocus].Id, _profileRenameText, DateTimeOffset.UtcNow, out var error))
+        {
+            _profileRenameActive = false;
+            _profileRepositoryNotice = "Profile renamed. LAN matches now use the new display name.";
+            _status = _profileRepositoryNotice;
+            if (_activeProfileId is not null && _activeProfileId.Equals(profiles[_profilePickerFocus].Id, StringComparison.OrdinalIgnoreCase) && _profile is not null)
+            {
+                _profile.PlayerName = _profileRenameText.Trim();
+            }
+        }
+        else
+        {
+            _profileRepositoryNotice = error ?? "Could not rename the profile.";
+            _status = _profileRepositoryNotice;
+        }
+    }
+
+    private void DeleteSelectedProfile()
+    {
+        var profiles = _profileRepository?.Profiles ?? [];
+        if (_profileRepository is null || _profilePickerFocus >= profiles.Count)
+        {
+            return;
+        }
+
+        var summary = profiles[_profilePickerFocus];
+        if (_profileRepository.TryDeleteProfile(summary.Id, out var error))
+        {
+            if (_activeProfileId?.Equals(summary.Id, StringComparison.OrdinalIgnoreCase) == true)
+            {
+                _profile = null;
+                _activeProfileId = null;
+            }
+
+            _profilePickerFocus = Math.Clamp(_profilePickerFocus, 0, _profileRepository.Profiles.Count);
+            _profileDeleteConfirmation = false;
+            _profileRepositoryNotice = $"{summary.DisplayName} was permanently deleted.";
+            _status = _profileRepositoryNotice;
+        }
+        else
+        {
+            _profileDeleteConfirmation = false;
+            _profileRepositoryNotice = error ?? "Could not delete the profile.";
+            _status = _profileRepositoryNotice;
         }
     }
 
@@ -1021,7 +1940,7 @@ public sealed partial class DragonCardsGame
         var rules = CurrentRules();
         if (rules.AllUnlocks || rules.UnlimitedDeckBuilder || PlayerCollection.HasStarterDeck(_profile, deck.Id))
         {
-            _deckBuilder = new DeckBuilderState(_data, deck);
+            _deckBuilder = CreateDeckBuilderState(deck);
             _profile.ActiveDeckId = deck.Id;
             SaveProfile();
             _status = $"{deck.Name} selected.";
@@ -1036,7 +1955,7 @@ public sealed partial class DragonCardsGame
 
         _profile.Coins -= ProgressionService.StarterDeckCost;
         PlayerCollection.GrantDeck(_profile, deck, _data, addStarterOwnership: true);
-        _deckBuilder = new DeckBuilderState(_data, deck);
+        _deckBuilder = CreateDeckBuilderState(deck);
         _profile.ActiveDeckId = deck.Id;
         SaveProfile();
         _status = $"{deck.Name} purchased.";
@@ -1057,6 +1976,7 @@ public sealed partial class DragonCardsGame
         _pendingResultScreen = false;
         _lastMatchReward = null;
         _lastBattleSpoils = null;
+        _lastQuestRewards = [];
         _networkSequence = 0;
         _matchTimelineEntries.Clear();
         if (matchKind == MatchKind.Online)
@@ -1098,6 +2018,19 @@ public sealed partial class DragonCardsGame
             if (opponentDeck is not null)
             {
                 _lastBattleSpoils = BattleSpoilsService.GrantVictorySpoils(_data, _profile, rewardRules, opponentDeck, _lastMatchWon);
+            }
+
+            if (_engine.State.Mode.ProgressionEligible && CurrentRules().IsProgressionSafe)
+            {
+                var questRewards = new List<QuestReward>();
+                var matchUpdate = QuestService.Record(_profile, DateTimeOffset.UtcNow, QuestMetric.EligibleMatches, 1, eligible: true);
+                questRewards.AddRange(matchUpdate.Rewards);
+                if (_lastMatchWon)
+                {
+                    questRewards.AddRange(QuestService.Record(_profile, DateTimeOffset.UtcNow, QuestMetric.EligibleWins, 1, eligible: true).Rewards);
+                }
+
+                _lastQuestRewards = _lastQuestRewards.Concat(questRewards).ToArray();
             }
 
             _matchRewardApplied = true;
@@ -1437,10 +2370,73 @@ public sealed partial class DragonCardsGame
         ApplyHumanResult(result);
         if (result.Success)
         {
+            RecordQuestProgress(kind, result);
             AdvanceTutorial(kind, payload);
         }
 
         SendOnlineCommand(kind, payload, result);
+    }
+
+    private void RecordQuestProgress(string kind, GameActionResult result)
+    {
+        if (_profile is null || _engine is null || !_engine.State.Mode.ProgressionEligible || !CurrentRules().IsProgressionSafe)
+        {
+            return;
+        }
+
+        var rewards = new List<QuestReward>();
+        var changed = false;
+        void Record(QuestMetric metric, int amount)
+        {
+            var update = QuestService.Record(_profile, DateTimeOffset.UtcNow, metric, amount, eligible: true);
+            changed |= update.StateChanged;
+            rewards.AddRange(update.Rewards);
+        }
+
+        if (kind == "play-card")
+        {
+            var played = result.Events.FirstOrDefault(entry => entry.Kind == MatchEventKind.CardPlayed);
+            if (played is not null && _data.CardsById.TryGetValue(played.CardId, out var card) && !BasicEnergy.IsBasicEnergyCard(card))
+            {
+                Record(QuestMetric.NonEnergyCardsPlayed, 1);
+            }
+        }
+
+        var createdSources = result.Events.Where(entry => entry.Kind == MatchEventKind.EnergySourceCreated).Sum(entry => entry.Amount);
+        if (createdSources > 0)
+        {
+            Record(QuestMetric.EnergySourcesAdded, createdSources);
+        }
+
+        if (changed)
+        {
+            _lastQuestRewards = _lastQuestRewards.Concat(rewards).ToArray();
+            SaveProfile();
+        }
+    }
+
+    private void RecordQuestDamage(IReadOnlyList<MatchEvent> events)
+    {
+        if (_profile is null || _engine is null || !_engine.State.Mode.ProgressionEligible || !CurrentRules().IsProgressionSafe)
+        {
+            return;
+        }
+
+        var profilePlayerIndex = _matchKind == MatchKind.Online ? LocalPlayerIndexForMatch() : HumanPlayerIndex;
+        var damage = events
+            .Where(entry => entry.Kind == MatchEventKind.DamageTaken && 1 - entry.PlayerIndex == profilePlayerIndex)
+            .Sum(entry => entry.Amount);
+        if (damage <= 0)
+        {
+            return;
+        }
+
+        var update = QuestService.Record(_profile, DateTimeOffset.UtcNow, QuestMetric.DamageDealt, damage, eligible: true);
+        if (update.StateChanged)
+        {
+            _lastQuestRewards = _lastQuestRewards.Concat(update.Rewards).ToArray();
+            SaveProfile();
+        }
     }
 
     private void ApplyRemoteCommand(NetworkCommand command)
@@ -1458,7 +2454,9 @@ public sealed partial class DragonCardsGame
                 "advance" => AdvanceMatchFlow(),
                 "add-energy" => _engine.AddEnergy(command.PayloadJson),
                 "resolve-energy" => _engine.ResolveEnergyChoice(command.PayloadJson),
+                "resolve-energy-source" => _engine.ResolveEnergySourceChoice(command.PayloadJson),
                 "play-card" => _engine.PlayCardFromHand(ParseInt(command.PayloadJson)),
+                "play-energy" => _engine.PlayEnergyFromHand(ParseInt(command.PayloadJson)),
                 "sacrifice" => ApplyRemoteSacrifice(command.PayloadJson),
                 "target" => ApplyRemoteTarget(command.PayloadJson),
                 "attack" => _engine.DeclareAttack(ParseInt(command.PayloadJson)),

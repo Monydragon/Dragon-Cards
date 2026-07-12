@@ -104,6 +104,11 @@ public static class DeckBuilderAssistantService
 
         foreach (var card in data.Cards)
         {
+            if (EnergySource.IsEnergySourceToken(card))
+            {
+                continue;
+            }
+
             if (!mode.AllowedCardTypes.Contains(card.Type, StringComparer.OrdinalIgnoreCase))
             {
                 continue;
@@ -162,6 +167,11 @@ public static class DeckBuilderAssistantService
                 continue;
             }
 
+            if (EnergySource.IsEnergySourceToken(card))
+            {
+                continue;
+            }
+
             var score = CutScore(card, count, roles, dominantElement, goal, mode.DeckRules.DeckSize);
             suggestions.Add(new DeckSuggestion
             {
@@ -212,6 +222,33 @@ public static class DeckBuilderAssistantService
 
             RemoveOne(cards, cut.CardId);
             working = working with { Cards = new Dictionary<string, int>(cards, StringComparer.OrdinalIgnoreCase) };
+        }
+
+        // A deliberate assistant action can establish the land-like starter baseline;
+        // manually assembled decks stay legal without Basic Energy because Add Energy remains.
+        var dominantElement = DominantElement(data, working);
+        var basicEnergyId = string.IsNullOrWhiteSpace(dominantElement) ? "" : BasicEnergy.CardId(dominantElement);
+        if (mode.Id.Equals(DragonCardsModeIds.DragonDuel, StringComparison.OrdinalIgnoreCase) &&
+            data.CardsById.TryGetValue(basicEnergyId, out var basicEnergy) &&
+            BasicEnergy.IsBasicEnergyCard(basicEnergy))
+        {
+            while (cards.GetValueOrDefault(basicEnergyId) < 12 && guard++ < 300)
+            {
+                if (working.Count >= mode.DeckRules.DeckSize)
+                {
+                    var cut = SuggestCuts(data, working, profile, rules, goal, 16)
+                        .FirstOrDefault(item => !item.CardId.Equals(basicEnergyId, StringComparison.OrdinalIgnoreCase));
+                    if (cut is null)
+                    {
+                        break;
+                    }
+
+                    RemoveOne(cards, cut.CardId);
+                }
+
+                cards[basicEnergyId] = cards.GetValueOrDefault(basicEnergyId) + 1;
+                working = working with { Cards = new Dictionary<string, int>(cards, StringComparer.OrdinalIgnoreCase) };
+            }
         }
 
         guard = 0;
@@ -370,6 +407,11 @@ public static class DeckBuilderAssistantService
     {
         var targets = Targets(goal, deckSize);
         var score = 100 + GoalScore(card, goal);
+        if (BasicEnergy.IsBasicEnergyCard(card) &&
+            card.Elements.Contains(dominantElement, StringComparer.OrdinalIgnoreCase))
+        {
+            score += 140;
+        }
         if (!string.IsNullOrWhiteSpace(dominantElement) && card.Elements.Contains(dominantElement, StringComparer.OrdinalIgnoreCase))
         {
             score += 24;
@@ -493,6 +535,11 @@ public static class DeckBuilderAssistantService
 
     private static int AvailableCopies(CardDefinition card, int current, PlayerProfile? profile, GameRulesConfig rules, GameModeDefinition mode)
     {
+        if (BasicEnergy.IsBasicEnergyCard(card))
+        {
+            return Math.Max(0, mode.DeckRules.DeckSize - current);
+        }
+
         var copyLimit = mode.DeckRules.MaxCopies;
         if (rules.AllUnlocks || rules.UnlimitedDeckBuilder || !rules.EnforceDeckOwnership || profile is null)
         {

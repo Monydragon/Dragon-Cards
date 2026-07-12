@@ -20,7 +20,8 @@ public static class DragonCardConstants
     [
         "Unit",
         "Support",
-        "Spell"
+        "Spell",
+        "Energy"
     ];
 
     public static readonly string[] BuiltInKeywords =
@@ -85,6 +86,7 @@ public sealed record EnergyRulesDefinition
 {
     public int MaxPerElement { get; init; } = 10;
     public int AddsPerTurn { get; init; } = 1;
+    public bool UsesPersistentEnergySources { get; init; }
 }
 
 public sealed record ElementAdvantageDefinition
@@ -127,8 +129,54 @@ public sealed record CardDefinition
     public string Rarity { get; set; } = CardRarities.Common;
     public string SetId { get; set; } = CardSets.Core;
     public string RulesText { get; init; } = "";
+    public bool IsBasicEnergy { get; init; }
+    public bool IsEnergySourceToken { get; init; }
 
     public int TotalCost => Cost.Values.Sum();
+}
+
+/// <summary>Shared identity rules for the eight zero-cost Basic Energy cards.</summary>
+public static class BasicEnergy
+{
+    public const string CardType = "Energy";
+
+    public static readonly string[] Elements =
+    [
+        "Fire", "Ice", "Wind", "Earth", "Lightning", "Water", "Light", "Dark"
+    ];
+
+    public static string CardId(string element) => $"basic-{element.Trim().ToLowerInvariant()}-energy";
+
+    public static bool IsBasicEnergyCardId(string? cardId) =>
+        !string.IsNullOrWhiteSpace(cardId) && Elements.Any(element =>
+            CardId(element).Equals(cardId, StringComparison.OrdinalIgnoreCase));
+
+    public static bool IsBasicEnergyCard(CardDefinition card) =>
+        card.IsBasicEnergy &&
+        card.Type.Equals(CardType, StringComparison.OrdinalIgnoreCase) &&
+        card.TotalCost == 0 &&
+        card.Elements.Count == 1 &&
+        IsBasicEnergyCardId(card.Id);
+}
+
+/// <summary>Field-only Energy source token identities used by persistent-source modes.</summary>
+public static class EnergySource
+{
+    public static string CardId(string element) => $"energy-source-{element.Trim().ToLowerInvariant()}";
+
+    public static bool IsEnergySourceCardId(string? cardId) =>
+        !string.IsNullOrWhiteSpace(cardId) && BasicEnergy.Elements.Any(element =>
+            CardId(element).Equals(cardId, StringComparison.OrdinalIgnoreCase));
+
+    public static bool IsEnergySourceToken(CardDefinition card) =>
+        card.IsEnergySourceToken &&
+        card.Type.Equals(BasicEnergy.CardType, StringComparison.OrdinalIgnoreCase) &&
+        card.TotalCost == 0 &&
+        card.Elements.Count == 1 &&
+        IsEnergySourceCardId(card.Id);
+
+    public static bool IsPersistentSource(CardDefinition card) =>
+        BasicEnergy.IsBasicEnergyCard(card) || IsEnergySourceToken(card);
 }
 
 public sealed record CardVisualDefinition

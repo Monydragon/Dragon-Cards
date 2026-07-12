@@ -51,7 +51,7 @@ public sealed partial class DragonCardsGame
             _dataIssues.Count == 0;
 
         DrawText("Multiplayer", new Vector2(54, 108), Color.White, 1.2f);
-        DrawText("Play locally on one device, or host a direct two-player lobby for a player on the same LAN.",
+        DrawText("Choose Local, a same-computer test, LAN, or an advanced direct connection. Internet queueing is not configured in this build; LAN/direct play remains available.",
             new Rectangle(56, 146, 1140, 36), UiTheme.TextMuted, 0.64f);
 
         DrawMultiplayerSectionTabs();
@@ -92,7 +92,7 @@ public sealed partial class DragonCardsGame
             SelectMultiplayerSection(MultiplayerSection.Local);
         }
 
-        if (Button(new Rectangle(242, 190, 176, 40), "Host Lobby", selected: _multiplayerSection == MultiplayerSection.HostLobby))
+        if (Button(new Rectangle(242, 190, 176, 40), "Host & Share", selected: _multiplayerSection == MultiplayerSection.HostLobby))
         {
             SelectMultiplayerSection(MultiplayerSection.HostLobby);
         }
@@ -126,27 +126,36 @@ public sealed partial class DragonCardsGame
 
     private void DrawHostLobbyPanel(Rectangle panel, PlayableModeDefinition selectedMode, bool canStart)
     {
-        DrawText("Host a Direct Lobby", new Vector2(panel.X + 30, panel.Y + 28), Color.White, 0.92f);
-        DrawText("One guest can join this client-hosted LAN lobby with a five-character code. The host starts after the roster is complete.",
+        DrawText("Host a Multiplayer Lobby", new Vector2(panel.X + 30, panel.Y + 28), Color.White, 0.92f);
+        DrawText("Start the lobby, then share the code that matches where the guest is running. The host starts after the roster is complete.",
             new Rectangle(panel.X + 30, panel.Y + 68, 720, 42), UiTheme.TextMuted, 0.58f);
         DrawModeSelection(panel, selectedMode, allowChange: !IsDirectLobbyActive);
 
         var codePanel = new Rectangle(panel.X + 30, panel.Y + 194, 714, 212);
         DrawPanel(codePanel, UiTheme.PanelInset, border: UiTheme.BorderStrong);
-        DrawText("Share this LAN code", new Vector2(codePanel.X + 24, codePanel.Y + 18), UiTheme.DragonGold, 0.68f);
-        DrawFittedCenteredText(_hostInviteCode, new Rectangle(codePanel.X + 24, codePanel.Y + 50, codePanel.Width - 48, 42), Color.White, 1.18f, 0.58f);
-        var copyFocus = _directLobbyState is DirectLobbyState.Idle or DirectLobbyState.Failed or DirectLobbyState.Connected ? 1 : 0;
-        if (Button(new Rectangle(codePanel.Right - 170, codePanel.Y + 102, 146, 36), "Copy Code",
-                focused: _usingController && _multiplayerFocus == copyFocus))
+        DrawText("Another device on your LAN", new Vector2(codePanel.X + 24, codePanel.Y + 18), UiTheme.DragonGold, 0.58f);
+        DrawFittedCenteredText(_hostInviteCode, new Rectangle(codePanel.X + 24, codePanel.Y + 46, 296, 42), Color.White, 1.08f, 0.58f);
+        var lanCopyFocus = _directLobbyState is DirectLobbyState.Idle or DirectLobbyState.Failed or DirectLobbyState.Connected ? 1 : 0;
+        if (Button(new Rectangle(codePanel.X + 24, codePanel.Y + 98, 200, 36), "Copy LAN Code",
+                focused: _usingController && _multiplayerFocus == lanCopyFocus))
         {
             CopyHostInviteCode();
         }
 
-        DrawText($"LAN host: {_hostInvite.Host}:{_hostInvite.Port}", new Vector2(codePanel.X + 24, codePanel.Y + 112), UiTheme.TextMuted, 0.54f);
+        var sameComputerCopyFocus = _directLobbyState is DirectLobbyState.Idle or DirectLobbyState.Failed or DirectLobbyState.Connected ? 2 : 1;
+        DrawText("Two profiles on this computer", new Vector2(codePanel.X + 374, codePanel.Y + 18), UiTheme.DragonGold, 0.58f);
+        if (Button(new Rectangle(codePanel.X + 374, codePanel.Y + 56, 284, 46), "Copy This PC Code",
+                focused: _usingController && _multiplayerFocus == sameComputerCopyFocus))
+        {
+            CopySameComputerInviteCode();
+        }
+
+        DrawText("Paste this in Join Lobby on the second app. It bypasses LAN discovery and firewall rules.",
+            new Rectangle(codePanel.X + 374, codePanel.Y + 116, 300, 34), UiTheme.TextMuted, 0.46f);
         DrawText(_hostInvite.Host == "127.0.0.1"
-                ? "No LAN IPv4 address was detected; this invite is available only on this device."
-                : $"Guests enter the code on the same LAN. Allow Private-network UDP {LanLobbyDiscovery.Port} and TCP {_hostInvite.Port} if Windows asks.",
-            new Rectangle(codePanel.X + 24, codePanel.Y + 158, codePanel.Width - 48, 36), UiTheme.TextMuted, 0.45f);
+                ? "No LAN IPv4 address was detected. Use the This PC code only."
+                : $"LAN host: {_hostInvite.Host}:{_hostInvite.Port} - Allow Private-network UDP {LanLobbyDiscovery.Port} and TCP {_hostInvite.Port} if Windows asks.",
+            new Rectangle(codePanel.X + 24, codePanel.Y + 164, codePanel.Width - 48, 28), UiTheme.TextMuted, 0.45f);
 
         DrawLobbyRoster(new Rectangle(panel.X + 780, panel.Y + 120, 646, 286));
         if (_directLobbyState is DirectLobbyState.Idle or DirectLobbyState.Failed)
@@ -158,7 +167,7 @@ public sealed partial class DragonCardsGame
             }
 
             if (Button(new Rectangle(panel.X + 438, panel.Bottom - 98, 192, 52), "New Code", canStart,
-                    focused: _usingController && _multiplayerFocus == 2))
+                    focused: _usingController && _multiplayerFocus == 3))
             {
                 GenerateHostInviteForSelectedMode();
                 _multiplayerNotice = "Created a new lobby invite.";
@@ -173,7 +182,7 @@ public sealed partial class DragonCardsGame
             }
 
             if (Button(new Rectangle(panel.X + 438, panel.Bottom - 98, 192, 52), "Cancel Lobby",
-                    focused: _usingController && _multiplayerFocus == 2))
+                    focused: _usingController && _multiplayerFocus == 3))
             {
                 CancelDirectLobby();
             }
@@ -186,8 +195,8 @@ public sealed partial class DragonCardsGame
 
     private void DrawJoinLobbyPanel(Rectangle panel)
     {
-        DrawText("Join a Direct Lobby", new Vector2(panel.X + 30, panel.Y + 28), Color.White, 0.92f);
-        DrawText("Enter or paste the five-character code from the host. The game finds that lobby on your local network; no matchmaking service is involved.",
+        DrawText("Join a Multiplayer Lobby", new Vector2(panel.X + 30, panel.Y + 28), Color.White, 0.92f);
+        DrawText("Enter a five-character LAN code, or paste a direct code. For two profiles on this computer, paste the host's This PC Code.",
             new Rectangle(panel.X + 30, panel.Y + 68, 860, 42), UiTheme.TextMuted, 0.58f);
 
         var inviteRect = new Rectangle(panel.X + 30, panel.Y + 136, 880, 64);
@@ -206,12 +215,12 @@ public sealed partial class DragonCardsGame
 
         if (InviteCode.TryDecodeLobbyCode(_joinInviteCode, out var lobbyToken, out var lobbyError))
         {
-            DrawText($"Valid LAN code {InviteCode.EncodeLobbyCode(lobbyToken)}. Connect searches for the host on this network.",
+            DrawText($"Valid LAN code {InviteCode.EncodeLobbyCode(lobbyToken)}. Connect searches your local network for the host.",
                 new Rectangle(panel.X + 30, panel.Y + 218, 880, 32), UiTheme.Success, 0.54f);
         }
         else if (InviteCode.TryDecode(_joinInviteCode, out var invite, out var error))
         {
-            DrawText($"Valid legacy {InviteLabel(_joinInviteCode)} invite: {ModeName(invite.ModeId)} at {invite.Host}:{invite.Port}",
+            DrawText($"Valid direct {InviteLabel(_joinInviteCode)} invite: {ModeName(invite.ModeId)} at {invite.Host}:{invite.Port}",
                 new Rectangle(panel.X + 30, panel.Y + 218, 880, 32), UiTheme.Success, 0.54f);
         }
         else if (!string.IsNullOrWhiteSpace(_joinInviteCode))
@@ -247,7 +256,7 @@ public sealed partial class DragonCardsGame
         DrawLobbyRoster(new Rectangle(panel.X + 956, panel.Y + 112, 470, 294));
         DrawText(DirectLobbyStatusLabel(), new Rectangle(panel.X + 30, panel.Bottom - 110, 1240, 40),
             _directLobbyState == DirectLobbyState.Failed ? UiTheme.Danger : UiTheme.TextMuted, 0.62f);
-        DrawText("Paste: Ctrl+V or Paste Code. Keyboard/controller: left/right changes view, Tab changes action, Enter/A activates. Codes ignore letter case.",
+        DrawText("LAN codes are for another device on your network. Direct codes include an address; Internet hosts must make TCP 47288 reachable. Ctrl+V pastes a code.",
             new Rectangle(panel.X + 30, panel.Bottom - 60, 1240, 28), UiTheme.TextMuted, 0.48f);
     }
 
@@ -336,17 +345,20 @@ public sealed partial class DragonCardsGame
             case MultiplayerSection.HostLobby when _directLobbyState is DirectLobbyState.Idle or DirectLobbyState.Failed:
                 if (_multiplayerFocus == 0 && canStart) HostSelectedMode(selectedMode);
                 else if (_multiplayerFocus == 1) CopyHostInviteCode();
-                else if (_multiplayerFocus == 2) GenerateHostInviteForSelectedMode();
+                else if (_multiplayerFocus == 2) CopySameComputerInviteCode();
+                else if (_multiplayerFocus == 3) GenerateHostInviteForSelectedMode();
                 else NavigateAwayFromMultiplayer();
                 break;
             case MultiplayerSection.HostLobby when _directLobbyState == DirectLobbyState.Connected && _networkConnection?.IsHost == true:
                 if (_multiplayerFocus == 0) StartHostedLobbyMatch();
                 else if (_multiplayerFocus == 1) CopyHostInviteCode();
-                else if (_multiplayerFocus == 2) CancelDirectLobby();
+                else if (_multiplayerFocus == 2) CopySameComputerInviteCode();
+                else if (_multiplayerFocus == 3) CancelDirectLobby();
                 else NavigateAwayFromMultiplayer();
                 break;
             case MultiplayerSection.HostLobby:
                 if (_multiplayerFocus == 0) CopyHostInviteCode();
+                else if (_multiplayerFocus == 1) CopySameComputerInviteCode();
                 else NavigateAwayFromMultiplayer();
                 break;
             case MultiplayerSection.JoinLobby when _directLobbyState is DirectLobbyState.Idle or DirectLobbyState.Failed:
@@ -403,9 +415,9 @@ public sealed partial class DragonCardsGame
     private int MultiplayerActionCount() => _multiplayerSection switch
     {
         MultiplayerSection.Local => 2,
-        MultiplayerSection.HostLobby when _directLobbyState is DirectLobbyState.Idle or DirectLobbyState.Failed => 4,
-        MultiplayerSection.HostLobby when _directLobbyState == DirectLobbyState.Connected && _networkConnection?.IsHost == true => 4,
-        MultiplayerSection.HostLobby => 2,
+        MultiplayerSection.HostLobby when _directLobbyState is DirectLobbyState.Idle or DirectLobbyState.Failed => 5,
+        MultiplayerSection.HostLobby when _directLobbyState == DirectLobbyState.Connected && _networkConnection?.IsHost == true => 5,
+        MultiplayerSection.HostLobby => 3,
         MultiplayerSection.JoinLobby when _directLobbyState is DirectLobbyState.Idle or DirectLobbyState.Failed => 5,
         _ => 2
     };
@@ -426,8 +438,23 @@ public sealed partial class DragonCardsGame
     {
         if (DesktopClipboard.TrySetText(_hostInviteCode, out var error))
         {
-            _multiplayerNotice = "Lobby code copied. Share it with a player on your local network.";
-            _status = "Invite code copied to the clipboard.";
+            _multiplayerNotice = "LAN code copied. Share it with a player on your local network.";
+            _status = "LAN code copied to the clipboard.";
+        }
+        else
+        {
+            _multiplayerNotice = error;
+            _status = error;
+        }
+    }
+
+    private void CopySameComputerInviteCode()
+    {
+        EnsureHostInvite();
+        if (DesktopClipboard.TrySetText(_hostSameComputerInviteCode, out var error))
+        {
+            _multiplayerNotice = "This PC code copied. In the second app, open Join Lobby, paste it, then connect.";
+            _status = "This PC code copied to the clipboard.";
         }
         else
         {

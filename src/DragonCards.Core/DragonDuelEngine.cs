@@ -83,8 +83,8 @@ public sealed class DragonDuelEngine
             throw new ArgumentException($"Unknown game mode '{modeId}'.", nameof(modeId));
         }
 
-        var firstIssues = GameDataValidator.ValidateDeck(firstDeck, data);
-        var secondIssues = GameDataValidator.ValidateDeck(secondDeck, data);
+        var firstIssues = GameDataValidator.ValidateDeck(firstDeck, data, modeId);
+        var secondIssues = GameDataValidator.ValidateDeck(secondDeck, data, modeId);
         if (firstIssues.Count > 0 || secondIssues.Count > 0)
         {
             var joined = string.Join(Environment.NewLine, firstIssues.Concat(secondIssues).Select(issue => issue.Message));
@@ -121,7 +121,7 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("Resolve the combat action window before changing phases.");
         }
 
-        if (State.PendingEnergyChoice is not null)
+        if (State.PendingEnergyChoice is not null || State.PendingEnergySourceChoice is not null)
         {
             return GameActionResult.Fail("Choose an energy element before changing phases.");
         }
@@ -138,6 +138,7 @@ public sealed class DragonDuelEngine
             State.PhaseIndex = 0;
             State.TurnNumber++;
             State.EnergyAddsThisTurn = 0;
+            State.EnergyCardsPlayedThisTurn = 0;
             events.Add(PhaseEvent($"{State.ActivePlayer.Name}'s turn begins."));
             events.AddRange(BeginCurrentPhase());
             return GameActionResult.Ok($"{State.ActivePlayer.Name}'s turn begins.", events);
@@ -166,7 +167,7 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("Resolve the combat action window first.");
         }
 
-        if (State.PendingEnergyChoice is not null)
+        if (State.PendingEnergyChoice is not null || State.PendingEnergySourceChoice is not null)
         {
             return GameActionResult.Fail("Choose an energy element first.");
         }
@@ -209,7 +210,7 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("The match is already over.");
         }
 
-        if (State.PendingEnergyChoice is not null)
+        if (State.PendingEnergyChoice is not null || State.PendingEnergySourceChoice is not null)
         {
             return GameActionResult.Fail("Choose an energy element first.");
         }
@@ -229,7 +230,9 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("Energy has already been added this turn.");
         }
 
-        return GainEnergy(State.ActivePlayerIndex, element, 1, countsAsTurnAdd: true);
+        return State.Mode.EnergyRules.UsesPersistentEnergySources
+            ? CreateEnergySources(State.ActivePlayerIndex, element, 1, EnergySourceOrigin.FreeAdd, countsAsTurnAdd: true)
+            : GainEnergy(State.ActivePlayerIndex, element, 1, countsAsTurnAdd: true);
     }
 
     public bool CanAddEnergy(string? element = null)
@@ -237,6 +240,7 @@ public sealed class DragonDuelEngine
         if (State.WinnerIndex is not null ||
             State.PendingCombatAction is not null ||
             State.PendingEnergyChoice is not null ||
+            State.PendingEnergySourceChoice is not null ||
             State.PendingTargetChoice is not null ||
             !IsMainPhase() ||
             State.EnergyAddsThisTurn >= State.Mode.EnergyRules.AddsPerTurn)
@@ -250,20 +254,85 @@ public sealed class DragonDuelEngine
         }
 
         return State.Mode.Elements.Contains(element, StringComparer.OrdinalIgnoreCase) &&
-            State.ActivePlayer.EnergyPool.GetValueOrDefault(element) < State.Mode.EnergyRules.MaxPerElement;
+            (State.Mode.EnergyRules.UsesPersistentEnergySources
+                ? CountEnergySources(State.ActivePlayer, element) < State.Mode.EnergyRules.MaxPerElement
+                : State.ActivePlayer.EnergyPool.GetValueOrDefault(element) < State.Mode.EnergyRules.MaxPerElement);
     }
 
-    public GameActionResult PlaceEnergyFromHand(int handIndex)
+    [Obsolete("Use PlayEnergyFromHand so Basic Energy consumes the card and enters the Energy row.")]
+    public GameActionResult PlaceEnergyFromHand(int handIndex) => PlayEnergyFromHand(handIndex);
+
+    public GameActionResult PlayEnergyFromHand(int handIndex)
     {
+        if (State.WinnerIndex is not null)
+        {
+            return GameActionResult.Fail("The match is already over.");
+        }
+
+        if (State.PendingCombatAction is not null || State.PendingEnergyChoice is not null || State.PendingEnergySourceChoice is not null || State.PendingTargetChoice is not null)
+        {
+            return GameActionResult.Fail("Resolve the current choice or combat action first.");
+        }
+
+        if (!IsMainPhase())
+        {
+            return GameActionResult.Fail("Basic Energy can only be played during a main phase.");
+        }
+
+        if (State.HasPlayedEnergyCardThisTurn)
+        {
+            return GameActionResult.Fail("A Basic Energy card has already been played this turn.");
+        }
+
         var player = State.ActivePlayer;
         if (!IsValidIndex(player.Hand, handIndex))
         {
             return GameActionResult.Fail("No card exists at that hand position.");
         }
 
-        var card = State.DefinitionFor(player.Hand[handIndex]);
-        var element = card.Elements.FirstOrDefault() ?? State.Mode.Elements.First();
-        return AddEnergy(element);
+        var instance = player.Hand[handIndex];
+        var card = State.DefinitionFor(instance);
+        if (!BasicEnergy.IsBasicEnergyCard(card) ||
+            !State.Mode.AllowedCardTypes.Contains(BasicEnergy.CardType, StringComparer.OrdinalIgnoreCase))
+        {
+            return GameActionResult.Fail("That card is not a Basic Energy card legal in this mode.");
+        }
+
+        var element = card.Elements[0];
+        if (!State.Mode.EnergyRules.UsesPersistentEnergySources ||
+            CountEnergySources(player, element) >= State.Mode.EnergyRules.MaxPerElement)
+        {
+            return GameActionResult.Fail($"{element} energy sources are already maxed at {State.Mode.EnergyRules.MaxPerElement}.");
+        }
+
+        player.Hand.RemoveAt(handIndex);
+        State.EnergyCardsPlayedThisTurn++;
+        var energySource = new CardInstance(instance.CardId, instance.Id, EnergySourceOrigin.BasicCard);
+        var gained = CreateEnergySources(State.ActivePlayerIndex, element, 1, EnergySourceOrigin.BasicCard, suppliedSource: energySource);
+        if (!gained.Success)
+        {
+            player.Hand.Insert(handIndex, instance);
+            State.EnergyCardsPlayedThisTurn--;
+            return gained;
+        }
+
+        State.Log.Add($"{player.Name} played {card.Name}.");
+        var events = new List<MatchEvent>
+        {
+            new()
+            {
+                Kind = MatchEventKind.CardPlayed,
+                PlayerIndex = State.ActivePlayerIndex,
+                CardId = instance.CardId,
+                InstanceId = instance.Id,
+                From = new ZoneRef(State.ActivePlayerIndex, "Hand", handIndex),
+                To = new ZoneRef(State.ActivePlayerIndex, "EnergyField", player.EnergyField.FindIndex(card => card.Id == energySource.Id)),
+                Element = element,
+                Message = $"{card.Name} entered the Energy row."
+            }
+        };
+        events.AddRange(gained.Events);
+        return GameActionResult.Ok($"{card.Name} played for +1 {element} energy.", events);
     }
 
     public GameActionResult ResolveEnergyChoice(string element)
@@ -285,7 +354,84 @@ public sealed class DragonDuelEngine
             return GainEnergy(choice.PlayerIndex, element, choice.Amount, countsAsTurnAdd: false);
         }
 
-        return ConvertOneEnergy(choice.PlayerIndex, element);
+        if (!State.Mode.EnergyRules.UsesPersistentEnergySources)
+        {
+            return ConvertOneEnergy(choice.PlayerIndex, element);
+        }
+
+        var conversionPlayer = State.Players[choice.PlayerIndex];
+        if (CountEnergySources(conversionPlayer, element) >= State.Mode.EnergyRules.MaxPerElement ||
+            !conversionPlayer.EnergyField.Any(source =>
+                !source.Exhausted &&
+                !State.DefinitionFor(source).Elements.Contains(element, StringComparer.OrdinalIgnoreCase)))
+        {
+            return GameActionResult.Fail("No ready Energy source can be converted to that element.");
+        }
+
+        State.PendingEnergySourceChoice = new PendingEnergySourceChoice(
+            choice.PlayerIndex,
+            element,
+            $"Choose a ready Energy source to convert to {element}.",
+            choice.SourceInstanceId,
+            choice.CardId,
+            choice.EffectText);
+        return GameActionResult.Ok($"Choose a ready Energy source to convert to {element}.", new MatchEvent
+        {
+            Kind = MatchEventKind.TargetChoiceQueued,
+            PlayerIndex = choice.PlayerIndex,
+            CardId = choice.CardId,
+            InstanceId = choice.SourceInstanceId,
+            EffectText = choice.EffectText,
+            Element = element,
+            Message = $"Choose a ready Energy source to convert to {element}."
+        });
+    }
+
+    public GameActionResult ResolveEnergySourceChoice(string sourceInstanceId)
+    {
+        var choice = State.PendingEnergySourceChoice;
+        if (choice is null)
+        {
+            return GameActionResult.Fail("There is no pending Energy source choice.");
+        }
+
+        var player = State.Players[choice.PlayerIndex];
+        var sourceIndex = player.EnergyField.FindIndex(card => card.Id.Equals(sourceInstanceId, StringComparison.OrdinalIgnoreCase));
+        if (sourceIndex < 0)
+        {
+            return GameActionResult.Fail("That Energy source is no longer on the field.");
+        }
+
+        var source = player.EnergyField[sourceIndex];
+        var sourceCard = State.DefinitionFor(source);
+        var fromElement = sourceCard.Elements.FirstOrDefault() ?? "";
+        if (!State.Mode.EnergyRules.UsesPersistentEnergySources ||
+            !EnergySource.IsPersistentSource(sourceCard) ||
+            source.Exhausted ||
+            fromElement.Equals(choice.DestinationElement, StringComparison.OrdinalIgnoreCase) ||
+            CountEnergySources(player, choice.DestinationElement) >= State.Mode.EnergyRules.MaxPerElement)
+        {
+            return GameActionResult.Fail("Choose a ready Energy source of a different element with room at the destination.");
+        }
+
+        var converted = new CardInstance(EnergySource.CardId(choice.DestinationElement), source.Id, EnergySourceOrigin.Converted);
+        player.EnergyField[sourceIndex] = converted;
+        player.EnergyPool[fromElement]--;
+        player.EnergyPool[choice.DestinationElement] = player.EnergyPool.GetValueOrDefault(choice.DestinationElement) + 1;
+        State.PendingEnergySourceChoice = null;
+        State.Log.Add($"{player.Name} converted {fromElement} Energy into {choice.DestinationElement}.");
+        return GameActionResult.Ok($"Converted {fromElement} Energy to {choice.DestinationElement}.", new MatchEvent
+        {
+            Kind = MatchEventKind.EnergyConverted,
+            PlayerIndex = choice.PlayerIndex,
+            CardId = converted.CardId,
+            InstanceId = converted.Id,
+            From = new ZoneRef(choice.PlayerIndex, "EnergyField", sourceIndex),
+            To = new ZoneRef(choice.PlayerIndex, "EnergyField", sourceIndex),
+            Element = choice.DestinationElement,
+            Amount = 1,
+            Message = $"Converted {fromElement} Energy to {choice.DestinationElement}."
+        });
     }
 
     public void QueueEnergyChoice(
@@ -334,12 +480,12 @@ public sealed class DragonDuelEngine
     public bool CanResolveTargetChoice(ZoneRef target)
     {
         var choice = State.PendingTargetChoice;
-        if (choice is null || !TryGetFieldTarget(target, choice.Zones, out _, out _, out _))
+        if (choice is null || !TryGetFieldTarget(target, choice.Zones, out _, out var instance, out _))
         {
             return false;
         }
 
-        return choice.Scope switch
+        var matchesScope = choice.Scope switch
         {
             TargetScope.EnemyUnit => target.Zone.Equals("UnitField", StringComparison.OrdinalIgnoreCase) && target.PlayerIndex == 1 - choice.PlayerIndex,
             TargetScope.FriendlyUnit => target.Zone.Equals("UnitField", StringComparison.OrdinalIgnoreCase) && target.PlayerIndex == choice.PlayerIndex,
@@ -348,6 +494,17 @@ public sealed class DragonDuelEngine
             TargetScope.FriendlyField => target.PlayerIndex == choice.PlayerIndex,
             TargetScope.AnyField => true,
             _ => false
+        };
+        if (!matchesScope)
+        {
+            return false;
+        }
+
+        return choice.Type switch
+        {
+            PendingTargetChoiceType.ExhaustUnit => !instance.Exhausted,
+            PendingTargetChoiceType.ReadyUnit => instance.Exhausted,
+            _ => true
         };
     }
 
@@ -496,9 +653,9 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("The match is already over.");
         }
 
-        if (State.PendingEnergyChoice is not null)
+        if (State.PendingEnergyChoice is not null || State.PendingEnergySourceChoice is not null)
         {
-            return GameActionResult.Fail("Choose an energy element first.");
+            return GameActionResult.Fail("Resolve the pending Energy choice first.");
         }
 
         if (State.PendingTargetChoice is not null)
@@ -519,6 +676,10 @@ public sealed class DragonDuelEngine
 
         var instance = player.Hand[handIndex];
         var definition = State.DefinitionFor(instance);
+        if (BasicEnergy.IsBasicEnergyCard(definition))
+        {
+            return PlayEnergyFromHand(handIndex);
+        }
         var zoneIssue = ValidatePlayZone(player, definition);
         if (zoneIssue is not null)
         {
@@ -605,9 +766,9 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("The match is already over.");
         }
 
-        if (State.PendingEnergyChoice is not null)
+        if (State.PendingEnergyChoice is not null || State.PendingEnergySourceChoice is not null)
         {
-            return GameActionResult.Fail("Choose an energy element first.");
+            return GameActionResult.Fail("Resolve the pending Energy choice first.");
         }
 
         if (State.PendingTargetChoice is not null)
@@ -720,6 +881,7 @@ public sealed class DragonDuelEngine
         if (!IsMainPhase() ||
             State.PendingCombatAction is not null ||
             State.PendingEnergyChoice is not null ||
+            State.PendingEnergySourceChoice is not null ||
             State.PendingTargetChoice is not null)
         {
             return false;
@@ -732,14 +894,40 @@ public sealed class DragonDuelEngine
         }
 
         var card = State.DefinitionFor(player.Hand[handIndex]);
+        if (BasicEnergy.IsBasicEnergyCard(card))
+        {
+            return CanPlayEnergyFromHand(handIndex);
+        }
         return ValidatePlayZone(player, card) is null &&
             CreatePaymentPlan(State.ActivePlayerIndex, card.Cost, includeNextCardReduction: true) is not null;
+    }
+
+    public bool CanPlayEnergyFromHand(int handIndex)
+    {
+        if (State.WinnerIndex is not null ||
+            State.PendingCombatAction is not null ||
+            State.PendingEnergyChoice is not null ||
+            State.PendingEnergySourceChoice is not null ||
+            State.PendingTargetChoice is not null ||
+            !IsMainPhase() ||
+            State.HasPlayedEnergyCardThisTurn ||
+            !IsValidIndex(State.ActivePlayer.Hand, handIndex))
+        {
+            return false;
+        }
+
+        var card = State.DefinitionFor(State.ActivePlayer.Hand[handIndex]);
+        return BasicEnergy.IsBasicEnergyCard(card) &&
+            State.Mode.AllowedCardTypes.Contains(BasicEnergy.CardType, StringComparer.OrdinalIgnoreCase) &&
+            State.Mode.EnergyRules.UsesPersistentEnergySources &&
+            CountEnergySources(State.ActivePlayer, card.Elements[0]) < State.Mode.EnergyRules.MaxPerElement;
     }
 
     public bool CanActivateAbility(int ownerIndex, string sourceInstanceId, string abilityId)
     {
         if (State.WinnerIndex is not null ||
             State.PendingEnergyChoice is not null ||
+            State.PendingEnergySourceChoice is not null ||
             State.PendingTargetChoice is not null ||
             ownerIndex < 0 ||
             ownerIndex >= State.Players.Count)
@@ -833,6 +1021,7 @@ public sealed class DragonDuelEngine
             State.PendingAttack is not null ||
             State.PendingCombatAction is not null ||
             State.PendingEnergyChoice is not null ||
+            State.PendingEnergySourceChoice is not null ||
             State.PendingTargetChoice is not null ||
             !IsMainPhase())
         {
@@ -846,7 +1035,9 @@ public sealed class DragonDuelEngine
 
         var preview = GetSacrificeEnergyPreview(definition);
         return !string.IsNullOrWhiteSpace(preview.Element) &&
-            State.ActivePlayer.EnergyPool.GetValueOrDefault(preview.Element) < State.Mode.EnergyRules.MaxPerElement;
+            (State.Mode.EnergyRules.UsesPersistentEnergySources
+                ? CountEnergySources(State.ActivePlayer, preview.Element) < State.Mode.EnergyRules.MaxPerElement
+                : State.ActivePlayer.EnergyPool.GetValueOrDefault(preview.Element) < State.Mode.EnergyRules.MaxPerElement);
     }
 
     public GameActionResult SacrificeForEnergy(SacrificeSource source, int index)
@@ -861,9 +1052,9 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("Resolve the current attack before sacrificing.");
         }
 
-        if (State.PendingEnergyChoice is not null)
+        if (State.PendingEnergyChoice is not null || State.PendingEnergySourceChoice is not null)
         {
-            return GameActionResult.Fail("Choose an energy element before sacrificing.");
+            return GameActionResult.Fail("Resolve the pending Energy choice before sacrificing.");
         }
 
         if (State.PendingTargetChoice is not null)
@@ -890,7 +1081,7 @@ public sealed class DragonDuelEngine
         RemoveSacrificeCard(source, instance);
         instance.Exhausted = false;
         State.ActivePlayer.DiscardPile.Add(instance);
-        var result = GainEnergy(State.ActivePlayerIndex, preview.Element, preview.Amount, countsAsTurnAdd: false);
+        var result = GainEnergy(State.ActivePlayerIndex, preview.Element, preview.Amount, countsAsTurnAdd: false, sourceOrigin: EnergySourceOrigin.Sacrifice);
         State.Log.Add($"{State.ActivePlayer.Name} sacrificed {definition.Name} for {preview.Amount} {preview.Element} energy.");
         var events = new List<MatchEvent>
         {
@@ -1075,11 +1266,16 @@ public sealed class DragonDuelEngine
         return events;
     }
 
-    public GameActionResult GainEnergy(int playerIndex, string element, int amount, bool countsAsTurnAdd = false)
+    public GameActionResult GainEnergy(int playerIndex, string element, int amount, bool countsAsTurnAdd = false, EnergySourceOrigin sourceOrigin = EnergySourceOrigin.Effect)
     {
         if (!State.Mode.Elements.Contains(element, StringComparer.OrdinalIgnoreCase))
         {
             return GameActionResult.Fail($"'{element}' is not a valid element.");
+        }
+
+        if (State.Mode.EnergyRules.UsesPersistentEnergySources)
+        {
+            return CreateEnergySources(playerIndex, element, amount, sourceOrigin, countsAsTurnAdd);
         }
 
         var player = State.Players[playerIndex];
@@ -1109,6 +1305,80 @@ public sealed class DragonDuelEngine
         });
     }
 
+    private GameActionResult CreateEnergySources(
+        int playerIndex,
+        string element,
+        int amount,
+        EnergySourceOrigin sourceOrigin,
+        bool countsAsTurnAdd = false,
+        CardInstance? suppliedSource = null)
+    {
+        if (!State.Mode.Elements.Contains(element, StringComparer.OrdinalIgnoreCase))
+        {
+            return GameActionResult.Fail($"'{element}' is not a valid element.");
+        }
+
+        var player = State.Players[playerIndex];
+        var sourceCount = CountEnergySources(player, element);
+        var max = State.Mode.EnergyRules.MaxPerElement;
+        if (sourceCount >= max)
+        {
+            return GameActionResult.Fail($"{element} energy sources are already maxed at {max}.");
+        }
+
+        var requested = Math.Max(0, amount);
+        var created = Math.Min(requested, max - sourceCount);
+        if (suppliedSource is not null && created != 1)
+        {
+            return GameActionResult.Fail("That Basic Energy source cannot be added to the Energy field.");
+        }
+
+        var events = new List<MatchEvent>();
+        for (var index = 0; index < created; index++)
+        {
+            var source = suppliedSource ?? CreateGeneratedEnergySource(playerIndex, element, sourceOrigin);
+            source.Exhausted = false;
+            player.EnergyField.Add(source);
+            events.Add(new MatchEvent
+            {
+                Kind = MatchEventKind.EnergySourceCreated,
+                PlayerIndex = playerIndex,
+                CardId = source.CardId,
+                InstanceId = source.Id,
+                Element = element,
+                Amount = 1,
+                To = new ZoneRef(playerIndex, "EnergyField", player.EnergyField.Count - 1),
+                Message = $"{State.DefinitionFor(source).Name} became a persistent Energy source."
+            });
+        }
+
+        player.EnergyPool[element] = player.EnergyPool.GetValueOrDefault(element) + created;
+        if (countsAsTurnAdd)
+        {
+            State.EnergyAddsThisTurn++;
+        }
+
+        State.Log.Add($"{player.Name} created {created} {element} Energy source{(created == 1 ? "" : "s")}.");
+        events.Add(new MatchEvent
+        {
+            Kind = MatchEventKind.EnergyGained,
+            PlayerIndex = playerIndex,
+            Element = element,
+            Amount = created,
+            To = new ZoneRef(playerIndex, "EnergyPool"),
+            Message = $"{element} energy +{created}."
+        });
+        return GameActionResult.Ok($"{element} Energy source +{created}.", events);
+    }
+
+    private CardInstance CreateGeneratedEnergySource(int playerIndex, string element, EnergySourceOrigin origin) =>
+        new(EnergySource.CardId(element), $"p{playerIndex}-e{State.GeneratedEnergySourceSequence++:0000}-{element.ToLowerInvariant()}", origin);
+
+    private static int CountEnergySources(PlayerState player, string element) =>
+        player.EnergyField.Count(source =>
+            source.CardId.Equals(BasicEnergy.CardId(element), StringComparison.OrdinalIgnoreCase) ||
+            source.CardId.Equals(EnergySource.CardId(element), StringComparison.OrdinalIgnoreCase));
+
     public void ReduceNextCardCost(int playerIndex, int amount)
     {
         var player = State.Players[playerIndex];
@@ -1124,7 +1394,8 @@ public sealed class DragonDuelEngine
         {
             while (refunded < amount &&
                 player.LastPayment.GetValueOrDefault(element) > 0 &&
-                player.EnergyPool.GetValueOrDefault(element) < State.Mode.EnergyRules.MaxPerElement)
+                (State.Mode.EnergyRules.UsesPersistentEnergySources ||
+                 player.EnergyPool.GetValueOrDefault(element) < State.Mode.EnergyRules.MaxPerElement))
             {
                 player.LastPayment[element]--;
                 player.EnergyPool[element] = player.EnergyPool.GetValueOrDefault(element) + 1;
@@ -1147,9 +1418,9 @@ public sealed class DragonDuelEngine
             return GameActionResult.Fail("The match is already over.");
         }
 
-        if (State.PendingEnergyChoice is not null)
+        if (State.PendingEnergyChoice is not null || State.PendingEnergySourceChoice is not null)
         {
-            return GameActionResult.Fail("Choose an energy element first.");
+            return GameActionResult.Fail("Resolve the pending Energy choice first.");
         }
 
         if (State.PendingTargetChoice is not null)
@@ -1203,6 +1474,7 @@ public sealed class DragonDuelEngine
         if (State.WinnerIndex is not null ||
             State.PendingCombatAction is not null ||
             State.PendingEnergyChoice is not null ||
+            State.PendingEnergySourceChoice is not null ||
             State.PendingTargetChoice is not null ||
             !State.CurrentPhase.Equals("Combat", StringComparison.OrdinalIgnoreCase) ||
             State.PendingAttack is not null ||
@@ -1416,6 +1688,11 @@ public sealed class DragonDuelEngine
         {
             ReadyPlayer(State.ActivePlayer);
             State.EnergyAddsThisTurn = 0;
+            State.EnergyCardsPlayedThisTurn = 0;
+            if (State.Mode.EnergyRules.UsesPersistentEnergySources)
+            {
+                events.AddRange(RefreshEnergySources(State.ActivePlayerIndex));
+            }
             State.Log.Add($"{State.ActivePlayer.Name} readied their field.");
             events.Add(new MatchEvent
             {
@@ -1619,6 +1896,10 @@ public sealed class DragonDuelEngine
             var spent = plan.Spent.GetValueOrDefault(element);
             if (spent > 0)
             {
+                if (State.Mode.EnergyRules.UsesPersistentEnergySources)
+                {
+                    ExhaustEnergySourcesForPayment(player, element, spent);
+                }
                 player.EnergyPool[element] = player.EnergyPool.GetValueOrDefault(element) - spent;
             }
         }
@@ -1635,6 +1916,51 @@ public sealed class DragonDuelEngine
         }
 
         return true;
+    }
+
+    private IReadOnlyList<MatchEvent> RefreshEnergySources(int playerIndex)
+    {
+        var player = State.Players[playerIndex];
+        var events = new List<MatchEvent>();
+        foreach (var element in State.Mode.Elements)
+        {
+            var sourceCount = CountEnergySources(player, element);
+            var current = player.EnergyPool.GetValueOrDefault(element);
+            if (current < sourceCount)
+            {
+                player.EnergyPool[element] = sourceCount;
+            }
+
+            if (sourceCount > 0)
+            {
+                events.Add(new MatchEvent
+                {
+                    Kind = MatchEventKind.EnergyRefreshed,
+                    PlayerIndex = playerIndex,
+                    Element = element,
+                    Amount = Math.Max(0, sourceCount - current),
+                    To = new ZoneRef(playerIndex, "EnergyField"),
+                    Message = $"{element} Energy sources refreshed."
+                });
+            }
+        }
+
+        return events;
+    }
+
+    private void ExhaustEnergySourcesForPayment(PlayerState player, string element, int amount)
+    {
+        var readySources = player.EnergyField
+            .Where(source => !source.Exhausted)
+            .Where(source => source.CardId.Equals(BasicEnergy.CardId(element), StringComparison.OrdinalIgnoreCase) ||
+                source.CardId.Equals(EnergySource.CardId(element), StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+        var storedReserve = Math.Max(0, player.EnergyPool.GetValueOrDefault(element) - readySources.Length);
+        var sourcesToExhaust = Math.Max(0, amount - storedReserve);
+        foreach (var source in readySources.Take(sourcesToExhaust))
+        {
+            source.Exhausted = true;
+        }
     }
 
     private static Dictionary<string, int> NormalizeCost(IReadOnlyDictionary<string, int> cost)
@@ -1740,7 +2066,7 @@ public sealed class DragonDuelEngine
 
     private static void ReadyPlayer(PlayerState player)
     {
-        foreach (var card in player.UnitField.Concat(player.SupportField))
+        foreach (var card in player.UnitField.Concat(player.SupportField).Concat(player.EnergyField))
         {
             card.Exhausted = false;
         }
