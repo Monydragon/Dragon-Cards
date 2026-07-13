@@ -114,7 +114,7 @@ public sealed partial class DragonCardsGame
             _matchHistoryOpen = false;
         }
 
-        _screenFadeRemaining = _settings.ReducedMotion ? 0f : 0.17f;
+        _screenFadeRemaining = _settings.ReducedMotion ? 0f : 0.24f;
         _screenElapsed = 0f;
     }
 

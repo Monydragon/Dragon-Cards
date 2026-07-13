@@ -34,8 +34,9 @@ public sealed partial class DragonCardsGame : Game
     private const float CardDetailTextScale = 0.74f;
     private const float SmallCardDetailTextScale = 0.64f;
     private const float PromptDetailTextScale = 0.72f;
-    private const float AiInterActionPauseSeconds = 0.18f;
-    private static readonly int[] InteractionSpeedPercentOptions = [55, 70, 100, 140];
+    private const float AiInterActionPauseSeconds = 0.36f;
+    private static readonly int[] AnimationSpeedPercentOptions = [75, 100, 125, 150];
+    private static readonly int[] MessageDurationPercentOptions = [140, 100, 75, 55];
     private static readonly string[] ElementOrder = ["Fire", "Ice", "Wind", "Earth", "Lightning", "Water", "Light", "Dark"];
     private static readonly (int Width, int Height)[] WindowSizeOptions = [(1280, 720), (1440, 900), (1600, 900), (1920, 1080)];
     private static readonly IReadOnlyList<TutorialDefinition> TutorialDefinitions = CreateTutorialDefinitions();
@@ -260,11 +261,12 @@ public sealed partial class DragonCardsGame : Game
         }
 
         _presentation.ReducedMotion = _settings.ReducedMotion;
-        _presentation.SpeedMultiplier = InteractionSpeedMultiplier;
+        _presentation.AnimationSpeedMultiplier = AnimationSpeedMultiplier;
+        _presentation.MessageDurationMultiplier = MessageDurationMultiplier;
         _presentation.Update(elapsedSeconds);
         _audio.PlayActivationCues(_presentation.DrainActivations());
         var skipBlockingBeat = _presentation.IsBlocking &&
-            (Pressed(Keys.Space) || Pressed(Buttons.A) || Hit(new Rectangle(0, 0, VirtualWidth, VirtualHeight)));
+            (Pressed(Keys.Space) || Pressed(Buttons.A));
         var skipNonBlockingGroup = !_presentation.IsBlocking &&
             (Pressed(Keys.K) || Pressed(Buttons.LeftStick));
         if (_presentation.CanSkip && (skipBlockingBeat || skipNonBlockingGroup))
@@ -1146,12 +1148,12 @@ public sealed partial class DragonCardsGame : Game
         DrawText("Preferences", new Vector2(panel.X + 34, panel.Y + 18), Color.White, 0.82f);
 
         var listViewport = new Rectangle(panel.X + 34, panel.Y + 50, 690, 414);
-        var list = ListViewLayout.Create(listViewport, 9, 54, 8, _optionsListScroll);
-        if (_optionsFocusVisibilityPending && _optionsFocus <= 7)
+        var list = ListViewLayout.Create(listViewport, 10, 54, 8, _optionsListScroll);
+        if (_optionsFocusVisibilityPending && _optionsFocus <= 8)
         {
             _optionsListScroll.EnsureVisible(OptionsLogicalRow(_optionsFocus));
             _optionsFocusVisibilityPending = false;
-            list = ListViewLayout.Create(listViewport, 9, 54, 8, _optionsListScroll);
+            list = ListViewLayout.Create(listViewport, 10, 54, 8, _optionsListScroll);
         }
 
         foreach (var row in Enumerable.Range(list.VisibleItems.Start, list.VisibleItems.Count))
@@ -1181,10 +1183,13 @@ public sealed partial class DragonCardsGame : Game
                     DrawToggleRow(5, bounds, "Gameplay - Card Hover Zoom", _settings.CardZoom ? "On" : "Off", ToggleCardZoom);
                     break;
                 case 7:
-                    DrawChoiceRow(6, bounds, "Gameplay - Interaction Pace", InteractionSpeedLabel(), () => CycleInteractionSpeed(-1), () => CycleInteractionSpeed(1));
+                    DrawChoiceRow(6, bounds, "Gameplay - Animation Speed", AnimationSpeedLabel(), () => CycleAnimationSpeed(-1), () => CycleAnimationSpeed(1));
                     break;
                 case 8:
-                    DrawToggleRow(7, bounds, "Accessibility - Reduced Motion", _settings.ReducedMotion ? "On" : "Off", ToggleReducedMotion);
+                    DrawChoiceRow(7, bounds, "Gameplay - Message Duration", MessageDurationLabel(), () => CycleMessageDuration(-1), () => CycleMessageDuration(1));
+                    break;
+                case 9:
+                    DrawToggleRow(8, bounds, "Accessibility - Reduced Motion", _settings.ReducedMotion ? "On" : "Off", ToggleReducedMotion);
                     break;
             }
         }
@@ -1197,13 +1202,13 @@ public sealed partial class DragonCardsGame : Game
         DrawText("Audio Status", new Vector2(846, 304), Color.White, 0.82f);
         DrawText($"SFX {_audio.LoadedSoundCount}/{_audio.ExpectedSoundCount}", new Rectangle(846, 340, 184, 24), new Color(196, 207, 220), 0.56f);
         DrawText(_audio.MusicStatus, new Rectangle(846, 370, 184, 42), new Color(196, 207, 220), 0.56f);
-        if (Button(new Rectangle(846, 424, 160, 34), "Test Music", _audio.MusicLoaded, focused: _usingController && _optionsFocus == 8))
+        if (Button(new Rectangle(846, 424, 160, 34), "Test Music", _audio.MusicLoaded, focused: _usingController && _optionsFocus == 9))
         {
             _audio.RestartMusic();
             _status = "BGM restarted.";
         }
 
-        if (Button(new Rectangle(846, 468, 160, 34), "Test Sound", focused: _usingController && _optionsFocus == 9))
+        if (Button(new Rectangle(846, 468, 160, 34), "Test Sound", focused: _usingController && _optionsFocus == 10))
         {
             _audio.Play(SoundKeys.RarePull, throttleSeconds: 0);
             _status = "Sound test played.";
@@ -1213,11 +1218,45 @@ public sealed partial class DragonCardsGame : Game
         DrawText("Settings File", new Vector2(846, 604), Color.White, 0.76f);
         DrawText(ShortPath(GameSettings.SettingsFilePath), new Rectangle(846, 638, 184, 46), new Color(196, 207, 220), 0.5f);
 
-        if (Button(new Rectangle(54, 786, 150, 42), "Back", focused: _usingController && _optionsFocus == 10))
+        DrawPacingPreview(new Rectangle(1154, 198, 390, 360));
+
+        if (Button(new Rectangle(54, 786, 150, 42), "Back", focused: _usingController && _optionsFocus == 11))
         {
             _screen = UxBackDestination(Screen.MainMenu);
             _status = "Options saved.";
         }
+    }
+
+    private void DrawPacingPreview(Rectangle panel)
+    {
+        DrawPanel(panel, new Color(31, 37, 46), border: new Color(81, 96, 116));
+        DrawText("Pacing Preview", new Vector2(panel.X + 24, panel.Y + 20), Color.White, 0.82f);
+        DrawText($"{AnimationSpeedLabel()}  /  {MessageDurationLabel()}", new Rectangle(panel.X + 24, panel.Y + 54, panel.Width - 48, 30), new Color(196, 207, 220), 0.54f);
+
+        var motionSeconds = 0.82f / AnimationSpeedMultiplier;
+        var captionSeconds = 1.60f * MessageDurationMultiplier;
+        var total = Math.Max(motionSeconds, captionSeconds) + 0.65f;
+        var elapsed = total <= 0f ? 0f : _screenElapsed % total;
+        var motionProgress = Math.Clamp(elapsed / Math.Max(0.01f, motionSeconds), 0f, 1f);
+        var captionOpacity = Math.Clamp(Math.Min(elapsed / 0.16f, (captionSeconds - elapsed) / 0.22f), 0f, 1f);
+        var from = new Point(panel.X + 72, panel.Y + 190);
+        var to = new Point(panel.Right - 72, panel.Y + 190);
+        var point = _settings.ReducedMotion
+            ? to
+            : LerpArcPoint(from, to, EaseInOutCubic(motionProgress), 34f);
+        if (_data.CardsById.TryGetValue("fire-ember-whelp", out var sample))
+        {
+            DrawCardFrame(new Rectangle(point.X - 42, point.Y - 58, 84, 116), sample, selected: true, exhausted: false, count: 0, compact: true);
+        }
+
+        var previousOpacity = _drawOpacity;
+        _drawOpacity *= captionOpacity;
+        var banner = new Rectangle(panel.X + 24, panel.Bottom - 82, panel.Width - 48, 46);
+        Fill(banner, new Color(18, 22, 29, 218));
+        Border(banner, new Color(231, 113, 82), 2);
+        DrawFittedCenteredText("Play  Ember Whelp entered the battlefield.", banner, Color.White, 0.46f, 0.30f);
+        _drawOpacity = previousOpacity;
+        DrawText(_settings.ReducedMotion ? "Static highlight; full reading time retained." : "Anticipation, travel, settle, then readable hold.", new Rectangle(panel.X + 24, panel.Bottom - 28, panel.Width - 48, 20), new Color(171, 186, 204), 0.42f);
     }
 
     private static int OptionsLogicalRow(int focusIndex) => focusIndex switch
@@ -1228,7 +1267,8 @@ public sealed partial class DragonCardsGame : Game
         4 => 5,
         5 => 6,
         6 => 7,
-        _ => 8
+        7 => 8,
+        _ => 9
     };
 
     private static int OptionsFocusForLogicalRow(int logicalRow) => logicalRow switch
@@ -1240,7 +1280,8 @@ public sealed partial class DragonCardsGame : Game
         5 => 4,
         6 => 5,
         7 => 6,
-        _ => 7
+        8 => 7,
+        _ => 8
     };
 
     private void DrawStaticRow(Rectangle rect, string label, string value)
@@ -3077,6 +3118,13 @@ public sealed partial class DragonCardsGame : Game
         {
             DrawPresentationBeat(beat);
         }
+
+        if (_presentation.IsBlocking && _presentation.CanSkip)
+        {
+            var skip = new Rectangle(1004, 440, 166, 24);
+            Fill(skip, new Color(18, 22, 29, 190));
+            DrawFittedCenteredText("Space / A  Skip", skip, new Color(184, 198, 216), 0.36f, 0.26f);
+        }
     }
 
     private bool PresentationSuppressesZone(ZoneRef zone, string instanceId)
@@ -3095,11 +3143,10 @@ public sealed partial class DragonCardsGame : Game
 
     private void DrawPresentationBeat(PresentationBeat beat)
     {
-        var progress = EaseOutCubic(beat.Progress);
-        var pulse = (float)Math.Sin(beat.Progress * Math.PI);
-        var envelope = Math.Clamp(Math.Min(beat.Progress / 0.18f, (1f - beat.Progress) / 0.18f), 0f, 1f);
+        var progress = EaseInOutCubic(beat.MotionProgress);
+        var pulse = (float)Math.Sin(beat.AnimationProgress * Math.PI);
         var previousOpacity = _drawOpacity;
-        _drawOpacity *= envelope;
+        _drawOpacity *= beat.Opacity;
         try
         {
             var color = PresentationColor(beat.Event);
@@ -3107,7 +3154,7 @@ public sealed partial class DragonCardsGame : Game
             {
                 var target = ZoneCenter(beat.Event.To ?? beat.Event.From, beat.Event.PlayerIndex);
                 DrawRing(target, 38f, color, 3);
-                DrawBeatLabel(beat.Recipe.Caption, beat.Event.Message, color);
+                DrawBeatLabel(beat.Recipe.Caption, beat.Event.Message, color, beat.CaptionOpacity);
                 return;
             }
 
@@ -3147,7 +3194,7 @@ public sealed partial class DragonCardsGame : Game
                     MatchEventKind.BlockDeclared => "Block",
                     _ => "Damage"
                 };
-                DrawBeatLabel(label, beat.Event.Message, color);
+                DrawBeatLabel(label, beat.Event.Message, color, beat.CaptionOpacity);
                 return;
             }
 
@@ -3156,11 +3203,11 @@ public sealed partial class DragonCardsGame : Game
                 var center = to;
                 var radius = 34 + (int)(pulse * 24);
                 DrawRing(center, radius, color, 3);
-                DrawBeatLabel(beat.Event.Kind == MatchEventKind.CombatResolved ? "Resolve" : "Action", beat.Event.Message, color);
+                DrawBeatLabel(beat.Event.Kind == MatchEventKind.CombatResolved ? "Resolve" : "Action", beat.Event.Message, color, beat.CaptionOpacity);
                 return;
             }
 
-            var point = LerpPoint(from, to, progress);
+            var point = LerpArcPoint(from, to, progress, 46f);
             var width = 96 + (int)(pulse * 10);
             var height = 136 + (int)(pulse * 14);
             var cardRect = new Rectangle(point.X - width / 2, point.Y - height / 2, width, height);
@@ -3177,7 +3224,7 @@ public sealed partial class DragonCardsGame : Game
             Border(new Rectangle(cardRect.X - 8, cardRect.Y - 8, cardRect.Width + 16, cardRect.Height + 16), color, 3);
             if (!string.IsNullOrWhiteSpace(beat.Event.Message))
             {
-                DrawBeatLabel("Event", beat.Event.Message, color);
+                DrawBeatLabel("Event", beat.Event.Message, color, beat.CaptionOpacity);
             }
         }
         finally
@@ -3186,13 +3233,16 @@ public sealed partial class DragonCardsGame : Game
         }
     }
 
-    private void DrawBeatLabel(string title, string message, Color color)
+    private void DrawBeatLabel(string title, string message, Color color, float opacity)
     {
+        var previousOpacity = _drawOpacity;
+        _drawOpacity *= opacity;
         var banner = new Rectangle(430, 376, 740, 58);
         Fill(banner, new Color(18, 22, 29, 218));
         Border(banner, Color.Lerp(color, Color.White, 0.25f), 2);
         DrawFittedText(title, new Vector2(banner.X + 18, banner.Y + 10), 116, Color.Lerp(color, Color.White, 0.35f), 0.62f, 0.36f);
         DrawFittedText(message, new Vector2(banner.X + 132, banner.Y + 14), banner.Width - 150, Color.White, 0.52f, 0.3f);
+        _drawOpacity = previousOpacity;
     }
 
     private void DrawArrow(Point from, Point to, Color color, int thickness)
@@ -3739,15 +3789,24 @@ public sealed partial class DragonCardsGame : Game
         return new Point(x, y);
     }
 
-    private static float EaseOutCubic(float value)
+    private static float EaseInOutCubic(float value)
     {
-        var inverted = 1f - Math.Clamp(value, 0f, 1f);
-        return 1f - inverted * inverted * inverted;
+        var clamped = Math.Clamp(value, 0f, 1f);
+        return clamped < 0.5f
+            ? 4f * clamped * clamped * clamped
+            : 1f - MathF.Pow(-2f * clamped + 2f, 3f) / 2f;
     }
 
     private static Point LerpPoint(Point from, Point to, float amount) => new(
         (int)MathF.Round(MathHelper.Lerp(from.X, to.X, amount)),
         (int)MathF.Round(MathHelper.Lerp(from.Y, to.Y, amount)));
+
+    private static Point LerpArcPoint(Point from, Point to, float amount, float arcHeight)
+    {
+        var linear = LerpPoint(from, to, amount);
+        var lift = MathF.Sin(Math.Clamp(amount, 0f, 1f) * MathF.PI) * arcHeight;
+        return new Point(linear.X, linear.Y - (int)MathF.Round(lift));
+    }
 
     private static string SignedAmount(MatchEvent matchEvent) =>
         matchEvent.Kind == MatchEventKind.EnergySpent ? $"-{matchEvent.Amount}" : $"+{matchEvent.Amount}";
@@ -3840,6 +3899,17 @@ public sealed partial class DragonCardsGame : Game
     {
         Fill(new Rectangle(0, 862, VirtualWidth, 38), new Color(24, 28, 36));
         Border(new Rectangle(0, 862, VirtualWidth, 38), new Color(58, 70, 88), 1);
+        if (_screen == Screen.Match && _engine is not null)
+        {
+            var prompt = MatchPrompt();
+            DrawFittedText($"NEXT  {prompt}", new Vector2(28, 872), 760, new Color(225, 232, 241), 0.60f, 0.38f);
+            if (!string.IsNullOrWhiteSpace(_status) && !_status.Equals(prompt, StringComparison.OrdinalIgnoreCase))
+            {
+                DrawFittedText($"LAST  {_status}", new Vector2(820, 872), 750, new Color(171, 186, 204), 0.52f, 0.32f);
+            }
+            return;
+        }
+
         DrawText(_status, new Vector2(34, 872), new Color(207, 216, 228), 0.68f);
     }
 
@@ -4537,12 +4607,12 @@ public sealed partial class DragonCardsGame : Game
             return;
         }
 
-        if (_screen == Screen.Options && _optionsFocus <= 7)
+        if (_screen == Screen.Options && _optionsFocus <= 8)
         {
-            _optionsListScroll.Configure(9, 6);
+            _optionsListScroll.Configure(10, 6);
             if (!_optionsListScroll.VisibleRange.Contains(OptionsLogicalRow(_optionsFocus)))
             {
-                _optionsFocus = OptionsFocusForLogicalRow(_optionsListScroll.VisibleRange.Clamp(OptionsLogicalRow(_optionsFocus), 9));
+                _optionsFocus = OptionsFocusForLogicalRow(_optionsListScroll.VisibleRange.Clamp(OptionsLogicalRow(_optionsFocus), 10));
             }
             return;
         }
@@ -4754,11 +4824,11 @@ public sealed partial class DragonCardsGame : Game
 
     private void HandleOptionsController()
     {
-        _optionsListScroll.Configure(9, 6);
+        _optionsListScroll.Configure(10, 6);
         var focusMoved = false;
         if (FocusPressed(out var focusDelta))
         {
-            _optionsFocus = (_optionsFocus + focusDelta + 11) % 11;
+            _optionsFocus = (_optionsFocus + focusDelta + 12) % 12;
             focusMoved = true;
         }
         if (_uiActions.Triggered(UiAction.PagePrevious))
@@ -4783,17 +4853,17 @@ public sealed partial class DragonCardsGame : Game
         }
         else if (_uiActions.Triggered(UiAction.MoveToEnd))
         {
-            _optionsFocus = 10;
+            _optionsFocus = 11;
             _usingController = true;
             focusMoved = true;
         }
         if (DirectionPressed(Buttons.DPadUp, Buttons.DPadDown, out var vertical))
         {
-            _optionsFocus = Math.Clamp(_optionsFocus + vertical, 0, 10);
+            _optionsFocus = Math.Clamp(_optionsFocus + vertical, 0, 11);
             focusMoved = true;
         }
 
-        if (focusMoved && _optionsFocus <= 7)
+        if (focusMoved && _optionsFocus <= 8)
         {
             _optionsListScroll.EnsureVisible(OptionsLogicalRow(_optionsFocus));
             _optionsFocusVisibilityPending = false;
@@ -4807,21 +4877,21 @@ public sealed partial class DragonCardsGame : Game
         if (Pressed(Buttons.A))
         {
             _usingController = true;
-            if (_optionsFocus is 0 or 4 or 5 or 6 or 7)
+            if (_optionsFocus is 0 or 4 or 5 or 6 or 7 or 8)
             {
                 AdjustFocusedOption(1);
             }
-            else if (_optionsFocus == 8)
+            else if (_optionsFocus == 9)
             {
                 _audio.RestartMusic();
                 _status = "BGM restarted.";
             }
-            else if (_optionsFocus == 9)
+            else if (_optionsFocus == 10)
             {
                 _audio.Play(SoundKeys.RarePull, throttleSeconds: 0);
                 _status = "Sound test played.";
             }
-            else if (_optionsFocus == 10)
+            else if (_optionsFocus == 11)
             {
                 _screen = UxBackDestination(Screen.MainMenu);
                 _status = "Options saved.";
@@ -4966,16 +5036,19 @@ public sealed partial class DragonCardsGame : Game
                 ToggleCardZoom();
                 break;
             case 6:
-                CycleInteractionSpeed(delta);
+                CycleAnimationSpeed(delta);
                 break;
             case 7:
-                ToggleReducedMotion();
+                CycleMessageDuration(delta);
                 break;
             case 8:
+                ToggleReducedMotion();
+                break;
+            case 9:
                 _audio.RestartMusic();
                 _status = "BGM restarted.";
                 break;
-            case 9:
+            case 10:
                 _audio.Play(SoundKeys.RarePull, throttleSeconds: 0);
                 _status = "Sound test played.";
                 break;
@@ -5458,31 +5531,56 @@ public sealed partial class DragonCardsGame : Game
         _status = _settings.CardZoom ? "Card hover zoom enabled." : "Card hover zoom disabled.";
     }
 
-    private float InteractionSpeedMultiplier => _settings.InteractionSpeedPercent / 100f;
+    private float AnimationSpeedMultiplier => _settings.AnimationSpeedPercent / 100f;
+    private float MessageDurationMultiplier => _settings.MessageDurationPercent / 100f;
 
-    private string InteractionSpeedLabel() => _settings.InteractionSpeedPercent switch
+    private string AnimationSpeedLabel() => _settings.AnimationSpeedPercent switch
     {
-        55 => "Cinematic (0.55x)",
-        70 => "Natural (0.70x)",
-        100 => "Quick (1.00x)",
-        140 => "Fast (1.40x)",
-        _ => $"Custom ({InteractionSpeedMultiplier:0.##}x)"
+        75 => "Relaxed (0.75x)",
+        100 => "Natural (1.00x)",
+        125 => "Quick (1.25x)",
+        150 => "Fast (1.50x)",
+        _ => $"Custom ({AnimationSpeedMultiplier:0.##}x)"
     };
 
-    private void CycleInteractionSpeed(int delta)
+    private string MessageDurationLabel() => _settings.MessageDurationPercent switch
     {
-        var currentIndex = Array.IndexOf(InteractionSpeedPercentOptions, _settings.InteractionSpeedPercent);
-        if (currentIndex < 0)
-        {
-            currentIndex = Array.FindIndex(InteractionSpeedPercentOptions, value => value >= _settings.InteractionSpeedPercent);
-            currentIndex = currentIndex < 0 ? InteractionSpeedPercentOptions.Length - 1 : currentIndex;
-        }
+        140 => "Extended",
+        100 => "Comfortable",
+        75 => "Brief",
+        55 => "Minimal",
+        _ => $"Custom ({MessageDurationMultiplier:0.##}x)"
+    };
 
-        var nextIndex = (currentIndex + Math.Sign(delta) + InteractionSpeedPercentOptions.Length) % InteractionSpeedPercentOptions.Length;
-        _settings.InteractionSpeedPercent = InteractionSpeedPercentOptions[nextIndex];
-        _presentation.SpeedMultiplier = InteractionSpeedMultiplier;
+    private void CycleAnimationSpeed(int delta)
+    {
+        _settings.AnimationSpeedPercent = CycleOption(AnimationSpeedPercentOptions, _settings.AnimationSpeedPercent, delta);
+        ApplyPresentationPacing();
         _settings.Save();
-        _status = $"Interaction pace set to {InteractionSpeedLabel()}.";
+        _status = $"Animation speed set to {AnimationSpeedLabel()}.";
+    }
+
+    private void CycleMessageDuration(int delta)
+    {
+        _settings.MessageDurationPercent = CycleOption(MessageDurationPercentOptions, _settings.MessageDurationPercent, delta);
+        ApplyPresentationPacing();
+        _settings.Save();
+        _status = $"Message duration set to {MessageDurationLabel()}.";
+    }
+
+    private void ApplyPresentationPacing()
+    {
+        _presentation.AnimationSpeedMultiplier = AnimationSpeedMultiplier;
+        _presentation.MessageDurationMultiplier = MessageDurationMultiplier;
+    }
+
+    private static int CycleOption(IReadOnlyList<int> options, int current, int delta)
+    {
+        var currentIndex = Enumerable.Range(0, options.Count)
+            .OrderBy(index => Math.Abs(options[index] - current))
+            .First();
+        var nextIndex = (currentIndex + Math.Sign(delta) + options.Count) % options.Count;
+        return options[nextIndex];
     }
 
     private void ToggleReducedMotion()
@@ -5733,7 +5831,7 @@ public sealed partial class DragonCardsGame : Game
 
         AddTimelineEntries(events);
         _presentation.ReducedMotion = _settings.ReducedMotion;
-        _presentation.SpeedMultiplier = InteractionSpeedMultiplier;
+        ApplyPresentationPacing();
         _presentation.Enqueue(events);
         _audio.PlayActivationCues(_presentation.DrainActivations());
     }
@@ -5833,7 +5931,7 @@ public sealed partial class DragonCardsGame : Game
             }
 
             _aiAwaitingPresentation = false;
-            _aiInteractionDelaySeconds = AiInterActionPauseSeconds / InteractionSpeedMultiplier;
+            _aiInteractionDelaySeconds = AiInterActionPauseSeconds / AnimationSpeedMultiplier;
             return;
         }
 
@@ -6364,7 +6462,7 @@ public sealed partial class DragonCardsGame : Game
         {
             _screen = Screen.Options;
             _optionsFocus = 0;
-            _optionsListScroll.Configure(9, 6);
+            _optionsListScroll.Configure(10, 6);
             _optionsListScroll.MoveToStart();
             _optionsFocusVisibilityPending = true;
             _settings.ReducedMotion = false;
@@ -6373,8 +6471,8 @@ public sealed partial class DragonCardsGame : Game
         CaptureScreen("options-reduced-motion.png", () =>
         {
             _screen = Screen.Options;
-            _optionsFocus = 7;
-            _optionsListScroll.Configure(9, 6);
+            _optionsFocus = 8;
+            _optionsListScroll.Configure(10, 6);
             _optionsFocusVisibilityPending = true;
             _settings.ReducedMotion = true;
             _status = "Capture: Reduced Motion enabled.";
@@ -6509,7 +6607,7 @@ public sealed partial class DragonCardsGame : Game
         _selectedBlockerIndex = previousBlocker;
         _chooseFreeEnergy = previousChooseFreeEnergy;
         _optionsFocus = previousOptionsFocus;
-        _optionsListScroll.Configure(9, 6);
+        _optionsListScroll.Configure(10, 6);
         _optionsListScroll.SetOffset(previousOptionsScroll);
         _optionsFocusVisibilityPending = previousOptionsFocusVisibilityPending;
         _usingController = previousUsingController;
@@ -7087,7 +7185,8 @@ public sealed partial class DragonCardsGame : Game
         public int SoundVolume { get; set; } = 80;
         public bool MuteAudio { get; set; }
         public bool CardZoom { get; set; } = true;
-        public int InteractionSpeedPercent { get; set; } = 70;
+        public int AnimationSpeedPercent { get; set; } = 100;
+        public int MessageDurationPercent { get; set; } = 100;
         public bool ReducedMotion { get; set; }
 
         public static string SettingsFilePath =>
@@ -7101,6 +7200,7 @@ public sealed partial class DragonCardsGame : Game
                 {
                     using var document = JsonDocument.Parse(File.ReadAllText(SettingsFilePath));
                     var root = document.RootElement;
+                    var legacyInteractionSpeed = ReadInteger(root, "InteractionSpeedPercent", 70);
                     var loaded = new GameSettings
                     {
                         Fullscreen = ReadBoolean(root, nameof(Fullscreen), defaultValue: false),
@@ -7110,7 +7210,8 @@ public sealed partial class DragonCardsGame : Game
                         SoundVolume = ReadInteger(root, nameof(SoundVolume), 80),
                         MuteAudio = ReadBoolean(root, nameof(MuteAudio), defaultValue: false),
                         CardZoom = ReadBoolean(root, nameof(CardZoom), defaultValue: true),
-                        InteractionSpeedPercent = ReadInteger(root, nameof(InteractionSpeedPercent), 70),
+                        AnimationSpeedPercent = ReadInteger(root, nameof(AnimationSpeedPercent), PresentationPacing.MigrateLegacyAnimationSpeed(legacyInteractionSpeed)),
+                        MessageDurationPercent = ReadInteger(root, nameof(MessageDurationPercent), PresentationPacing.MigrateLegacyMessageDuration(legacyInteractionSpeed)),
                         ReducedMotion = ReadBoolean(root, nameof(ReducedMotion), defaultValue: false)
                     };
                     loaded.Normalize();
@@ -7148,7 +7249,8 @@ public sealed partial class DragonCardsGame : Game
                 writer.WriteNumber(nameof(SoundVolume), SoundVolume);
                 writer.WriteBoolean(nameof(MuteAudio), MuteAudio);
                 writer.WriteBoolean(nameof(CardZoom), CardZoom);
-                writer.WriteNumber(nameof(InteractionSpeedPercent), InteractionSpeedPercent);
+                writer.WriteNumber(nameof(AnimationSpeedPercent), AnimationSpeedPercent);
+                writer.WriteNumber(nameof(MessageDurationPercent), MessageDurationPercent);
                 writer.WriteBoolean(nameof(ReducedMotion), ReducedMotion);
                 writer.WriteEndObject();
             }
@@ -7173,8 +7275,10 @@ public sealed partial class DragonCardsGame : Game
             WindowHeight = Math.Clamp(WindowHeight, 576, 2160);
             MusicVolume = Math.Clamp(MusicVolume, 0, 100);
             SoundVolume = Math.Clamp(SoundVolume, 0, 100);
-            InteractionSpeedPercent = Math.Clamp(InteractionSpeedPercent, 35, 200);
+            AnimationSpeedPercent = Math.Clamp(AnimationSpeedPercent, 60, 160);
+            MessageDurationPercent = Math.Clamp(MessageDurationPercent, 55, 150);
         }
+
     }
 
     private sealed class DeckBuilderState

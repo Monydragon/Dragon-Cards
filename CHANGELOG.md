@@ -4,6 +4,7 @@ Dragon Cards follows `major.minor.patch` versioning. `Directory.Build.props` is 
 
 ## [Unreleased]
 
+- Rebuilt action presentation around anticipation, motion, settle, and length-aware narration phases; added separate persisted Animation Speed and Message Duration settings with legacy Interaction Pace migration and a live preview; slowed the default AI cadence; made skip explicit; separated match prompts from last-action text; and kept full reading time in Reduced Motion.
 - Fixed Dragon Avatar matches stalling when the AI queued a Ready effect with no exhausted friendly Unit, displayed each mode's real damage limit on the board, and added a regression proving Avatar victory at 10 damage.
 - Enabled profile progression in Dragon Duel, Starter Clash, Dragon Avatar, Sealed Gauntlet, and Tutorial Trials while keeping Sandbox Lab reward-free; fixed Avatar deck generation and added selected-mode legality/launch coverage for every match mode.
 - Redesigned the main menu as the Dragon's Roost: original blue-dragon key art frames the entry screen with its eye, wing, and tail; players now select a mode before entering setup, and the visible deck avatar is chosen from the actual active deck rather than a fixed placeholder card.
@@ -18,7 +19,7 @@ Dragon Cards follows `major.minor.patch` versioning. `Directory.Build.props` is 
 - Added provider-neutral matchmaking queue/status/assignment/reconnect contracts plus an explicit unavailable implementation and future REST/WebSocket architecture document. LAN/direct multiplayer remains the working path.
 - Made direct multiplayer lobby joins recover cleanly from stale or rejected peers and fail with a clear timeout if a reachable host never completes its handshake. The host remains open for the next valid guest.
 - Added LAN and same-PC invite guidance, including a direct This PC Code that bypasses discovery and firewall rules for two local app instances.
-- Added a persisted Interaction Pace option (Cinematic, Natural, Quick, Fast). Presentation playback now follows that setting, and AI turns advance one decision at a time after their feedback has played.
+- Added persisted presentation pacing and one-decision-at-a-time AI sequencing so visual feedback completes before the next AI action begins.
 
 ## [0.2.0] - 2026-07-10
 

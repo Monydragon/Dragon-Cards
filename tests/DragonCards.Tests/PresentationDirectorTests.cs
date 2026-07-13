@@ -27,6 +27,34 @@ public sealed class PresentationDirectorTests
     }
 
     [Fact]
+    public void NaturalPaceKeepsMajorNarrationReadableAfterMotionSettles()
+    {
+        var director = new PresentationDirector();
+        director.Enqueue([Event(MatchEventKind.CardPlayed)]);
+        var active = Assert.IsType<PresentationBeat>(director.Active);
+
+        Assert.True(active.CaptionDuration >= 1.4f);
+        Assert.True(active.CaptionDuration > active.AnimationDuration);
+
+        director.Update(active.AnimationDuration + 0.01f);
+
+        Assert.False(director.IsBlocking);
+        Assert.NotNull(director.Active);
+        Assert.True(active.CaptionOpacity > 0.9f);
+    }
+
+    [Theory]
+    [InlineData(55, 75, 140)]
+    [InlineData(70, 100, 100)]
+    [InlineData(100, 125, 75)]
+    [InlineData(140, 150, 55)]
+    public void LegacyInteractionPaceMigratesToSeparateSettings(int legacy, int animation, int message)
+    {
+        Assert.Equal(animation, PresentationPacing.MigrateLegacyAnimationSpeed(legacy));
+        Assert.Equal(message, PresentationPacing.MigrateLegacyMessageDuration(legacy));
+    }
+
+    [Fact]
     public void RepeatedDrawResourceAndDamageEventsAreCoalesced()
     {
         var director = new PresentationDirector();
@@ -83,7 +111,7 @@ public sealed class PresentationDirectorTests
         var active = Assert.IsType<PresentationBeat>(director.Active);
         Assert.Equal(MatchEventKind.CardPlayed, active.Event.Kind);
         Assert.Single(director.ActiveBeats);
-        Assert.True(director.IsBlocking);
+        Assert.False(director.IsBlocking);
     }
 
     [Fact]
@@ -135,7 +163,9 @@ public sealed class PresentationDirectorTests
         director.Enqueue([Event(MatchEventKind.CardDrawn)]);
         director.DrainActivations();
 
-        director.Update(0.81f);
+        var firstActionDuration = AnimationRecipes.For(MatchEventKind.CardPlayed).MinimumCaptionSeconds +
+            AnimationRecipes.For(MatchEventKind.AttackDeclared).MinimumCaptionSeconds;
+        director.Update(firstActionDuration + 0.01f);
 
         var active = Assert.IsType<PresentationBeat>(director.Active);
         Assert.Equal(MatchEventKind.CardDrawn, active.Event.Kind);
@@ -188,7 +218,10 @@ public sealed class PresentationDirectorTests
         director.Enqueue([Event(MatchEventKind.CardPlayed)]);
 
         var active = Assert.IsType<PresentationBeat>(director.Active);
-        Assert.Equal(PresentationDirector.ReducedMotionDurationSeconds, active.Duration);
+        Assert.Equal(0f, active.Recipe.MotionSeconds);
+        Assert.Equal(PresentationDirector.ReducedMotionHighlightSeconds, active.Recipe.SettleSeconds);
+        Assert.True(active.CaptionDuration >= standard.MinimumCaptionSeconds);
+        Assert.True(active.Duration > active.AnimationDuration);
         Assert.False(active.Blocking);
         Assert.False(director.IsBlocking);
         Assert.Equal(PresentationMotion.StaticHighlight, active.Recipe.Motion);
@@ -196,23 +229,40 @@ public sealed class PresentationDirectorTests
         Assert.Equal(standard.AddToTimeline, active.Recipe.AddToTimeline);
         Assert.Equal(standard.SoundCues, active.Recipe.SoundCues);
 
-        director.Update(PresentationDirector.ReducedMotionDurationSeconds);
+        director.Update(active.Duration);
         Assert.Null(director.Active);
     }
 
     [Fact]
-    public void SpeedMultiplierScalesPresentationCadence()
+    public void AnimationSpeedScalesMotionWithoutShorteningNarration()
     {
-        var director = new PresentationDirector { SpeedMultiplier = 0.5f };
-        director.Enqueue([Event(MatchEventKind.CardPlayed)]);
-        var active = Assert.IsType<PresentationBeat>(director.Active);
+        var natural = new PresentationDirector();
+        natural.Enqueue([Event(MatchEventKind.CardPlayed)]);
+        var naturalBeat = Assert.IsType<PresentationBeat>(natural.Active);
+        var relaxed = new PresentationDirector { AnimationSpeedMultiplier = 0.75f };
+        relaxed.Enqueue([Event(MatchEventKind.CardPlayed)]);
+        var relaxedBeat = Assert.IsType<PresentationBeat>(relaxed.Active);
 
-        director.Update(active.Duration);
+        Assert.True(relaxedBeat.AnimationDuration > naturalBeat.AnimationDuration);
+        Assert.Equal(naturalBeat.CaptionDuration, relaxedBeat.CaptionDuration);
+        relaxed.Update(naturalBeat.AnimationDuration);
 
-        Assert.InRange(active.Progress, 0.49f, 0.51f);
-        Assert.True(director.IsBlocking);
-        director.Update(active.Duration);
-        Assert.Null(director.Active);
+        Assert.InRange(relaxedBeat.AnimationProgress, 0.74f, 0.76f);
+        Assert.True(relaxed.IsBlocking);
+    }
+
+    [Fact]
+    public void MessageDurationScalesNarrationWithoutChangingMotion()
+    {
+        var comfortable = new PresentationDirector();
+        comfortable.Enqueue([Event(MatchEventKind.CardPlayed)]);
+        var comfortableBeat = Assert.IsType<PresentationBeat>(comfortable.Active);
+        var extended = new PresentationDirector { MessageDurationMultiplier = 1.4f };
+        extended.Enqueue([Event(MatchEventKind.CardPlayed)]);
+        var extendedBeat = Assert.IsType<PresentationBeat>(extended.Active);
+
+        Assert.Equal(comfortableBeat.AnimationDuration, extendedBeat.AnimationDuration);
+        Assert.True(extendedBeat.CaptionDuration > comfortableBeat.CaptionDuration);
     }
 
     [Fact]

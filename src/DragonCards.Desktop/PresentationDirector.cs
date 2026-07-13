@@ -27,7 +27,10 @@ internal enum PresentationMotion
 }
 
 internal sealed record AnimationRecipe(
-    float DurationSeconds,
+    float AnticipationSeconds,
+    float MotionSeconds,
+    float SettleSeconds,
+    float MinimumCaptionSeconds,
     PresentationPriority Priority,
     bool BlocksInput,
     PresentationMotion Motion,
@@ -35,12 +38,28 @@ internal sealed record AnimationRecipe(
     bool AddToTimeline,
     IReadOnlyList<string> SoundCues)
 {
+    public float AnimationDurationSeconds => AnticipationSeconds + MotionSeconds + SettleSeconds;
+    public float DurationSeconds => Math.Max(AnimationDurationSeconds, MinimumCaptionSeconds);
+
     public AnimationRecipe ForReducedMotion() => this with
     {
-        DurationSeconds = PresentationDirector.ReducedMotionDurationSeconds,
+        AnticipationSeconds = 0.04f,
+        MotionSeconds = 0f,
+        SettleSeconds = PresentationDirector.ReducedMotionHighlightSeconds,
         BlocksInput = false,
         Motion = PresentationMotion.StaticHighlight
     };
+
+    public AnimationRecipe WithAnimationSpeed(float speedMultiplier)
+    {
+        var speed = Math.Clamp(speedMultiplier, 0.6f, 1.6f);
+        return this with
+        {
+            AnticipationSeconds = AnticipationSeconds / speed,
+            MotionSeconds = MotionSeconds / speed,
+            SettleSeconds = SettleSeconds / speed
+        };
+    }
 }
 
 internal static class AnimationRecipes
@@ -49,29 +68,29 @@ internal static class AnimationRecipes
         new ReadOnlyDictionary<MatchEventKind, AnimationRecipe>(
             new Dictionary<MatchEventKind, AnimationRecipe>
             {
-                [MatchEventKind.PhaseChanged] = Recipe(0.18f, PresentationPriority.Standard, false, PresentationMotion.Fade, "Phase", false, SoundKeys.Phase),
-                [MatchEventKind.CardDrawn] = Recipe(0.34f, PresentationPriority.Primary, true, PresentationMotion.CardTravel, "Draw", true, SoundKeys.CardDraw),
-                [MatchEventKind.CardPlayed] = Recipe(0.40f, PresentationPriority.Primary, true, PresentationMotion.CardTravel, "Play", true, SoundKeys.CardPlay),
-                [MatchEventKind.CardDiscarded] = Recipe(0.32f, PresentationPriority.Primary, true, PresentationMotion.CardTravel, "Discard", true, SoundKeys.CardDiscard),
-                [MatchEventKind.CardSacrificed] = Recipe(0.38f, PresentationPriority.Primary, true, PresentationMotion.CardTravel, "Sacrifice", true, SoundKeys.Sacrifice),
-                [MatchEventKind.EnergySpent] = Recipe(0.18f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy spent", false, SoundKeys.EnergySpend),
-                [MatchEventKind.EnergyGained] = Recipe(0.18f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy gained", false, SoundKeys.EnergyGain),
-                [MatchEventKind.EnergySourceCreated] = Recipe(0.30f, PresentationPriority.Standard, false, PresentationMotion.CardTravel, "Energy source", true, SoundKeys.EnergyGain),
-                [MatchEventKind.EnergyRefreshed] = Recipe(0.18f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy refresh", false, SoundKeys.CardReady),
-                [MatchEventKind.EnergyConverted] = Recipe(0.20f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy converted", false, SoundKeys.EnergyGain),
-                [MatchEventKind.EnergyRefunded] = Recipe(0.18f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy refunded", false, SoundKeys.EnergyGain),
-                [MatchEventKind.CostReduced] = Recipe(0.18f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Cost reduced", false, SoundKeys.CostReduce),
-                [MatchEventKind.AbilityActivated] = Recipe(0.32f, PresentationPriority.Primary, true, PresentationMotion.SourceReveal, "Ability", true, SoundKeys.Ability),
-                [MatchEventKind.TargetChoiceQueued] = Recipe(0.12f, PresentationPriority.Standard, false, PresentationMotion.StaticHighlight, "Choose target", false, SoundKeys.TargetPrompt),
-                [MatchEventKind.TargetResolved] = Recipe(0.30f, PresentationPriority.Primary, true, PresentationMotion.TargetHighlight, "Target", true, SoundKeys.TargetResolve),
-                [MatchEventKind.AttackDeclared] = Recipe(0.40f, PresentationPriority.Primary, true, PresentationMotion.CombatLunge, "Attack", true, SoundKeys.Attack),
-                [MatchEventKind.BlockDeclared] = Recipe(0.38f, PresentationPriority.Primary, true, PresentationMotion.CombatLunge, "Block", true, SoundKeys.Block),
-                [MatchEventKind.CombatActionQueued] = Recipe(0.18f, PresentationPriority.Standard, false, PresentationMotion.SourceReveal, "Combat action", false, SoundKeys.CombatWindow),
-                [MatchEventKind.CombatActionPassed] = Recipe(0.16f, PresentationPriority.Standard, false, PresentationMotion.Fade, "Pass", true, SoundKeys.CombatWindow),
-                [MatchEventKind.CombatResolved] = Recipe(0.42f, PresentationPriority.Primary, true, PresentationMotion.Impact, "Resolve", true, SoundKeys.CombatResolve),
-                [MatchEventKind.DamageTaken] = Recipe(0.36f, PresentationPriority.Primary, true, PresentationMotion.Impact, "Damage", true, SoundKeys.Damage),
-                [MatchEventKind.CardReadied] = Recipe(0.18f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Ready", false, SoundKeys.CardReady),
-                [MatchEventKind.CardReturnedToHand] = Recipe(0.36f, PresentationPriority.Primary, true, PresentationMotion.CardTravel, "Return", true, SoundKeys.CardReturn)
+                [MatchEventKind.PhaseChanged] = Recipe(0.72f, 1.40f, PresentationPriority.Standard, false, PresentationMotion.Fade, "Phase", false, SoundKeys.Phase),
+                [MatchEventKind.CardDrawn] = Recipe(0.72f, 1.45f, PresentationPriority.Primary, true, PresentationMotion.CardTravel, "Draw", true, SoundKeys.CardDraw),
+                [MatchEventKind.CardPlayed] = Recipe(0.82f, 1.60f, PresentationPriority.Primary, true, PresentationMotion.CardTravel, "Play", true, SoundKeys.CardPlay),
+                [MatchEventKind.CardDiscarded] = Recipe(0.68f, 1.45f, PresentationPriority.Primary, true, PresentationMotion.CardTravel, "Discard", true, SoundKeys.CardDiscard),
+                [MatchEventKind.CardSacrificed] = Recipe(0.90f, 1.65f, PresentationPriority.Primary, true, PresentationMotion.CardTravel, "Sacrifice", true, SoundKeys.Sacrifice),
+                [MatchEventKind.EnergySpent] = Recipe(0.48f, 1.15f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy spent", false, SoundKeys.EnergySpend),
+                [MatchEventKind.EnergyGained] = Recipe(0.48f, 1.15f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy gained", false, SoundKeys.EnergyGain),
+                [MatchEventKind.EnergySourceCreated] = Recipe(0.62f, 1.35f, PresentationPriority.Standard, false, PresentationMotion.CardTravel, "Energy source", true, SoundKeys.EnergyGain),
+                [MatchEventKind.EnergyRefreshed] = Recipe(0.44f, 1.10f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy refresh", false, SoundKeys.CardReady),
+                [MatchEventKind.EnergyConverted] = Recipe(0.52f, 1.20f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy converted", false, SoundKeys.EnergyGain),
+                [MatchEventKind.EnergyRefunded] = Recipe(0.48f, 1.15f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Energy refunded", false, SoundKeys.EnergyGain),
+                [MatchEventKind.CostReduced] = Recipe(0.46f, 1.15f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Cost reduced", false, SoundKeys.CostReduce),
+                [MatchEventKind.AbilityActivated] = Recipe(0.76f, 1.65f, PresentationPriority.Primary, true, PresentationMotion.SourceReveal, "Ability", true, SoundKeys.Ability),
+                [MatchEventKind.TargetChoiceQueued] = Recipe(0.36f, 1.50f, PresentationPriority.Standard, false, PresentationMotion.StaticHighlight, "Choose target", false, SoundKeys.TargetPrompt),
+                [MatchEventKind.TargetResolved] = Recipe(0.64f, 1.45f, PresentationPriority.Primary, true, PresentationMotion.TargetHighlight, "Target", true, SoundKeys.TargetResolve),
+                [MatchEventKind.AttackDeclared] = Recipe(1.00f, 1.75f, PresentationPriority.Primary, true, PresentationMotion.CombatLunge, "Attack", true, SoundKeys.Attack),
+                [MatchEventKind.BlockDeclared] = Recipe(0.86f, 1.60f, PresentationPriority.Primary, true, PresentationMotion.CombatLunge, "Block", true, SoundKeys.Block),
+                [MatchEventKind.CombatActionQueued] = Recipe(0.52f, 1.35f, PresentationPriority.Standard, false, PresentationMotion.SourceReveal, "Combat action", false, SoundKeys.CombatWindow),
+                [MatchEventKind.CombatActionPassed] = Recipe(0.46f, 1.20f, PresentationPriority.Standard, false, PresentationMotion.Fade, "Pass", true, SoundKeys.CombatWindow),
+                [MatchEventKind.CombatResolved] = Recipe(1.04f, 1.80f, PresentationPriority.Primary, true, PresentationMotion.Impact, "Resolve", true, SoundKeys.CombatResolve),
+                [MatchEventKind.DamageTaken] = Recipe(0.86f, 1.65f, PresentationPriority.Primary, true, PresentationMotion.Impact, "Damage", true, SoundKeys.Damage),
+                [MatchEventKind.CardReadied] = Recipe(0.44f, 1.10f, PresentationPriority.Secondary, false, PresentationMotion.ResourcePulse, "Ready", false, SoundKeys.CardReady),
+                [MatchEventKind.CardReturnedToHand] = Recipe(0.78f, 1.55f, PresentationPriority.Primary, true, PresentationMotion.CardTravel, "Return", true, SoundKeys.CardReturn)
             });
 
     public static IReadOnlyDictionary<MatchEventKind, AnimationRecipe> All => Recipes;
@@ -81,14 +100,50 @@ internal static class AnimationRecipes
         : throw new ArgumentOutOfRangeException(nameof(kind), kind, "No animation recipe is registered for this match event kind.");
 
     private static AnimationRecipe Recipe(
-        float durationSeconds,
+        float animationSeconds,
+        float minimumCaptionSeconds,
         PresentationPriority priority,
         bool blocksInput,
         PresentationMotion motion,
         string caption,
         bool addToTimeline,
-        params string[] soundCues) =>
-        new(durationSeconds, priority, blocksInput, motion, caption, addToTimeline, Array.AsReadOnly(soundCues));
+        params string[] soundCues)
+    {
+        var anticipationRatio = motion is PresentationMotion.CardTravel or PresentationMotion.CombatLunge or PresentationMotion.SourceReveal ? 0.18f : 0.12f;
+        var settleRatio = motion is PresentationMotion.Impact or PresentationMotion.CombatLunge ? 0.30f : 0.24f;
+        var anticipation = animationSeconds * anticipationRatio;
+        var settle = animationSeconds * settleRatio;
+        return new AnimationRecipe(
+            anticipation,
+            Math.Max(0f, animationSeconds - anticipation - settle),
+            settle,
+            minimumCaptionSeconds,
+            priority,
+            blocksInput,
+            motion,
+            caption,
+            addToTimeline,
+            Array.AsReadOnly(soundCues));
+    }
+}
+
+internal static class PresentationPacing
+{
+    public static int MigrateLegacyAnimationSpeed(int legacyPercent) => legacyPercent switch
+    {
+        <= 55 => 75,
+        <= 70 => 100,
+        <= 100 => 125,
+        _ => 150
+    };
+
+    public static int MigrateLegacyMessageDuration(int legacyPercent) => legacyPercent switch
+    {
+        <= 55 => 140,
+        <= 70 => 100,
+        <= 100 => 75,
+        _ => 55
+    };
 }
 
 internal sealed class PresentationBeat
@@ -97,23 +152,49 @@ internal sealed class PresentationBeat
         int actionId,
         MatchEvent matchEvent,
         IReadOnlyList<MatchEvent> sourceEvents,
-        AnimationRecipe recipe)
+        AnimationRecipe recipe,
+        float captionDuration)
     {
         ActionId = actionId;
         Event = matchEvent;
         SourceEvents = sourceEvents;
         Recipe = recipe;
+        CaptionDuration = Math.Max(0.45f, captionDuration);
     }
 
     public int ActionId { get; }
     public MatchEvent Event { get; }
     public IReadOnlyList<MatchEvent> SourceEvents { get; }
     public AnimationRecipe Recipe { get; }
-    public float Duration => Recipe.DurationSeconds;
+    public float CaptionDuration { get; }
+    public float AnimationDuration => Recipe.AnimationDurationSeconds;
+    public float Duration => Math.Max(AnimationDuration, CaptionDuration);
     public bool Blocking => Recipe.BlocksInput;
     public float Elapsed { get; internal set; }
     public float Progress => Duration <= 0f ? 1f : Math.Clamp(Elapsed / Duration, 0f, 1f);
+    public float AnimationProgress => AnimationDuration <= 0f ? 1f : Math.Clamp(Elapsed / AnimationDuration, 0f, 1f);
+    public float MotionProgress => Recipe.MotionSeconds <= 0f
+        ? 1f
+        : Math.Clamp((Elapsed - Recipe.AnticipationSeconds) / Recipe.MotionSeconds, 0f, 1f);
+    public float SettleProgress => Recipe.SettleSeconds <= 0f
+        ? 1f
+        : Math.Clamp((Elapsed - Recipe.AnticipationSeconds - Recipe.MotionSeconds) / Recipe.SettleSeconds, 0f, 1f);
+    public bool IsBlocking => Recipe.BlocksInput && Elapsed < AnimationDuration;
+    public float Opacity => FadeEnvelope(Elapsed, Duration, 0.16f, 0.22f);
+    public float CaptionOpacity => FadeEnvelope(Elapsed, CaptionDuration, 0.16f, 0.22f);
     public bool IsComplete => Progress >= 1f;
+
+    private static float FadeEnvelope(float elapsed, float duration, float fadeIn, float fadeOut)
+    {
+        if (duration <= 0f)
+        {
+            return 0f;
+        }
+
+        var enter = Math.Clamp(elapsed / Math.Min(fadeIn, duration * 0.5f), 0f, 1f);
+        var exit = Math.Clamp((duration - elapsed) / Math.Min(fadeOut, duration * 0.5f), 0f, 1f);
+        return Math.Min(enter, exit);
+    }
 }
 
 internal readonly record struct PresentationActivation(
@@ -137,7 +218,7 @@ internal static class PresentationVisibility
 
         return beats.Any(beat =>
             beat.Recipe.Motion == PresentationMotion.CardTravel &&
-            beat.Progress < 0.94f &&
+            beat.MotionProgress < 0.94f &&
             beat.SourceEvents.Any(source =>
                 source.To is { } destination &&
                 destination.PlayerIndex == zone.PlayerIndex &&
@@ -155,8 +236,8 @@ internal static class PresentationVisibility
 /// </summary>
 internal sealed class PresentationDirector
 {
-    public const float MinimumSkipDelaySeconds = 0.12f;
-    public const float ReducedMotionDurationSeconds = 0.10f;
+    public const float MinimumSkipDelaySeconds = 0.35f;
+    public const float ReducedMotionHighlightSeconds = 0.24f;
 
     private readonly Queue<ActionGroup> _pendingGroups = [];
     private readonly Queue<PresentationActivation> _activations = [];
@@ -165,12 +246,14 @@ internal sealed class PresentationDirector
 
     public bool ReducedMotion { get; set; }
     /// <summary>
-    /// Multiplies the rate at which presentation beats advance. Values below one make every
-    /// animation and its matching sound cadence more deliberate; values above one speed them up.
+    /// Scales motion independently from narration. Values below one slow movement; values above
+    /// one speed it up.
     /// </summary>
-    public float SpeedMultiplier { get; set; } = 1f;
+    public float AnimationSpeedMultiplier { get; set; } = 1f;
+    /// <summary>Scales how long action narration remains visible without changing movement.</summary>
+    public float MessageDurationMultiplier { get; set; } = 1f;
     public PresentationBeat? Active => _activeGroup?.SequenceBeat ?? _activeGroup?.ParallelBeats.FirstOrDefault();
-    public bool IsBlocking => _activeGroup?.CurrentBeats.Any(beat => beat.Blocking && !beat.IsComplete) == true;
+    public bool IsBlocking => _activeGroup?.CurrentBeats.Any(beat => beat.IsBlocking) == true;
     public bool CanSkip => _activeGroup is not null && _activeGroup.Elapsed >= MinimumSkipDelaySeconds;
     public int PendingActionCount => _pendingGroups.Count + (_activeGroup is null ? 0 : 1);
     public bool HasPendingActivations => _activations.Count > 0;
@@ -187,7 +270,7 @@ internal sealed class PresentationDirector
         }
 
         var actionId = _nextActionId++;
-        var beats = CreateBeats(actionId, snapshots, ReducedMotion);
+        var beats = CreateBeats(actionId, snapshots);
         if (beats.Count == 0)
         {
             return;
@@ -199,7 +282,7 @@ internal sealed class PresentationDirector
 
     public void Update(float elapsedSeconds)
     {
-        var remaining = Math.Max(0f, elapsedSeconds) * Math.Clamp(SpeedMultiplier, 0.35f, 2f);
+        var remaining = Math.Max(0f, elapsedSeconds);
         EnsureActiveGroup();
 
         while (_activeGroup is not null && remaining > 0f)
@@ -267,11 +350,12 @@ internal sealed class PresentationDirector
 
         var actionId = _nextActionId++;
         var snapshot = Snapshot(matchEvent);
-        var recipe = EffectiveRecipe(snapshot.Kind, ReducedMotion);
-        var beat = new PresentationBeat(actionId, snapshot, Array.AsReadOnly([snapshot]), recipe)
+        var recipe = EffectiveRecipe(snapshot.Kind);
+        var beat = new PresentationBeat(actionId, snapshot, Array.AsReadOnly([snapshot]), recipe, CaptionDuration(snapshot, recipe))
         {
-            Elapsed = recipe.DurationSeconds * Math.Clamp(progress, 0f, 1f)
+            Elapsed = 0f
         };
+        beat.Elapsed = beat.Duration * Math.Clamp(progress, 0f, 1f);
 
         _activeGroup = ActionGroup.ForCapture(actionId, beat);
     }
@@ -295,18 +379,20 @@ internal sealed class PresentationDirector
         beat.Recipe,
         beat.SourceEvents.Count));
 
-    private static IReadOnlyList<PresentationBeat> CreateBeats(int actionId, IReadOnlyList<MatchEvent> events, bool reducedMotion)
+    private IReadOnlyList<PresentationBeat> CreateBeats(int actionId, IReadOnlyList<MatchEvent> events)
     {
         var buckets = Coalesce(RemoveRedundantMovementEvents(events));
         return buckets
             .Select(bucket =>
             {
                 var merged = Merge(bucket);
+                var recipe = EffectiveRecipe(merged.Kind);
                 return new PresentationBeat(
                     actionId,
                     merged,
                     Array.AsReadOnly(bucket.ToArray()),
-                    EffectiveRecipe(merged.Kind, reducedMotion));
+                    recipe,
+                    CaptionDuration(merged, recipe));
             })
             .ToArray();
     }
@@ -338,10 +424,19 @@ internal sealed class PresentationDirector
         return result;
     }
 
-    private static AnimationRecipe EffectiveRecipe(MatchEventKind kind, bool reducedMotion)
+    private AnimationRecipe EffectiveRecipe(MatchEventKind kind)
     {
         var recipe = AnimationRecipes.For(kind);
-        return reducedMotion ? recipe.ForReducedMotion() : recipe;
+        return (ReducedMotion ? recipe.ForReducedMotion() : recipe)
+            .WithAnimationSpeed(AnimationSpeedMultiplier);
+    }
+
+    private float CaptionDuration(MatchEvent matchEvent, AnimationRecipe recipe)
+    {
+        var text = string.IsNullOrWhiteSpace(matchEvent.Message) ? recipe.Caption : matchEvent.Message;
+        var words = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+        var naturalReadingTime = Math.Clamp(0.9f + words / 6f, recipe.MinimumCaptionSeconds, 3.2f);
+        return naturalReadingTime * Math.Clamp(MessageDurationMultiplier, 0.55f, 1.5f);
     }
 
     private static IReadOnlyList<List<MatchEvent>> Coalesce(IReadOnlyList<MatchEvent> events)
